@@ -5,6 +5,11 @@ __pycache__/
 
 # C extensions
 *.so
+*.pyc
+*.pyo
+*.o
+*.c
+*.h
 
 # Distribution / packaging
 .Python
@@ -127,3 +132,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Visual Stadio Code
+.vscode/
+
+# Other directories
+output/
+
+# calcam files
+*.ccm
