@@ -1,0 +1,95 @@
+from numpy import asarray, ascontiguousarray, empty, linspace, sin, cos, pi
+# from cherab.core.math.function import autowrap_function3d
+# cimport cython
+# cimport numpy as np
+
+"""
+This module provides a set of sampling functions for rapidly generating samples
+of a 3D functions with cylindrical coords.
+
+These functions use C calls when sampling Function3D
+objects and are therefore considerably faster than the equivalent Python code.
+"""
+
+
+def sample3d_rz(function3d, r_range, z_range, phi=0.0):
+    """
+    Samples a 3D function over the specified range with r - z coords
+    at a certain toroidal angle
+
+    Parameters
+    ----------
+    function3d : function
+        a Python function or Function3D object
+    r_range : tuple
+        the r sample range: (r_min, r_max, r_samples)
+    z_range : [type]
+        the z sample range: (z_min, z_max, z_samples)
+    phi : double
+        toroidal angle in degree, by default 0.0 [deg]
+
+    Return
+    ------
+    tuple
+        sampled values: (r_points, z_points, function_samples)
+
+    .. code-block:: pycon
+
+       >>> from cherab.lhd.tools import sample3d_rz
+       >>>
+       >>> def f1(x, y, z):
+       >>>     return x**3 + y**2 + z
+       >>>
+       >>> r_pts, z_pts, f_vals = sample3d_rz(f1, (1, 3, 3), (1, 3, 3), 0.0)
+       >>> r_pts
+       array([1., 2., 3.])
+       >>> f_vals
+       array()
+    """
+
+    # cdef:
+    #     int i, j
+    #     Function3D f3d
+    #     int r_samples, z_samples
+    #     double phi_rad
+    #     double[::1] x_mv, y_mv, z_mv
+    #     double[:, ::1] v_mv
+
+    if len(r_range) != 3:
+        raise ValueError("R range must be a tuple containing: (min range, max range, no. of samples).")
+
+    if len(z_range) != 3:
+        raise ValueError("Z range must be a tuple containing: (min range, max range, no. of samples).")
+
+    if r_range[0] > r_range[1]:
+        raise ValueError("Minimum r range can not be greater than maximum r range.")
+
+    if z_range[0] > z_range[1]:
+        raise ValueError("Minimum z range can not be greater than maximum z range.")
+
+    if r_range[2] < 1:
+        raise ValueError("The number of r samples must be >= 1.")
+
+    if z_range[2] < 1:
+        raise ValueError("The number of z samples must be >= 1.")
+
+    phi_rad = phi * pi / 180.0
+
+    r_samples = r_range[2]
+    z_samples = z_range[2]
+
+    r = linspace(r_range[0], r_range[1], r_samples)
+    z = linspace(z_range[0], z_range[1], z_samples)
+    x = linspace(r_range[0] * cos(phi_rad), r_range[1] * cos(phi_rad), r_samples)
+    y = linspace(r_range[0] * sin(phi_rad), r_range[1] * sin(phi_rad), r_samples)
+    v = empty((r_samples, z_samples))
+
+    for i in range(r_samples):
+        for j in range(z_samples):
+            v[i, j] = function3d(x[i], y[i], z[j])
+
+    return r, z, v
+
+
+if __name__ == "__main__":
+    pass
