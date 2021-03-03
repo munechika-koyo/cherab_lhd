@@ -166,8 +166,13 @@ class EMC3:
             raise ValueError("zones labels are contained in the kyes in generated tetrahedra.")
 
         # integrate vertices and tetrahedra in zones
-        vertices = np.concatenate([self._vertices[zone] for zone in zones], axis=0)
-        tetrahedra = np.concatenate([self._tetrahedra[zone] for zone in zones], axis=0)
+        vertices = self._vertices[zones[0]]
+        tetrahedra = self._tetrahedra[zones[0]]
+        next_index = vertices.shape[0]
+        for zone in zones[1:]:
+            vertices = np.concatenate([vertices, self._vertices[zone]], axis=0)
+            tetrahedra = np.concatenate([tetrahedra, self._tetrahedra[zone] + next_index], axis=0)
+            next_index = vertices.shape[0]
 
         # cell indices used in this function
         cell_index = []
@@ -180,7 +185,7 @@ class EMC3:
         # save into path directory using pickel if save is True
         if save is True:
             with open(path, "wb") as f:
-                pickle.dump(index_func, f)
+                pickle.dump(index_func, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         return index_func
 
