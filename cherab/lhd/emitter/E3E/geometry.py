@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 from matplotlib import pyplot as plt
 from cherab.lhd.emitter.E3E.cython import Discrete3DMesh
-from cherab.lhd.emitter.E3E.utils import read_E3E_grid, generate_faces
+from cherab.lhd.emitter.E3E.utils import read_E3E_grid
 
 BASE = os.path.dirname(__file__)
 GRID_PATH = os.path.join(BASE, "data", "grid-360.txt")
@@ -130,7 +130,7 @@ class EMC3:
                 offset += num_total
 
             # geomtric cell indices at one toroidal plane
-            faces = generate_faces(self.num_radial, self.num_poloidal, zone=zone)
+            faces = self.generate_faces(zone=zone)
 
             # Divide a cell into six tetrahedra.
             tet_id = 0
@@ -152,6 +152,24 @@ class EMC3:
         self._tetrahedra = tetrahedra
 
     def generate_index_function(self, zones=None, save=True, path=None):
+        f"""Generate EMC3's Physical Index function
+        and Pickelize to store it.
+
+        Parameters
+        ----------
+        zones : list, optional
+            zones label, by default self.zones :math:`['zone0', 'zone1', ...]`
+        save : bool, optional
+            whether or not to store this function, by default True
+        path : str, optional
+            path to saving file name, by default {os.path.join(BASE, "data", "emc3_grid.pickel")}
+
+        Returns
+        -------
+        IntegerFunction3D
+            cythonized function returing a EMC3's physical indix corresponding to
+            (x, y, z) coords.
+        """
 
         # path to save function as pickel
         path = path or os.path.join(BASE, "data", "emc3_grid.pickel")
@@ -190,11 +208,73 @@ class EMC3:
         return index_func
 
     def load_index_func(self, path=None):
+        f"""Load pickeled EMC3's physical index function
+
+        Parameters
+        ----------
+        path : str, optional
+            path to pickeld file, by default {os.path.join(BASE, "data", "emc3_grid.pickel")}
+
+        Returns
+        -------
+        IntegerFunction3D
+            cythonized function returing a EMC3's physical indix corresponding to
+            (x, y, z) coords.
+        """
         path = path or os.path.join(BASE, "data", "emc3_grid.pickel")
         with open(path, "rb") as f:
             return pickle.load(f)
 
+    def generate_faces(self, zone="zone0"):
+        """generate cell indeces
+
+        Parameters
+        ----------
+        zone : str, optional
+            label of zones, by default "zone0"
+
+        Returns
+        -------
+        list
+            containing face indeces
+        """
+        faces = []
+        start = 0
+        N_rad = self._num_radial[zone]
+        N_pol = self._num_poloidal[zone]
+
+        while start < N_rad * (N_pol - 1):
+            for i in range(start, start + N_rad - 1):
+                faces += [(i, i + 1, i + 1 + N_rad, i + N_rad)]
+            start += N_rad
+        if zone in ["zone0", "zone11"]:
+            for i in range(start, start + N_rad - 1):
+                faces += [(i, i + 1, i - start + 1, i - start)]
+        return faces
+
     def plot_zones(self, zone_type=1, toroidal_angle=0.0, dpi=200):
+        """plot EMC3's zones in r - z plane
+        EMC3 grids are classified into 2 types: (type1) 0 - 9 toridal degree,
+                                                (type2) 9 - 18 toroidal degree.
+        Domains of each zone (zone0 - 4, zone11-15) are colored.
+
+        Parameters
+        ----------
+        zone_type : int, optional
+            select either type1 or type2 zone, by default 1
+        toroidal_angle : float, optional
+            toroidal angle [degree].
+            each type of zones has classified as follows:
+                type1: 0, 0.25, ... 9.0 degree and
+                type2: 9.0 9.25, ..., 18.0 degree, by default 0.0
+        dpi : int, optional
+            figure dpi, by default 200
+
+        Returns
+        -------
+        (fig, ax): tuple
+            matplotlib.Figure & Axes objects
+        """
 
         # load E3E vertices if they are not loaded yet
         if self.r or self.z is None:
@@ -272,41 +352,161 @@ class EMC3:
                          9.0: [...]},
                'zone1': ...,
                 :
-               'zone4': ...
+               'zone21': ...
                }
         """
         return self._r
 
     @property
     def z(self):
+        """z coordinates of EMC3's cell vertices
+
+        Returns
+        -------
+        dict
+            z coordinates of vertices
+            ::
+              >>> r
+              {'zone0': {0.0: [-0.0, -0.0, ...],
+                         0.25: [...],
+                         :
+                         9.0: [...]},
+               'zone1': ...,
+                :
+               'zone21': ...
+               }
+        """
         return self._z
 
     @property
     def num_radial(self):
+        """Number of cell vertices in radial direction
+
+        Returns
+        -------
+        dict
+            key: zone label, value: int number
+            ::
+              >>> num_radial
+              {'zone0': 81,
+               'zone1': 97,
+                :
+               'zone21': 97
+               }
+        """
         return self._num_radial
 
     @property
     def num_poloidal(self):
+        """Number of cell vertices in poloidal direction
+
+        Returns
+        -------
+        dict
+            key: zone label, value: int number
+            ::
+              >>> num_poloidal
+              {'zone0': 600,
+               'zone1': 77,
+                :
+               'zone21': 9
+               }
+        """
         return self._num_poloidal
 
     @property
     def num_toroidal(self):
+        """Number of cell vertices in toroidal direction
+
+        Returns
+        -------
+        dict
+            key: zone label, value: int number
+            ::
+              >>> num_toroidal
+              {'zone0': 37,
+               'zone1': 37,
+                :
+               'zone21': 37
+               }
+        """
         return self._num_toroidal
 
     @property
     def num_cells(self):
+        """Number of geometric cells in EMC3-Eirene in each zones.
+
+        Returns
+        -------
+        dict
+            key: zone label, value: int number
+            ::
+              >>> num_cells
+              {'zone0': 1728000,
+               'zone1': 262656,
+                :
+               'zone21': 27648
+               }
+        """
         return self._num_cells
 
     @property
     def vertices(self):
+        """EMC3's grids vertex coordinates.
+        This property value is obtained after calling tetrahedralization method.
+
+        Returns
+        -------
+        dict
+            key: zone label, value: numpy.ndarray
+            ::
+              >>> vertices
+              {'zone1': array([[3.718866  , 0.        , 1.209099  ],
+                               [3.718211  , 0.        , 1.209545  ],
+                               ...
+                               [3.82106001, 0.60519645, 1.599694  ]]),
+               'zone2':...
+               }
+        """
         return self._vertices
 
     @property
     def tetrahedra(self):
+        """EMC3's grids vertex indices constituting tetrahedra meshs.
+        This property value is obtained after calling tetrahedralization method.
+
+        Returns
+        -------
+        dict
+            key: zone label, value: numpy.ndarray
+            ::
+              >>> tetrahedra
+              {'zone1': array([[  7469,      0,      1,     98],
+                               [  7566,     97,      0,     98],
+                               ...
+                               [268786, 268883, 276254, 276352]], dtype=uint32)),
+               'zone2':...
+               }
+        """
         return self._tetrahedra
 
     @property
     def phys_cells(self):
+        """EMC3's Physical cell indices
+        This property value is obtained after calling load_cell_geo method.
+
+        Returns
+        -------
+        dict
+            key: zone label, value: list
+            ::
+              >>> tetrahedra
+              {'zone0': [314722, 314722, 314722, 314722, 314770, ...],
+               'zone1': [...],
+                :
+               'zone21':[...]
+               }
+        """
         return self._phys_cells
 
 

@@ -121,7 +121,7 @@ def generate_faces(num_rad, num_pol, zone="zone0"):
         for i in range(start, start + N_rad - 1):
             faces += [(i, i + 1, i + 1 + N_rad, i + N_rad)]
         start += N_rad
-    if zone == "zone0":
+    if zone in ["zone0", "zone11"]:
         for i in range(start, start + N_rad - 1):
             faces += [(i, i + 1, i - start + 1, i - start)]
     return faces
