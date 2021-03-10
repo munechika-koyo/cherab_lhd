@@ -8,6 +8,7 @@ from cherab.lhd.emitter.E3E.utils import read_E3E_grid
 BASE = os.path.dirname(__file__)
 GRID_PATH = os.path.join(BASE, "data", "grid-360.txt")
 CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
+INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickel")
 
 
 class EMC3:
@@ -162,7 +163,7 @@ class EMC3:
         save : bool, optional
             whether or not to store this function, by default True
         path : str, optional
-            path to saving file name, by default {os.path.join(BASE, "data", "emc3_grid.pickel")}
+            path to saving file name, by default {INDEX_FUNC_PATH}
 
         Returns
         -------
@@ -172,7 +173,7 @@ class EMC3:
         """
 
         # path to save function as pickel
-        path = path or os.path.join(BASE, "data", "emc3_grid.pickel")
+        path = path or INDEX_FUNC_PATH
 
         # load CELL_GEO file if yet
         if self._phys_cells is None:
@@ -213,7 +214,7 @@ class EMC3:
         Parameters
         ----------
         path : str, optional
-            path to pickeld file, by default {os.path.join(BASE, "data", "emc3_grid.pickel")}
+            path to pickeld file, by default {INDEX_FUNC_PATH}
 
         Returns
         -------
@@ -221,7 +222,7 @@ class EMC3:
             cythonized function returing a EMC3's physical indix corresponding to
             (x, y, z) coords.
         """
-        path = path or os.path.join(BASE, "data", "emc3_grid.pickel")
+        path = path or INDEX_FUNC_PATH
         with open(path, "rb") as f:
             return pickle.load(f)
 
