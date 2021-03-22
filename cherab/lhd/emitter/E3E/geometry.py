@@ -19,8 +19,7 @@ class EMC3:
     Parameters
     ----------
     zones : list, optional
-        EMC3's zones labels, by default :math:`['zone0', 'zone1',..., 'zone4',
-                                                'zone11', 'zone12', ..., 'zone15']`
+        EMC3's zones labels, by default :math:`['zone0', 'zone1',..., 'zone4', 'zone11', 'zone12', ..., 'zone15']`\n
         Basically, EMC3's grids corresponding to zone labels are used for the tetrahedralization.
     """
 
