@@ -1,7 +1,8 @@
 from numpy import asarray, ascontiguousarray, empty, linspace, sin, cos, pi
-# from cherab.core.math.function import autowrap_function3d
-# cimport cython
-# cimport numpy as np
+from cherab.core.math.function cimport autowrap_function3d
+from cherab.core.math.function cimport Function3D
+cimport cython
+cimport numpy as np
 
 """
 This module provides a set of sampling functions for rapidly generating samples
@@ -11,8 +12,9 @@ These functions use C calls when sampling Function3D
 objects and are therefore considerably faster than the equivalent Python code.
 """
 
-
-def sample3d_rz(function3d, r_range, z_range, phi=0.0):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double phi=0.0):
     """
     Samples a 3D function over the specified range with r - z coords
     at a certain toroidal angle
@@ -23,7 +25,7 @@ def sample3d_rz(function3d, r_range, z_range, phi=0.0):
         a Python function or Function3D object
     r_range : tuple
         the r sample range: (r_min, r_max, r_samples)
-    z_range : [type]
+    z_range : tuple
         the z sample range: (z_min, z_max, z_samples)
     phi : double
         toroidal angle in degree, by default 0.0 [deg]
@@ -44,16 +46,18 @@ def sample3d_rz(function3d, r_range, z_range, phi=0.0):
        >>> r_pts
        array([1., 2., 3.])
        >>> f_vals
-       array()
+       array([[ 2.,  3.,  4.],
+              [ 9., 10., 11.],
+              [28., 29., 30.]])
     """
 
-    # cdef:
-    #     int i, j
-    #     Function3D f3d
-    #     int r_samples, z_samples
-    #     double phi_rad
-    #     double[::1] x_mv, y_mv, z_mv
-    #     double[:, ::1] v_mv
+    cdef:
+        int i, j
+        Function3D f3d
+        int r_samples, z_samples
+        double phi_rad
+        double[::1] x_view, y_view, z_view
+        double[:, ::1] v_view
 
     if len(r_range) != 3:
         raise ValueError("R range must be a tuple containing: (min range, max range, no. of samples).")
@@ -75,6 +79,7 @@ def sample3d_rz(function3d, r_range, z_range, phi=0.0):
 
     phi_rad = phi * pi / 180.0
 
+    f3d = autowrap_function3d(function3d)
     r_samples = r_range[2]
     z_samples = z_range[2]
 
@@ -84,11 +89,17 @@ def sample3d_rz(function3d, r_range, z_range, phi=0.0):
     y = linspace(r_range[0] * sin(phi_rad), r_range[1] * sin(phi_rad), r_samples)
     v = empty((r_samples, z_samples))
 
+    # obtain memoryviews for fast, direct memory access
+    x_view = x
+    y_view = y
+    z_view = z
+    v_view = v
+
     for i in range(r_samples):
         for j in range(z_samples):
-            v[i, j] = function3d(x[i], y[i], z[j])
+            v_view[i, j] = f3d.evaluate(x_view[i], y_view[i], z_view[j])
 
-    return r, z, v
+    return (r, z, v)
 
 
 if __name__ == "__main__":
