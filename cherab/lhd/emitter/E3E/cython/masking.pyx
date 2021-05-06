@@ -50,6 +50,9 @@ cdef class EMC3Mask(IntegerFunction3D):
         # validate arguments
         if not callable(index_func):
             raise TypeError("This function is not callable.")
+    
+        # populate internal attributes
+        self._index_func = index_func
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
