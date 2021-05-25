@@ -523,6 +523,6 @@ def _sixfold_index_data(index):
 
 
 if __name__ == '__main__':
-    emc = EMC3()
-    emc.tetrahedralization(zones=["zone9"])
-    emc.generate_index_function(zones=["zone9"])
+    emc = EMC3(zones=["zone1"])
+    emc.tetrahedralization()
+    emc.generate_index_function()
