@@ -50,22 +50,66 @@ class BolometerIRVB(Node):
         # -------------- IRVB Slit ----------------------- #
         slit_geometry = self._centre_basis_and_dimensions(slit_corners)
         centre, basis_x, basis_y, width, height = slit_geometry
-        self._slit = BolometerSlit(slit_id=irvb["name"] + "-slit", centre_point=centre,
-                                   basis_x=basis_x, dx=width, basis_y=basis_y, dy=height, parent=self)
+        self._slit = BolometerSlit(
+            slit_id=irvb["name"] + "-slit",
+            centre_point=centre,
+            basis_x=basis_x,
+            dx=width,
+            basis_y=basis_y,
+            dy=height,
+            parent=self,
+        )
 
         # --------------- IRVB Foil ---------------------- #
         foil_geometry = self._centre_basis_and_dimensions(foil_corners)
-        centre, basis_x, basis_y, width, _ = foil_geometry
+        foil_centre, basis_x, basis_y, width, _ = foil_geometry
         foil_normal = basis_x.cross(basis_y)
-        transform = translate(centre.x, centre.y, centre.z) * rotate_basis(foil_normal, basis_y)
-        self._foil = TargettedCCDArray([self.slit.target], pixels=irvb["pixels"], width=width, targetted_path_prob=0.99,
-                                       transform=transform, parent=self, name=irvb["name"] + "-foil")
+        transform = translate(foil_centre.x, foil_centre.y, foil_centre.z) * rotate_basis(foil_normal, basis_y)
+        self._foil = TargettedCCDArray(
+            [self.slit.target],
+            pixels=irvb["pixels"],
+            width=width,
+            targetted_path_prob=0.99,
+            transform=transform,
+            parent=self,
+            name=irvb["name"] + "-foil",
+        )
+
+        # ------------ Bolometer foils array --------------- #
+        nx, ny = self.pixels
+        pixel_pitch = self.foil.width / nx
+        foil_hight = pixel_pitch * ny
+        # Foil pixels are defined in the foil's local coordinate system
+        foil_bottom_left = foil_centre - basis_x * self.foil.width * 0.5 - basis_y * foil_hight * 0.5
+        # Point3D(-self.foil.width * 0.5, -foil_hight * 0.5, 0)
+        pixels = []
+        for x in range(nx):
+            pixel_column = []
+            for y in range(ny):
+                pixel_centre = foil_bottom_left + (x + 0.5) * basis_x * pixel_pitch + (y + 0.5) * basis_y * pixel_pitch
+                pixel = BolometerFoil(
+                    detector_id="IRVB pixel ({},{})".format(x + 1, y + 1),
+                    centre_point=pixel_centre,
+                    basis_x=basis_x,
+                    dx=pixel_pitch,
+                    basis_y=basis_y,
+                    dy=pixel_pitch,
+                    slit=self._slit,
+                    accumulate=False,
+                    parent=self,
+                )
+                pixel_column.append(pixel)
+            pixels.append(pixel_column)
+        self._pixels_as_foils = np.asarray(pixels, dtype="object")
 
         # rotate bolometer toroidally
         self.transform = rotate_z(irvb["rotate"])
 
         # foil center
-        self._foil_centre_pos = centre.transform(self.to_root())
+        self._foil_centre_pos = foil_centre.transform(self.to_root())
+
+        # foil corners
+        self._foil_corners = [foil_corners[i].transform(self.to_root()) for i in range(4)]
 
         # camera direction
         self._cam_direction = self._foil_centre_pos.vector_to(self.cam_pos).normalise()
@@ -91,29 +135,7 @@ class BolometerIRVB(Node):
         ndarray.numpy
             elements are BolometerFoil instances.
         """
-        XAXIS = Vector3D(1, 0, 0)
-        YAXIS = Vector3D(0, 1, 0)
-        nx, ny = self.pixels
-        pixel_pitch = self.foil.width / nx
-        foil_hight = pixel_pitch * ny
-        # Foil pixels are defined in the foil's local coordinate system
-        foil_bottom_left = Point3D(-self.foil.width / 2, -foil_hight / 2, 0)
-        pixels = []
-        for x in range(nx):
-            pixel_column = []
-            for y in range(ny):
-                pixel_centre = (foil_bottom_left
-                                + (x + 0.5) * XAXIS * pixel_pitch
-                                + (y + 0.5) * YAXIS * pixel_pitch)
-                pixel = BolometerFoil(
-                    detector_id="IRVB pixel ({},{})".format(x + 1, y + 1),
-                    centre_point=pixel_centre, basis_x=XAXIS, dx=pixel_pitch,
-                    basis_y=YAXIS, dy=pixel_pitch, slit=self._slit,
-                    accumulate=False, parent=self
-                )
-                pixel_column.append(pixel)
-            pixels.append(pixel_column)
-        return np.asarray(pixels, dtype='object')
+        return self._pixels_as_foils
 
     @property
     def slit(self):
@@ -175,13 +197,25 @@ class BolometerIRVB(Node):
     @property
     def foil_centre_pos(self):
         """
-        Returns Foil centre position in world coords.
+        Returns Foil centre position in the world coords.
 
         Returns
         -------
         Point3D
         """
         return self._foil_centre_pos
+
+    @property
+    def foil_corners(self):
+        """
+        Returns Foil corners position in the world coords.
+
+        Returns
+        -------
+        list
+            containing four Point3D instances
+        """
+        return self._foil_corners
 
     @property
     def focal_length(self):
@@ -218,7 +252,7 @@ class BolometerIRVB(Node):
         centre = Point3D(
             np.mean([corner.x for corner in corners]),
             np.mean([corner.y for corner in corners]),
-            np.mean([corner.z for corner in corners])
+            np.mean([corner.z for corner in corners]),
         )
         basis_x = corners[0].vector_to(corners[1]).normalise()
         basis_y = corners[1].vector_to(corners[2]).normalise()
@@ -227,9 +261,10 @@ class BolometerIRVB(Node):
         return centre, basis_x, basis_y, width, height
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from raysect.core import print_scenegraph
     from raysect.optical import World
+
     world = World()
     irvb = BolometerIRVB(world)
     print_scenegraph(world)
