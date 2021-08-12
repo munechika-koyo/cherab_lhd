@@ -6,7 +6,7 @@ from cherab.lhd.emitter.E3E.cython import Discrete3DMesh
 from cherab.lhd.emitter.E3E.utils import read_E3E_grid
 
 BASE = os.path.dirname(__file__)
-GRID_PATH = os.path.join(BASE, "data", "grid-360.txt")
+GRID_PATH = os.path.join(BASE, "data", "grid-360.pickel")
 CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
 INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickel")
 
@@ -15,19 +15,13 @@ class EMC3:
     """EMC3-EIRINE class
     This class is implemented for EMC3's grids, physical cell indices, and tetrahedralization
     to enable raysect to handle them as an emitter.
-
-    Parameters
-    ----------
-    zones : list, optional
-        EMC3's zones labels, by default :math:`['zone0', 'zone1',..., 'zone4', 'zone11', 'zone12', ..., 'zone15']`\n
-        Basically, EMC3's grids corresponding to zone labels are used for the tetrahedralization.
     """
 
-    def __init__(self, zones=None) -> None:
+    def __init__(self) -> None:
         # initialize properties
-        self._zones = zones or [f"zone{i}" for i in [j for j in range(0, 4 + 1)] + [k for k in range(11, 15 + 1)]]
-        self._r = None
-        self._z = None
+        self._zones = [f"zone{i}" for i in [j for j in range(0, 4 + 1)] + [k for k in range(11, 15 + 1)]]
+        self._grids = None
+        self._grid_path = None
         self._num_radial = None
         self._num_poloidal = None
         self._num_toroidal = None
@@ -37,22 +31,23 @@ class EMC3:
         self._phys_cells = None
 
     def load_grids(self, path=None) -> None:
-        """Load EMC3-Eirine grids (r, z) coordinates, which is classified by zones.
-        The (r, z) coords. grouped by each zones are loaded as the type of dictonary.
+        """Load EMC3-Eirine grids (r, z, phi) coordinates, which is classified by zones.
+        The grids are loaded as the type of dictonary.
         Labels of zones are in ['zone0',..., 'zone21'].
         The number of radial, poloindal toroidal and cells are also loaded.
 
         Parameters
         ----------
         path : str, optional
-            path to the grids text file, by default ".../data/grid-360.txt"
+            path to the grids text file, by default ".../data/grid-360.pickel"
         """
 
         # path to E3E grid file
         self.grid_path = path or GRID_PATH
 
         # load geometry cell's grids and numbers
-        self._r, self._z, self._num_radial, self._num_poloidal, self._num_toroidal, self._num_cells = read_E3E_grid(self.grid_path)
+        with open(self.grid_path, "rb") as f:
+            self._grids, self._num_radial, self._num_poloidal, self._num_toroidal, self._num_cells = pickle.load(f)
 
     def load_cell_geo(self, path=None) -> None:
         """Load cell geometry indices
@@ -103,7 +98,7 @@ class EMC3:
             raise TypeError("zones must be a list.")
 
         # load E3E vertices if they are not imported yet
-        if self.r or self.z is None:
+        if self.grids:
             self.load_grids()
 
         # check if all elements of zones arg is included in zones dict.keys.
@@ -114,20 +109,20 @@ class EMC3:
         vertices = {}
         tetrahedra = {}
 
-        for zone in zones:
+        for (zone, grids), num_rad, num_pol, num_tor in zip(self.grids.items(), self.num_radial.values(), self.num_poloidal.values(), self.num_toroidal.values()):
 
             # set local variables: vertices and tetrahedral indices in each zones
-            num_total = self._num_radial[zone] * self._num_poloidal[zone]
-            vertices[zone] = np.zeros((num_total * self._num_toroidal[zone], 3), dtype=np.float64)
+            num_total = num_rad * num_pol
+            vertices[zone] = np.zeros((num_total * num_tor, 3), dtype=np.float64)
             tetrahedra[zone] = np.zeros((6 * self._num_cells[zone], 4), dtype=np.uint32)
 
             # gengerate vertices
-            offset = 0
-            for toroidal_angle in self._r[zone].keys():
-                tor_angle_rad = toroidal_angle * np.pi / 180.0
-                for row in range(num_total):
-                    vertices[zone][row + offset, :] = (self._r[zone][toroidal_angle][row] * np.cos(tor_angle_rad), self._r[zone][toroidal_angle][row] * np.sin(tor_angle_rad), self._z[zone][toroidal_angle][row])
-                offset += num_total
+            start = 0
+            for i_phi in range(num_tor):
+                vertices[zone][start: start + num_total, :] = np.vstack([grids[:, 0, i_phi] * np.cos(grids[:, 2, i_phi]),
+                                                                         grids[:, 0, i_phi] * np.sin(grids[:, 2, i_phi]),
+                                                                         grids[:, 1, i_phi]]).T
+                start += num_total
 
             # geomtric cell indices at one toroidal plane
             faces = self.generate_faces(zone=zone)
@@ -153,7 +148,7 @@ class EMC3:
 
     def generate_index_function(self, zones=None, save=True, path=None):
         f"""Generate EMC3's Physical Index function
-        and Pickelize to store it.
+        and picklize it to save.
 
         Parameters
         ----------
@@ -201,7 +196,7 @@ class EMC3:
         index_func = Discrete3DMesh(vertices, tetrahedra, _sixfold_index_data(cell_index), False, -1)
 
         # save into path directory using pickel if save is True
-        if save is True:
+        if save:
             with open(path, "wb") as f:
                 pickle.dump(index_func, f, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -337,46 +332,34 @@ class EMC3:
         return self._zones
 
     @property
-    def r(self):
-        """r coordinates of EMC3's cell vertices
+    def grids(self):
+        """ (r, z, phi) coordinates of EMC3's cell vertices
 
         Returns
         -------
         dict
-            r coordinates of vertices
+            numpy.ndarray (r, z, phi) coordinates of vertices
             ::
-              >>> r
-              {'zone0': {0.0: [3.593351, 2.559212, ...],
-                         0.25: [...],
-                         :
-                         9.0: [...]},
+              >>> grids
+              {'zone0': array([[[ 3.593351e+00,  3.593307e+00,  3.593176e+00, ...,
+                                  3.551275e+00,  3.549266e+00,  3.547254e+00],
+                                [-0.000000e+00, -1.835000e-03, -3.667000e-03, ...,
+                                 -4.099100e-02, -4.103600e-02, -4.099800e-02],
+                                [ 0.000000e+00,  2.500000e-01,  5.000000e-01, ...,
+                                  8.500000e+00,  8.750000e+00,  9.000000e+00]],
+                                  ...
+                               [[ 3.262600e+00,  3.262447e+00,  3.261987e+00, ...,
+                                  3.096423e+00,  3.087519e+00,  3.078508e+00],
+                                [ 0.000000e+00, -4.002000e-03, -7.995000e-03, ...,
+                                 -7.012100e-02, -6.796400e-02, -6.543900e-02],
+                                [ 0.000000e+00,  2.500000e-01,  5.000000e-01, ...,
+                                  8.500000e+00,  8.750000e+00,  9.000000e+00]]]),
                'zone1': ...,
                 :
                'zone21': ...
                }
         """
-        return self._r
-
-    @property
-    def z(self):
-        """z coordinates of EMC3's cell vertices
-
-        Returns
-        -------
-        dict
-            z coordinates of vertices
-            ::
-              >>> r
-              {'zone0': {0.0: [-0.0, -0.0, ...],
-                         0.25: [...],
-                         :
-                         9.0: [...]},
-               'zone1': ...,
-                :
-               'zone21': ...
-               }
-        """
-        return self._z
+        return self._grids
 
     @property
     def num_radial(self):
@@ -523,6 +506,8 @@ def _sixfold_index_data(index):
 
 
 if __name__ == '__main__':
-    emc = EMC3(zones=["zone1"])
-    emc.tetrahedralization()
-    emc.generate_index_function()
+    emc = EMC3()
+    emc.load_grids()
+    # emc.tetrahedralization()
+    # emc.generate_index_function()
+    pass

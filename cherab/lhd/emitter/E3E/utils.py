@@ -1,5 +1,6 @@
 import os
 from math import ceil
+import pickle
 import numpy as np
 
 """
@@ -10,31 +11,32 @@ BASE = os.path.dirname(__file__)
 GRID_PATH = os.path.join(BASE, "data", "grid-360.txt")
 
 
-def read_E3E_grid(path=None):
+def read_E3E_grid(path=None, save=False):
     """
-    Read EMC3-EIRINE grid data
-
+    Read EMC3-EIRINE grid data. The grid position data (r, z) in each toroidal angle
+    and zone are written in grid-***.txt. This function allows to read them and return variables
+    one of which is dict contining (r, z, phi) ndarray which each zone's key and some numbers (num_rad, num_pol, num_tor, num_cells).
 
     Parameters
     ----------
     path : str, optional
         path to the file discribing the E3E grid, by default grid-360.txt file stored in data directory
+    save : bool, optional
+        the flag whether grids and numbers are stored as binary file with pickeling, by default False.
+        The path to save binary file is same as a grid text file.
 
     Returns
     -------
     tuple
-        r, z, num_rad, num_pol, num_tor, num_cells
-        the type of r, z is dict containing grid coords data
+        (grids, num_rad, num_pol, num_tor, num_cells)
+        the type of grids is dict containing grid coords data as numpy.ndarray.
         the type of num_rad, num_pol, num_tor is dict containing the number of grids
         associated with radial, poloidal and toroidal, respectively.
         the type of num_cells is the dict containing the number of cells in each zone
         ::
-          >>> r, z, num_rad, num_pol, num_tor = read_E3E_grid()
-          >>> r
-          {'zone0': {0.0: [3.593351, 2.559212, ...],
-                     0.25: [...],
-                     :
-                     9.0: [...]},
+          >>> grids, num_rad, num_pol, num_tor = read_E3E_grid(save=False)
+          >>> grids
+          {'zone0': numpy.ndarray (N, 3, M) # array[:, :, i] denotes coords. (r, z, phi) in a polidal plane,
            'zone1': ...,
            :
            'zone21': ...
@@ -84,15 +86,23 @@ def read_E3E_grid(path=None):
             # counting the number of cells in each zone
             num_cells[zone] = (num_rad[zone] - 1) * (num_pol[zone] - 1) * (num_tor[zone] - 1)
 
-    # removing overlapping vertices in zone0 and zone11
-    for zone in ["zone0", "zone11"]:
-        if zone in zones:
-            for tor_angle in r[zone].keys():
-                r[zone][tor_angle][-num_rad[zone]:-1] = []
-                z[zone][tor_angle][-num_rad[zone]:-1] = []
-            num_pol[zone] -= 1
+    # convert grid coords list (r, z) into 3-dim numpy.ndarray (r, z, phi)
+    # and vaeiable grids has zones key "zone0", "zone1", ...
+    grids = {zone: None for zone in zones}
+    for zone in grids.keys():
+        grids[zone] = np.zeros((num_rad[zone] * num_pol[zone], 3, num_tor[zone]))
+        for i, phi in enumerate(r[zone].keys()):
+            grids[zone][:, :, i] = np.array([r[zone][phi],
+                                             z[zone][phi],
+                                             [phi] * len(z[zone][phi])]).T
 
-    return (r, z, num_rad, num_pol, num_tor, num_cells)
+    if save:
+        save_path = os.path.splitext(path)[0] + ".pickel"
+        with open(save_path, "wb") as f:
+            pickle.dump((grids, num_rad, num_pol, num_tor, num_cells), f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"saved grids to {save_path} successfully.")
+
+    return (grids, num_rad, num_pol, num_tor, num_cells)
 
 
 def generate_faces(num_rad, num_pol, zone="zone0"):
@@ -121,141 +131,10 @@ def generate_faces(num_rad, num_pol, zone="zone0"):
         for i in range(start, start + N_rad - 1):
             faces += [(i, i + 1, i + 1 + N_rad, i + N_rad)]
         start += N_rad
-    if zone in ["zone0", "zone11"]:
-        for i in range(start, start + N_rad - 1):
-            faces += [(i, i + 1, i - start + 1, i - start)]
+
     return faces
 
 
-def E3E_tetrahedralization(zone="zone1"):
-    """
-    generate tetrahedral vertices & indeces
-    Dividing an E3E cell into five tetrahedra
-
-    Parameters
-    ----------
-    zone : str, optional
-        label of zone, by default "zone1"
-
-    Returns
-    -------
-    numpy.ndarray (N, 3)
-        (x, y, z) coords of tetrahedral vertices
-    numpy.ndarray (M, 4)
-        indeces of tetrahedral vertices
-    """
-
-    r, z, num_rad, num_pol, num_tor = read_E3E_grid()
-
-    num_total = num_rad[zone] * num_pol[zone]
-    vertices = np.zeros((num_total * num_tor[zone], 3), dtype=np.float64)
-    offset = 0
-    for tor_angle in r[zone].keys():
-        tor_angle_rad = tor_angle * np.pi / 180.0
-        for row in range(num_total):
-            vertices[row + offset, :] = (r[zone][tor_angle][row] * np.cos(tor_angle_rad), r[zone][tor_angle][row] * np.sin(tor_angle_rad), z[zone][tor_angle][row])
-        offset += num_total
-
-    faces = generate_faces(num_rad, num_pol, zone=zone)
-
-    tetrahedra = np.zeros((len(faces) * 5 * (num_tor[zone] - 1), 4), dtype=np.uint32)
-    tet_id = 0
-    offset = 0
-    # Divide a cell into five tetrahedra.
-    # Note that there are 2 ways of tetrahedralizatation of a E3E cell.
-    # distinguish them using +,- sign
-    tetra_type = int(+1)
-    tetra_type_toroidal = int(+1)
-    rad_index = 1
-
-    for i in range(num_tor[zone] - 1):
-        for face in faces:
-            if rad_index > num_rad[zone] - 1:
-                rad_index = 1
-                if (num_rad[zone] - 1) % 2 == 0:
-                    tetra_type *= -1
-
-            if tetra_type > 0:
-                # type 1 dividing tetra
-                tetrahedra[tet_id, :] = np.array([face[0] + num_total, face[0], face[1], face[3]], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 1, :] = np.array([face[2] + num_total, face[1], face[2], face[3]], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 2, :] = np.array([face[1], face[1] + num_total, face[2] + num_total, face[0] + num_total], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 3, :] = np.array([face[3], face[3] + num_total, face[2] + num_total, face[0] + num_total], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 4, :] = np.array([face[1], face[3], face[0] + num_total, face[2] + num_total], dtype=np.uint32) + offset
-            else:
-                # type 2 dividing tetra
-                tetrahedra[tet_id, :] = np.array([face[1] + num_total, face[0], face[1], face[2]], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 1, :] = np.array([face[3] + num_total, face[0], face[2], face[3]], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 2, :] = np.array([face[0], face[0] + num_total, face[1] + num_total, face[3] + num_total], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 3, :] = np.array([face[2], face[2] + num_total, face[3] + num_total, face[1] + num_total], dtype=np.uint32) + offset
-                tetrahedra[tet_id + 4, :] = np.array([face[0], face[2], face[3] + num_total, face[1] + num_total], dtype=np.uint32) + offset
-            tetra_type *= -1
-            tet_id += 5
-            rad_index += 1
-        offset += num_total
-        if tetra_type_toroidal > 0:
-            # next toroidal face
-            tetra_type = -1
-        else:
-            tetra_type = 1
-        tetra_type_toroidal *= -1
-
-    return vertices, tetrahedra
-
-
-def E3E_tetrahedralization_six(zone="zone1"):
-    """
-    generate tetrahedral vertices & indeces
-    Dividing an E3E cell into six tetrahedra
-
-    Parameters
-    ----------
-    zone : str, optional
-        label of zone, by default "zone1"
-
-    Returns
-    -------
-    numpy.ndarray (N, 3)
-        (x, y, z) coords of tetrahedral vertices
-    numpy.ndarray (M, 4)
-        indeces of tetrahedral vertices
-    """
-
-    r, z, num_rad, num_pol, num_tor = read_E3E_grid()
-
-    num_total = num_rad[zone] * num_pol[zone]
-    vertices = np.zeros((num_total * num_tor[zone], 3), dtype=np.float64)
-    offset = 0
-    for tor_angle in r[zone].keys():
-        tor_angle_rad = tor_angle * np.pi / 180.0
-        for row in range(num_total):
-            vertices[row + offset, :] = (r[zone][tor_angle][row] * np.cos(tor_angle_rad), r[zone][tor_angle][row] * np.sin(tor_angle_rad), z[zone][tor_angle][row])
-        offset += num_total
-
-    faces = generate_faces(num_rad, num_pol, zone=zone)
-
-    tetrahedra = np.zeros((len(faces) * 6 * (num_tor[zone] - 1), 4), dtype=np.uint32)
-    tet_id = 0
-    offset = 0
-
-    # Divide a cell into six tetrahedra.
-
-    for i in range(num_tor[zone] - 1):
-        for face in faces:
-            tetrahedra[tet_id, :] = np.array([face[0] + num_total, face[0], face[1], face[2]], dtype=np.uint32) + offset
-            tetrahedra[tet_id + 1, :] = np.array([face[3] + num_total, face[3], face[0], face[2]], dtype=np.uint32) + offset
-            tetrahedra[tet_id + 2, :] = np.array([face[1], face[1] + num_total, face[2] + num_total, face[0] + num_total], dtype=np.uint32) + offset
-            tetrahedra[tet_id + 3, :] = np.array([face[2], face[2] + num_total, face[3] + num_total, face[0] + num_total], dtype=np.uint32) + offset
-            tetrahedra[tet_id + 4, :] = np.array([face[0], face[2], face[3] + num_total, face[0] + num_total], dtype=np.uint32) + offset
-            tetrahedra[tet_id + 5, :] = np.array([face[1], face[2], face[0] + num_total, face[2] + num_total], dtype=np.uint32) + offset
-
-            tet_id += 6
-        offset += num_total
-
-    return vertices, tetrahedra
-
-
 if __name__ == "__main__":
-    # r, z, num_rad, num_pol, num_tor = read_E3E_grid()
-    vertices, tetrahedra = E3E_tetrahedralization()
+    grids, num_rad, num_pol, num_tor, num_cells = read_E3E_grid(save=False)
     pass
