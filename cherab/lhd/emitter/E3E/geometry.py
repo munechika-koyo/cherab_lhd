@@ -3,12 +3,11 @@ import numpy as np
 import pickle
 from matplotlib import pyplot as plt
 from cherab.lhd.emitter.E3E.cython import Discrete3DMesh
-from cherab.lhd.emitter.E3E.utils import read_E3E_grid
 
 BASE = os.path.dirname(__file__)
-GRID_PATH = os.path.join(BASE, "data", "grid-360.pickel")
+GRID_PATH = os.path.join(BASE, "data", "grid-360.pickle")
 CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
-INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickel")
+INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickle")
 
 
 class EMC3:
@@ -38,7 +37,7 @@ class EMC3:
         Parameters
         ----------
         path : str, optional
-            path to the grids text file, by default ".../data/grid-360.pickel"
+            path to the grids text file, by default ".../data/grid-360.pickle"
         """
 
         # path to E3E grid file
@@ -146,7 +145,7 @@ class EMC3:
         self._tetrahedra = tetrahedra
 
     def generate_index_function(self, zones=None, save=True, path=None) -> Discrete3DMesh:
-        f"""Generate EMC3's Physical Index function
+        """Generate EMC3's Physical Index function
         and picklize it to save.
 
         Parameters
@@ -156,7 +155,7 @@ class EMC3:
         save : bool, optional
             whether or not to store this function, by default True
         path : str, optional
-            path to saving file name, by default {INDEX_FUNC_PATH}
+            path to saving file name, by default "../data/emc3_grid.pickle"
 
         Returns
         -------

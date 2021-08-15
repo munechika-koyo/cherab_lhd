@@ -97,7 +97,7 @@ def read_E3E_grid(path=None, save=False):
                                              [phi] * len(z[zone][phi])]).T
 
     if save:
-        save_path = os.path.splitext(path)[0] + ".pickel"
+        save_path = os.path.splitext(path)[0] + ".pickle"
         with open(save_path, "wb") as f:
             pickle.dump((grids, num_rad, num_pol, num_tor, num_cells), f, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"saved grids to {save_path} successfully.")
