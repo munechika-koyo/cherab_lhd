@@ -21,7 +21,6 @@ class EMC3:
         # initialize properties
         self._zones = [f"zone{i}" for i in [j for j in range(0, 4 + 1)] + [k for k in range(11, 15 + 1)]]
         self._grids = None
-        self._grid_path = None
         self._num_radial = None
         self._num_poloidal = None
         self._num_toroidal = None
@@ -72,7 +71,7 @@ class EMC3:
             cell_geo = [int(x) - 1 for x in line.split()]  # for c language index format
 
         # classify all cell_geo indices by zone labels
-        if self._num_cells is None:
+        if not self._num_cells:
             self.load_grids()
 
         self._phys_cells = {}
@@ -82,7 +81,7 @@ class EMC3:
             self._phys_cells[zone] = cell_geo[start:start + num]
             start += num
 
-    def tetrahedralization(self, zones=None):
+    def tetrahedralization(self, zones=None) -> None:
         """tetrahedrarization
         This method has the function of generating tetrahedral vertices and indices valiables.
         The user can select zones storing grids coords. and tetrahedrarizate using them.
@@ -98,7 +97,7 @@ class EMC3:
             raise TypeError("zones must be a list.")
 
         # load E3E vertices if they are not imported yet
-        if self.grids:
+        if not self.grids:
             self.load_grids()
 
         # check if all elements of zones arg is included in zones dict.keys.
@@ -130,7 +129,7 @@ class EMC3:
             # Divide a cell into six tetrahedra.
             tet_id = 0
             offset = 0
-            for i in range(self._num_toroidal[zone] - 1):
+            for i in range(num_tor - 1):
                 for face in faces:
                     tetrahedra[zone][tet_id, :] = np.array([face[0] + num_total, face[0], face[1], face[2]], dtype=np.uint32) + offset
                     tetrahedra[zone][tet_id + 1, :] = np.array([face[3] + num_total, face[3], face[0], face[2]], dtype=np.uint32) + offset
@@ -146,7 +145,7 @@ class EMC3:
         self._vertices = vertices
         self._tetrahedra = tetrahedra
 
-    def generate_index_function(self, zones=None, save=True, path=None):
+    def generate_index_function(self, zones=None, save=True, path=None) -> Discrete3DMesh:
         f"""Generate EMC3's Physical Index function
         and picklize it to save.
 
@@ -169,14 +168,17 @@ class EMC3:
         # path to save function as pickel
         path = path or INDEX_FUNC_PATH
 
-        # load CELL_GEO file if yet
-        if self._phys_cells is None:
-            self.load_cell_geo()
-
         # choose zones
-        zones = zones or list(self.vertices.keys())
-        if not all([zone in self.vertices.keys() for zone in zones]):
-            raise ValueError("zones labels are contained in the kyes in generated tetrahedra.")
+        if not self._vertices:
+            raise ValueError("vertices attribution doesn't exist. The tetrahedralization method must be excuted before calling.")
+
+        zones = zones or list(self._vertices.keys())
+        if not all([zone in self._vertices.keys() for zone in zones]):
+            raise ValueError("zones labels are contained in the keys in generated tetrahedra.")
+
+        # load CELL_GEO file if yet
+        if not self._phys_cells:
+            self.load_cell_geo()
 
         # integrate vertices and tetrahedra in zones
         vertices = self._vertices[zones[0]]
@@ -193,7 +195,7 @@ class EMC3:
             cell_index += self._phys_cells[zone]
 
         # generate Discrete3DMesh instance
-        index_func = Discrete3DMesh(vertices, tetrahedra, _sixfold_index_data(cell_index), False, -1)
+        index_func = Discrete3DMesh(vertices, tetrahedra, EMC3.sixfold_data(cell_index), False, -1)
 
         # save into path directory using pickel if save is True
         if save:
@@ -220,8 +222,8 @@ class EMC3:
         with open(path, "rb") as f:
             return pickle.load(f)
 
-    def generate_faces(self, zone="zone0"):
-        """generate cell indeces
+    def generate_faces(self, zone="zone0") -> list:
+        """generate cell indices
 
         Parameters
         ----------
@@ -231,20 +233,29 @@ class EMC3:
         Returns
         -------
         list
-            containing face indeces
+            containing face indices
+
+        ::
+            >>> emc = EMC3()
+            >>> faces = emc.generate_faces(zone="zone0")
+            >>> faces
+            [(0, 1, 82, 81),
+            (1, 2, 83, 82),
+            (2, 3, 84, 83),
+            ...,
+            (48598, 48599, 48680, 48679)]
         """
         faces = []
         start = 0
+        if not self._grids:
+            self.load_grids()
         N_rad = self._num_radial[zone]
         N_pol = self._num_poloidal[zone]
 
-        while start < N_rad * (N_pol - 1):
+        for start in range(0, N_rad * (N_pol - 1), N_rad):
             for i in range(start, start + N_rad - 1):
                 faces += [(i, i + 1, i + 1 + N_rad, i + N_rad)]
-            start += N_rad
-        if zone in ["zone0", "zone11"]:
-            for i in range(start, start + N_rad - 1):
-                faces += [(i, i + 1, i - start + 1, i - start)]
+
         return faces
 
     def plot_zones(self, zone_type=1, toroidal_angle=0.0, dpi=200):
@@ -271,45 +282,46 @@ class EMC3:
             matplotlib.Figure & Axes objects
         """
 
-        # load E3E vertices if they are not loaded yet
-        if self.r or self.z is None:
+        # load E3E grids if they are not loaded yet
+        if not self.grids:
             self.load_grids()
 
         # zones type
         if zone_type == 1:
             zones = ["zone0", "zone1", "zone2", "zone3", "zone4"]
-            if toroidal_angle not in self._r["zone0"].keys():
+            if toroidal_angle not in self.grids["zone0"][0, 2, :]:
                 raise ValueError("toroidal angle is allowed in [0.0, ..., 9.0] in step 0.25 degree.")
         else:
             zones = ["zone11", "zone12", "zone13", "zone14", "zone15"]
-            if toroidal_angle not in self._r["zone11"].keys():
+            if toroidal_angle not in self.grids["zone11"][0, 2, :]:
                 raise ValueError("toroidal angle is allowed in [9.0, ..., 18.0] in step 0.25 degree.")
+
+        # search for the toroidal index in self.grids corresponding to toroidal_angle
+        i_phi = np.where(self.grids[zones[0]][0, 2, :] == toroidal_angle)[0][0]
 
         # set figure
         fig, ax = plt.subplots(dpi=dpi)
 
         # plot zone 0 or 11
         for zone in zones:
+            N_rad = self._num_radial[zone]
+            N_pol = self._num_poloidal[zone]
             if zone in ["zone0", "zone11"]:
-                rad_index = self._num_radial[zone] - 1
-                vertices = np.array([(self._r[zone][toroidal_angle][rad_index + self._num_radial[zone] * i], self._z[zone][toroidal_angle][rad_index + self._num_radial[zone] * i]) for i in range(self._num_poloidal[zone])] + [(self._r[zone][toroidal_angle][rad_index], self.z[zone][toroidal_angle][rad_index])])
+                vertices = self.grids[zone][N_rad - 1::N_rad, 0:2, i_phi]
                 ax.fill(vertices[:, 0], vertices[:, 1], facecolor='c', edgecolor='k', linewidth=0.0, label=zone)
 
                 # fill center region
-                rad_index = 0
-                vertices = np.array([(self._r[zone][toroidal_angle][rad_index + self._num_radial[zone] * i], self._z[zone][toroidal_angle][rad_index + self._num_radial[zone] * i]) for i in range(self._num_poloidal[zone])] + [(self._r[zone][toroidal_angle][rad_index], self._z[zone][toroidal_angle][rad_index])])
+                vertices = self.grids[zone][0::N_rad, 0:2, i_phi]
                 ax.fill(vertices[:, 0], vertices[:, 1], facecolor='w', edgecolor='w', linewidth=0.0, label='_nolegend_')
 
-            # plot zone1-4 or 12-15
+            # plot zone0-4 or 11-15
             else:
-                rad_index = self._num_radial[zone] - 1
-                vertices = np.array(
-                    [(self._r[zone][toroidal_angle][i], self._z[zone][toroidal_angle][i]) for i in range(self._num_radial[zone])]
-                    + [(self._r[zone][toroidal_angle][rad_index + self._num_radial[zone] * i], self._z[zone][toroidal_angle][rad_index + self._num_radial[zone] * i]) for i in range(1, self._num_poloidal[zone])]
-                    + [(self._r[zone][toroidal_angle][rad_index + self._num_radial[zone] * (self._num_poloidal[zone] - 2) + i],
-                        self._z[zone][toroidal_angle][rad_index + self._num_radial[zone] * (self._num_poloidal[zone] - 2) + i]) for i in range(self._num_radial[zone], 0, -1)]
-                    + [(self._r[zone][toroidal_angle][0 + self._num_radial[zone] * i], self._z[zone][toroidal_angle][0 + self._num_radial[zone] * i]) for i in range(self._num_poloidal[zone] - 1, -1, -1)]
-                )
+                vertices = np.vstack((
+                    self.grids[zone][0:N_rad - 1, 0:2, i_phi],
+                    self.grids[zone][N_rad - 1::N_rad, 0:2, i_phi],
+                    self.grids[zone][N_rad * (N_pol - 1) + 1:-1, 0:2, i_phi][::-1],
+                    self.grids[zone][0::N_rad, 0:2, i_phi][::-1],
+                ))
                 ax.fill(vertices[:, 0], vertices[:, 1], edgecolor='k', linewidth=0.0, label=zone)
 
         ax.set_aspect("equal")
@@ -333,7 +345,8 @@ class EMC3:
 
     @property
     def grids(self):
-        """ (r, z, phi) coordinates of EMC3's cell vertices
+        """ (r, z, phi) coordinates of EMC3's cell vertices.
+        This property value is obtained after calling load_grids method.
 
         Returns
         -------
@@ -363,7 +376,8 @@ class EMC3:
 
     @property
     def num_radial(self):
-        """Number of cell vertices in radial direction
+        """Number of cell vertices in radial direction.
+        This property value is obtained after calling load_grids method.
 
         Returns
         -------
@@ -381,7 +395,8 @@ class EMC3:
 
     @property
     def num_poloidal(self):
-        """Number of cell vertices in poloidal direction
+        """Number of cell vertices in poloidal direction.
+        This property value is obtained after calling load_grids method.
 
         Returns
         -------
@@ -399,7 +414,8 @@ class EMC3:
 
     @property
     def num_toroidal(self):
-        """Number of cell vertices in toroidal direction
+        """Number of cell vertices in toroidal direction.
+        This property value is obtained after calling load_grids method.
 
         Returns
         -------
@@ -418,6 +434,7 @@ class EMC3:
     @property
     def num_cells(self):
         """Number of geometric cells in EMC3-Eirene in each zones.
+        This property value is obtained after calling load_grids method.
 
         Returns
         -------
@@ -455,7 +472,7 @@ class EMC3:
 
     @property
     def tetrahedra(self):
-        """EMC3's grids vertex indices constituting tetrahedra meshs.
+        """EMC3's grids vertex indices constituting tetrahedral meshes.
         This property value is obtained after calling tetrahedralization method.
 
         Returns
@@ -492,17 +509,38 @@ class EMC3:
         """
         return self._phys_cells
 
+    @staticmethod
+    def sixfold_data(data) -> np.ndarray:
+        """increse given data six-fold.
 
-def _sixfold_index_data(index):
-    if not isinstance(index, list):
-        raise ValueError("index must be list")
+        Parameters
+        ----------
+        data : 1D array-like
 
-    new_index = np.zeros(len(index) * 6, dtype=np.int32)
-    j = 0
-    for i in index:
-        new_index[j:j + 6] = i
-        j += 6
-    return new_index
+
+        Returns
+        -------
+        numpy.ndarray
+
+        ::
+            >>> a = [0, 1, 2]
+            >>> b = EMC3.sixfold_data(a)
+            >>> b
+            array([0., 0., 0., 0., 0., 0.,
+                   1., 1., 1., 1., 1., 1.,
+                   2., 2., 2., 2., 2., 2.])
+
+        """
+        data = np.asarray_chkfinite(data)
+        if data.ndim != 1:
+            raise ValueError("data must be an 1D array.")
+
+        new_data = np.zeros(data.shape[0] * 6)
+        i = 0
+        for value in data:
+            new_data[i:i + 6] = value
+            i += 6
+        return new_data
 
 
 if __name__ == '__main__':

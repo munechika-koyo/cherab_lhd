@@ -90,7 +90,7 @@ def read_E3E_grid(path=None, save=False):
     # and vaeiable grids has zones key "zone0", "zone1", ...
     grids = {zone: None for zone in zones}
     for zone in grids.keys():
-        grids[zone] = np.zeros((num_rad[zone] * num_pol[zone], 3, num_tor[zone]))
+        grids[zone] = np.zeros((num_rad[zone] * num_pol[zone], 3, num_tor[zone]), dtype=np.float64)
         for i, phi in enumerate(r[zone].keys()):
             grids[zone][:, :, i] = np.array([r[zone][phi],
                                              z[zone][phi],
@@ -103,36 +103,6 @@ def read_E3E_grid(path=None, save=False):
             print(f"saved grids to {save_path} successfully.")
 
     return (grids, num_rad, num_pol, num_tor, num_cells)
-
-
-def generate_faces(num_rad, num_pol, zone="zone0"):
-    """generate cell indeces
-
-    Parameters
-    ----------
-    num_rad : dict
-        the number of grids along the radial direction
-    num_pol : dict
-        the number of grids along the poloidal direction
-    zone : str, optional
-        label of zones, by default "zone0"
-
-    Returns
-    -------
-    list
-        containing face indeces
-    """
-    faces = []
-    start = 0
-    N_rad = num_rad[zone]
-    N_pol = num_pol[zone]
-
-    while start < N_rad * (N_pol - 1):
-        for i in range(start, start + N_rad - 1):
-            faces += [(i, i + 1, i + 1 + N_rad, i + N_rad)]
-        start += N_rad
-
-    return faces
 
 
 if __name__ == "__main__":
