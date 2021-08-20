@@ -6,7 +6,7 @@ from cherab.lhd.emitter.E3E.cython import Discrete3DMesh
 
 BASE = os.path.dirname(__file__)
 GRID_PATH = os.path.join(BASE, "data", "grid-360.pickle")
-CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
+CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO.pickle")
 INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickle")
 
 
@@ -47,27 +47,25 @@ class EMC3:
         with open(self.grid_path, "rb") as f:
             self._grids, self._num_radial, self._num_poloidal, self._num_toroidal, self._num_cells = pickle.load(f)
 
-    def load_cell_geo(self, path=None) -> None:
+    def load_cell_index(self, path=None) -> None:
         """Load cell geometry indices
-        EMC3 has many geometry cells, the number of which is defined :math:`num_cells` in each zones.
-        However, EMC3 calculates the physical values such as plasma density in each cells combined several geometry cells,
-        which is called "physical" cells. Their relationship between geomtry and physical cells indices is written in CELL_GEO file.
+        EMC3 has numerous geometric cells, the number of which is defined :math:`num_cells` in each zones.
+        However, EMC3 calculates the physical values such as plasma density in each cell combined several geometric cells,
+        which is called "physical" cells. Their relationship between geomtric and physical cells indices is written in CELL_GEO file.
+        In this method, the pickled file "CELL_GEO.pickle" is loaded by default.
 
         Parameters
         ----------
         path : str, optional
-            path to the CELL_GEO file, by default ".../data/CELL_GEO"
-            The default file "CELL_GEO" has geometric indices in all zones.
+            path to the CELL_GEO.pickle file, by default ".../data/CELL_GEO.pickle"
+            The default file "CELL_GEO.pickle" has geometric indices in all zones.
         """
         # path to CELL_GEO file
-        self.cellgeo_path = path or CELLGEO_PATH
+        self.cell_index_path = path or CELLGEO_PATH
 
         # load cell_geo indices
-        with open(self.cellgeo_path, "r") as f:
-            line = f.readline()
-            num_geo, num_plasma, num_total = list(map(int, line.split()))
-            line = f.readline()
-            cell_geo = [int(x) - 1 for x in line.split()]  # for c language index format
+        with open(self.cell_index_path, "rb") as f:
+            cell_index = pickle.load(f)
 
         # classify all cell_geo indices by zone labels
         if not self._num_cells:
@@ -77,7 +75,7 @@ class EMC3:
         start = 0
         for zone in self._num_cells.keys():
             num = self._num_cells[zone]
-            self._phys_cells[zone] = cell_geo[start:start + num]
+            self._phys_cells[zone] = cell_index[start:start + num]
             start += num
 
     def tetrahedralization(self, zones=None) -> None:
@@ -109,6 +107,9 @@ class EMC3:
 
         for (zone, grids), num_rad, num_pol, num_tor in zip(self.grids.items(), self.num_radial.values(), self.num_poloidal.values(), self.num_toroidal.values()):
 
+            if zone not in zones:
+                continue
+
             # set local variables: vertices and tetrahedral indices in each zones
             num_total = num_rad * num_pol
             vertices[zone] = np.zeros((num_total * num_tor, 3), dtype=np.float64)
@@ -117,8 +118,9 @@ class EMC3:
             # gengerate vertices
             start = 0
             for i_phi in range(num_tor):
-                vertices[zone][start: start + num_total, :] = np.vstack([grids[:, 0, i_phi] * np.cos(grids[:, 2, i_phi]),
-                                                                         grids[:, 0, i_phi] * np.sin(grids[:, 2, i_phi]),
+                phi = np.deg2rad(grids[0, 2, i_phi])
+                vertices[zone][start: start + num_total, :] = np.vstack([grids[:, 0, i_phi] * np.cos(phi),
+                                                                         grids[:, 0, i_phi] * np.sin(phi),
                                                                          grids[:, 1, i_phi]]).T
                 start += num_total
 
@@ -177,21 +179,18 @@ class EMC3:
 
         # load CELL_GEO file if yet
         if not self._phys_cells:
-            self.load_cell_geo()
+            self.load_cell_index()
 
         # integrate vertices and tetrahedra in zones
         vertices = self._vertices[zones[0]]
         tetrahedra = self._tetrahedra[zones[0]]
+        cell_index = self._phys_cells[zones[0]]
         next_index = vertices.shape[0]
         for zone in zones[1:]:
             vertices = np.concatenate([vertices, self._vertices[zone]], axis=0)
             tetrahedra = np.concatenate([tetrahedra, self._tetrahedra[zone] + next_index], axis=0)
+            cell_index = np.concatenate([cell_index, self._phys_cells[zone]], axis=0)
             next_index = vertices.shape[0]
-
-        # cell indices used in this function
-        cell_index = []
-        for zone in zones:
-            cell_index += self._phys_cells[zone]
 
         # generate Discrete3DMesh instance
         index_func = Discrete3DMesh(vertices, tetrahedra, EMC3.sixfold_data(cell_index), False, -1)
@@ -204,12 +203,12 @@ class EMC3:
         return index_func
 
     def load_index_func(self, path=None):
-        f"""Load pickeled EMC3's physical index function
+        """Load pickeled EMC3's physical index function
 
         Parameters
         ----------
         path : str, optional
-            path to pickeld file, by default {INDEX_FUNC_PATH}
+            path to pickeld file, by default "../data/emc3_grid.pickle"
 
         Returns
         -------
@@ -451,7 +450,7 @@ class EMC3:
 
     @property
     def vertices(self):
-        """EMC3's grids vertex coordinates.
+        """EMC3's grids vertex coordinates in regular 3D (X, Y, Z).
         This property value is obtained after calling tetrahedralization method.
 
         Returns
@@ -492,18 +491,18 @@ class EMC3:
     @property
     def phys_cells(self):
         """EMC3's Physical cell indices
-        This property value is obtained after calling load_cell_geo method.
+        This property value is obtained after calling load_cell_index method.
 
         Returns
         -------
         dict
-            key: zone label, value: list
+            key: zone label, value: numpy.array
             ::
-              >>> tetrahedra
-              {'zone0': [314722, 314722, 314722, 314722, 314770, ...],
-               'zone1': [...],
+              >>> phys_cells
+              {'zone0': array([314722, 314722, 314722, 314722, 314770, ...], dtype=uint32),
+               'zone1': array([...]),
                 :
-               'zone21':[...]
+               'zone21':array([...])
                }
         """
         return self._phys_cells

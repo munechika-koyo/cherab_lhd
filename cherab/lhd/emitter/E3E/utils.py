@@ -9,9 +9,10 @@ This module provides useful functions for EMC3-EIRINE around file IO
 
 BASE = os.path.dirname(__file__)
 GRID_PATH = os.path.join(BASE, "data", "grid-360.txt")
+CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
 
 
-def read_E3E_grid(path=None, save=False):
+def read_E3E_grid(path=None, save=False) -> tuple:
     """
     Read EMC3-EIRINE grid data. The grid position data (r, z) in each toroidal angle
     and zone are written in grid-***.txt. This function allows to read them and return variables
@@ -105,6 +106,38 @@ def read_E3E_grid(path=None, save=False):
     return (grids, num_rad, num_pol, num_tor, num_cells)
 
 
+def read_cell_index(path=None, save=False) -> np.ndarray:
+    """Read cell geometry indices from Raw text file.
+    EMC3 has numerous geometric cells, the number of which is defined :math:`num_cells` in each zones.
+    However, EMC3 calculates the physical values such as plasma density in each cell combined several geometric cells,
+    which is called "physical" cells. Their relationship between geomtric and physical cells indices is written in CELL_GEO file.
+
+    Parameters
+    ----------
+    path : str, optional
+        path to the CELL_GEO file, by default ".../data/CELL_GEO"
+        The default file "CELL_GEO" has geometric indices in all zones.
+    """
+    # path to CELL_GEO file
+    path = path or CELLGEO_PATH
+
+    # load cell_geo indices
+    with open(path, "r") as f:
+        line = f.readline()
+        num_geo, num_plasma, num_total = list(map(int, line.split()))
+        line = f.readline()
+        cell_index = np.array([int(x) - 1 for x in line.split()], dtype=np.uint32)  # for c language index format
+
+    if save:
+        save_path = os.path.splitext(path)[0] + ".pickle"
+        with open(save_path, "wb") as f:
+            pickle.dump(cell_index, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"saved grids to {save_path} successfully.")
+
+    return cell_index
+
+
 if __name__ == "__main__":
-    grids, num_rad, num_pol, num_tor, num_cells = read_E3E_grid(save=False)
+    # grids, num_rad, num_pol, num_tor, num_cells = read_E3E_grid(save=False)
+    cell_index = read_cell_index(save=False)
     pass
