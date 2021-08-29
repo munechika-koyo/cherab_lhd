@@ -2,7 +2,9 @@
 
 # This module is optimized for EMC3-EIRINE in LHD by Koyo Munechika.
 
+import numbers
 from libc.limits cimport INT_MIN
+from raysect.core.math.function.base cimport Function
 
 
 cdef class IntegerFunction3D:
@@ -35,3 +37,86 @@ cdef class IntegerFunction3D:
     
     def __repr__(self):
         return 'IntegerFunction3D()'
+
+
+cdef class IntegerConstant3D(IntegerFunction3D):
+    """
+    Wraps a scalar constant with a IntegerFunction3D object.
+
+    This class allows a numeric Python scalar, such as an integer, to
+    interact with cython code that requires a IntegerFunction3D object. The scalar must
+    be convertible to integer. The value of the scalar constant will be returned
+    independent of the arguments the function is called with.
+
+    This class is intended to be used to transparently wrap python objects that
+    are passed via constructors or methods into cython optimised code. It is not
+    intended that the users should need to directly interact with these wrapping
+    objects. Constructors and methods expecting a IntegerFunction3D object should be
+    designed to accept a generic python object and then test that object to
+    determine if it is an instance of IntegerFunction3D. If the object is not a
+    IntegerFunction3D object it should be wrapped using this class for internal use.
+
+    See also: autowrap_intfunction3d()
+
+    :param int value: the constant value to return when called
+    """
+    def __init__(self, int value):
+        self._value = value
+
+    cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
+        return self._value
+
+
+cdef class PythonIntegerFunction3D(IntegerFunction3D):
+    """
+    Wraps a python callable object with a IntegerFunction3D object.
+
+    This class allows a python object to interact with cython code that requires
+    a IntegerFunction3D object. The python object must implement __call__() expecting
+    three arguments.
+
+    This class is intended to be used to transparently wrap python objects that
+    are passed via constructors or methods into cython optimised code. It is not
+    intended that the users should need to directly interact with these wrapping
+    objects. Constructors and methods expecting a IntegerFunction3D object should be
+    designed to accept a generic python object and then test that object to
+    determine if it is an instance of IntegerFunction3D. If the object is not a
+    IntegerFunction3D object it should be wrapped using this class for internal use.
+
+    See also: autowrap_intfunction3d()
+    """
+
+    def __init__(self, object function):
+        self.function = function
+
+    cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
+        return self.function(x, y, z)
+
+
+cdef IntegerFunction3D autowrap_intfunction3d(object obj):
+    """
+    Automatically wraps the supplied python object in a PythonIntegerFunction3D or IntegerConstant3D object.
+
+    If this function is passed a valid IntegerFunction3D object, then the IntegerFunction3D
+    object is simply returned without wrapping.
+
+    If this function is passed a numerical scalar (int or float), a Constant3D
+    object is returned.
+
+    This convenience function is provided to simplify the handling of Function3D
+    and python callable objects in constructors, functions and setters.
+    """
+
+    if isinstance(obj, IntegerFunction3D):
+        return <IntegerFunction3D> obj
+    elif isinstance(obj, Function):
+        raise TypeError('A IntegerFunction3D object is required.')
+    elif isinstance(obj, numbers.Integral):
+        return IntegerConstant3D(obj)
+    else:
+        return PythonIntegerFunction3D(obj)
+
+
+def _autowrap_intfunction3d(obj):
+    """Expose cython function for testing."""
+    return autowrap_intfunction3d(obj)

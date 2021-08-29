@@ -22,3 +22,12 @@ cdef inline bint is_callable(object f):
         return False
 
     return callable(f)
+
+cdef class IntegerConstant3D(IntegerFunction3D):
+    cdef int _value
+
+
+cdef class PythonIntegerFunction3D(IntegerFunction3D):
+    cdef public object function
+
+cdef IntegerFunction3D autowrap_intfunction3d(object obj)
