@@ -1,6 +1,5 @@
-from numpy import asarray, ascontiguousarray, empty, linspace, sin, cos, pi
-from cherab.core.math.function cimport autowrap_function3d
-from cherab.core.math.function cimport Function3D
+from numpy import empty, linspace, sin, cos, deg2rad
+from raysect.core.math.function.float cimport Function3D, autowrap_function3d
 cimport cython
 cimport numpy as np
 
@@ -77,7 +76,7 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
     if z_range[2] < 1:
         raise ValueError("The number of z samples must be >= 1.")
 
-    phi_rad = phi * pi / 180.0
+    phi_rad = deg2rad(phi)
 
     f3d = autowrap_function3d(function3d)
     r_samples = r_range[2]
