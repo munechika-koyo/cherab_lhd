@@ -27,13 +27,13 @@ with other integrators is not guaranteed.
 import numpy as np
 from raysect.optical cimport World, Primitive, Ray, Spectrum, Point3D, Vector3D, AffineMatrix3D
 from raysect.optical.material cimport VolumeIntegrator, InhomogeneousVolumeEmitter
-#from cherab.tools.raytransfer.emitters import RayTransferIntegrator
+from cherab.tools.raytransfer.emitters cimport RayTransferIntegrator
 from cherab.lhd.emitter.E3E.cython cimport IntegerFunction3D, autowrap_intfunction3d
 cimport numpy as np
 cimport cython
 
 
-cdef class Discrete3DMeshRayTransferIntegrator:#(RayTransferIntegrator):
+cdef class Discrete3DMeshRayTransferIntegrator(RayTransferIntegrator):
     """
     Calculates the distances traveled by the ray through the voxel defined on a tetrahedral mesh
     in 3d coordinate system: :math:`(X, Y, Z)`. This integrator is used
@@ -44,15 +44,8 @@ cdef class Discrete3DMeshRayTransferIntegrator:#(RayTransferIntegrator):
     approximately and the accuracy depends on the integration step.
     """
 
-    cdef:
-        readonly double _step
-        readonly int _min_samples
-
     def __init__(self, double step=0.001, int min_samples=2):
-        self._step = step
-        self._min_samples = min_samples
-
-        # super().__init__(step=step)
+        super().__init__(step=step, min_samples=min_samples)
 
 
     @cython.wraparound(False)
@@ -93,7 +86,7 @@ cdef class Discrete3DMeshRayTransferIntegrator:#(RayTransferIntegrator):
             if isource_current != isource_pre:  # we moved to the next cell
                 if isource_pre > -1:
                     spectrum.samples_mv[isource_pre] += res  # writing results for the current source
-                isource_current = isource_pre
+                isource_pre = isource_current
                 res = 0
             if isource_current > -1:
                 res += dt
@@ -140,7 +133,7 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
         >>> eps = 1.e-6  # ray must never leave the grid when passing through the volume
         >>> radius = 2.0 - eps
         >>> height = 10.0
-        >>> bounding_box = Cylinder(radius, height, material=material, parent=world)
+        >>> cylinder = Cylinder(radius, height, material=material, parent=world, transform=translate(0, 0, -0.5 * height))
         ...
         >>> camera.spectral_bins = material.bins
         >>> # ray transfer matrix will be calculated for 600.5 nm
