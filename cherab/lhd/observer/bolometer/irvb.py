@@ -1,5 +1,3 @@
-import os
-import json
 import numpy as np
 
 from raysect.core import Node, Primitive
@@ -9,7 +7,6 @@ from raysect.optical.observer import TargettedCCDArray
 from raysect.optical.material import NullMaterial
 
 from cherab.tools.observers import BolometerSlit, BolometerFoil
-import plotly.graph_objects as go
 
 
 XAXIS = Vector3D(1, 0, 0)
@@ -141,7 +138,7 @@ class IRVBCamera(Node):
 
         Returns
         -------
-        numpy.darray
+        numpy.ndarray
             containing Ray objects
         """
         return np.asarray(
@@ -164,9 +161,36 @@ class IRVBCamera(Node):
         self.foil_detector.observe()
 
     def plot_bolometer_geometry(self, fig=None, plot_pixel_rays={}, show_foil_xy_axes=True):
+        """3D plotting of bolometer geometry using plotly module
+        If you want to use this method, must install `Plotly <https://plotly.com/python/>`_ module.
 
-        if not isinstance(fig, go.Figure):
-            raise TypeError("The fig argument must be of type plotly.plotly.graph_objs.Figure")
+        Parameters
+        ----------
+        fig : plotly.graph_objs.Figure, optional
+            Figure object created by plotly, by default fig = go.Figure() if fig is None.
+        plot_pixel_rays : dict, optional
+            setting option of plotting rays, by default
+            {"plot", False, "pixels", (0, 0), "num_rays", 50}
+        show_foil_xy_axes : bool, optional
+            whether or not to show the local foil x, y axis, by default True
+
+        Returns
+        -------
+        plotly.graph_objs.Figure
+            Figure objects include some traces.
+        """
+
+        try:
+            import plotly.graph_objects as go
+        except ImportError:
+            print("must install plotly module.")
+            return
+
+        if fig:
+            if not isinstance(fig, go.Figure):
+                raise TypeError("The fig argument must be of type plotly.graph_objs.Figure")
+        else:
+            fig = go.Figure()
 
         if not isinstance(plot_pixel_rays, dict):
             raise TypeError("The plot_pixel_rays argument must be of type dict.")

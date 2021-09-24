@@ -24,9 +24,13 @@ def load_irvb(file=None, parent=None):
     Parameters
     ----------
     file : str
-        json file name written
-    parent : [type], optional
-        [description], by default None
+        json file name in which the configuraion of LHD IRVB is written.
+        If the file is only filename without any directory path, this function
+        searches ..cherab/lhd/observer/bolometer/data directory for corresponding
+        json file, by default "../data/IB65U.json"
+    parent : Node, optional
+        The parent node of this camera in the scenegraph, often
+        an optical World object, by default None
 
     Returns
     -------
@@ -36,6 +40,12 @@ def load_irvb(file=None, parent=None):
 
     # default json file
     file = file or os.path.join(DATA_DIRECTORY, "IB65U.json")
+
+    # check for file name
+    if os.path.dirname(file) == "":
+        file = os.path.join(DATA_DIRECTORY, file)
+    if os.path.splitext(file)[1] != ".json":
+        file = file + ".json"
 
     # load IRVB geometry information from json file
     with open(file=file, mode="r") as f:
@@ -162,6 +172,6 @@ if __name__ == "__main__":
     from raysect.optical import World
 
     world = World()
-    irvb = load_irvb(parent=world)
+    irvb = load_irvb(file="IB65U", parent=world)
 
     print("debug")
