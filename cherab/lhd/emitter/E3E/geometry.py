@@ -19,14 +19,14 @@ class EMC3:
     def __init__(self) -> None:
         # initialize properties
         self._zones = [f"zone{i}" for i in [j for j in range(0, 4 + 1)] + [k for k in range(11, 15 + 1)]]
-        self._grids = None
-        self._num_radial = None
-        self._num_poloidal = None
-        self._num_toroidal = None
-        self._num_cells = None
-        self._vertices = None
-        self._tetrahedra = None
-        self._phys_cells = None
+        self._grids = {}
+        self._num_radial = {}
+        self._num_poloidal = {}
+        self._num_toroidal = {}
+        self._num_cells = {}
+        self._vertices = {}
+        self._tetrahedra = {}
+        self._phys_cells = {}
 
     def load_grids(self, path=None) -> None:
         """Load EMC3-Eirine grids (r, z, phi) coordinates, which is classified by zones.
@@ -71,7 +71,6 @@ class EMC3:
         if not self._num_cells:
             self.load_grids()
 
-        self._phys_cells = {}
         start = 0
         for zone in self._num_cells.keys():
             num = self._num_cells[zone]
@@ -197,6 +196,10 @@ class EMC3:
 
         # save into path directory using pickel if save is True
         if save:
+            if os.path.isdir(os.path.split(path)[1]):
+                raise ValueError("the endpoint of path must be filename not directory")
+            if os.path.splitext(path)[1] != ".pickle":
+                path += ".pickle"
             with open(path, "wb") as f:
                 pickle.dump(index_func, f, protocol=pickle.HIGHEST_PROTOCOL)
 
