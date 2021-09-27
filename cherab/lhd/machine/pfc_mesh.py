@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import os
+from collections import defaultdict
 from raysect.optical import rotate
 from raysect.optical.library import RoughBeryllium, RoughIron, RoughTungsten
 from raysect.optical.material import AbsorbingSurface
 from raysect.primitive.mesh import Mesh
+from cherab.phix.machine.material import RoughSUS316L
 
 
 def load_pfc_mesh(
     world,
     path=os.path.join(os.path.dirname(__file__), "geometry", "data", "RSMfiles"),
     reflections=True,
-    roughness={"Be": 0.26, "W": 0.29, "Ss": 0.13},
+    roughness={"Be": 0.26, "W": 0.29, "Ss": 0.13, "SUS": 0.0125},
 ):
     """ Loads LHD PFC mesh and connects it to Raysect World() instance.
         Note that currently the entire first wall is obtained by copying and rotating the 1st sector 5 times.
@@ -31,15 +33,17 @@ def load_pfc_mesh(
             Roughness dict for PFC materials ('Be', 'W', 'Ss').
         """
 
-    pfc_list = ["vessel", "plates"]
+    pfc_list = ["vessel", "plates", "port_65u", "port_65l", "divertor"]
 
     # How many times each PFC element must be copy-pasted
-    ncopy = {"vessel": 1, "plates": 5}
+    ncopy = defaultdict(lambda: 1)
+    ncopy["plates"] = 5
 
     if reflections:
-        materials = {"vessel": RoughBeryllium(roughness["Be"]), "plates": RoughBeryllium(roughness["Be"])}
+        materials = defaultdict(lambda: RoughSUS316L(roughness["SUS"]))
+        materials["divertor"] = RoughTungsten(roughness["W"])
     else:
-        materials = {"vessel": AbsorbingSurface(), "plates": AbsorbingSurface()}
+        materials = defaultdict(lambda: AbsorbingSurface())
 
     mesh = {}
 
