@@ -25,16 +25,16 @@ class IRVBCamera(Node):
 
     Parameters
     ----------
-    camera_geometry: Primitive
+    camera_geometry: :obj:`~raysect.core.scenegraph.primitive.Primitive`
         A Raysect primitive to supply as the box/aperture geometry.
-    parent : Node
+    parent : :obj:`~raysect.core.scenegraph.node.Node`
         The parent node of this camera in the scenegraph, often an optical World object.
-    transform: AffineMatrix3D
+    transform : :obj:`~raysect.core.math.affinematrix.AffineMatrix3D`
         The relative coordinate transform of this bolometer camera relative to the parent.
     name : str, optional
         IRVB name.
 
-    .. code-block:: pycon
+    .. prompt:: python >>> auto
 
        >>> from raysect.optical import World
        >>> from cherab.lhd.observer import IRVBCamera
@@ -58,12 +58,8 @@ class IRVBCamera(Node):
 
     @property
     def slit(self):
-        """Returns a BolometerSlit instances.
-
-        Returns
-        -------
-        BolometerSlit
-            A BolometerSlit instance
+        """
+        :obj:`~cherab.tools.observers.bolometry.BolometerSlit`: BolometerSlit instances.
         """
         return self._slit
 
@@ -80,12 +76,8 @@ class IRVBCamera(Node):
 
     @property
     def foil_detector(self):
-        """Returns a TargettedCCDArray instance.
-
-        Returns
-        -------
-        TargettedCCDArray
-            A TargettedCCDArray instance as foil detector
+        """
+        :obj:`~raysect.optical.observer.imaging.TargettedCCDArray`: a TargettedCCDArray instance.
         """
         return self._foil_detector
 
@@ -102,6 +94,10 @@ class IRVBCamera(Node):
 
     @property
     def pixels_as_foils(self):
+        """
+        :obj:`numpy.ndarray`: an array, the element which is a BolometerFoil's instance defined by
+        regarding each pixel as a bolometer foil.
+        """
 
         nx, ny = self.foil_detector.pixels
         width = self.foil_detector.width
@@ -132,14 +128,10 @@ class IRVBCamera(Node):
 
     @property
     def sightline_rays(self):
-        """Returns an array containing sightline rays
-        Each ray starts from the centre of each pixel and passes through
+        """
+        :obj:`numpy.ndarray` of :obj:`~raysect.optical.Ray`: an array containing sightline rays, each of which
+        starts from the centre of each pixel and passes through
         the centre of the slit
-
-        Returns
-        -------
-        numpy.ndarray
-            containing Ray objects
         """
         return np.asarray(
             [
@@ -166,8 +158,8 @@ class IRVBCamera(Node):
 
         Parameters
         ----------
-        fig : plotly.graph_objs.Figure, optional
-            Figure object created by plotly, by default fig = go.Figure() if fig is None.
+        fig : :obj:`plotly.graph_objs.Figure`, optional
+            Figure object created by plotly, by default ``fig = go.Figure()`` if fig is None.
         plot_pixel_rays : dict, optional
             setting option of plotting rays, by default
             {"plot", False, "pixels", (0, 0), "num_rays", 50}
@@ -176,7 +168,7 @@ class IRVBCamera(Node):
 
         Returns
         -------
-        plotly.graph_objs.Figure
+        :obj:`plotly.graph_objs.Figure`
             Figure objects include some traces.
         """
 

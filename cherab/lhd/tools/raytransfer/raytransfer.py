@@ -17,6 +17,23 @@ ZMIN, ZMAX = -1.6, 1.6
 
 
 def load_rte_emc3(parent, path=None, bins=None):
+    """
+    Helper function of loding RayTransfer Emitter using :obj:`.Discrete3DMeshRayTransferEmitter`
+
+    Parameters
+    ----------
+    parent : :obj:~`raysect.optical.world`
+        raysect world Node
+    path : str, optional
+        path to picklized index function, by default ~/output/index_zones0-15.pickle
+    bins : int, optional
+        the number of grids, by default ``14 * 18``
+
+    Returns
+    -------
+    :obj:`~raysect.primitive.cylinder.Cylinder`
+        primitive of cylinder
+    """
 
     bins = bins or 14 * 18  # 14 zones x 18 degrees
     path = path or INDEX_FUNC_PATH

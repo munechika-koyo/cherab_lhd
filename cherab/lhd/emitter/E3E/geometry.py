@@ -216,7 +216,7 @@ class EMC3:
         Returns
         -------
         IntegerFunction3D
-            cythonized function returing a EMC3's physical indix corresponding to
+            cythonized function returing a EMC3's physical index corresponding to
             (x, y, z) coords.
         """
         path = path or INDEX_FUNC_PATH
