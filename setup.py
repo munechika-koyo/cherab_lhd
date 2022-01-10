@@ -6,7 +6,8 @@ import os
 import os.path as path
 import multiprocessing
 
-threads = multiprocessing.cpu_count()
+multiprocessing.set_start_method('fork')
+
 force = False
 profile = False
 install_rates = False
