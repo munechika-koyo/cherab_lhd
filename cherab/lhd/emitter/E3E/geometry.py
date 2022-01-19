@@ -11,7 +11,7 @@ INDEX_FUNC_PATH = os.path.join(BASE, "data", "emc3_grid.pickle")
 
 
 class EMC3:
-    """EMC3-EIRINE class
+    """EMC3-EIRENE class
     This class is implemented for EMC3's grids, physical cell indices, and tetrahedralization
     to enable raysect to handle them as an emitter.
     """
@@ -29,7 +29,7 @@ class EMC3:
         self._phys_cells = {}
 
     def load_grids(self, path=None) -> None:
-        """Load EMC3-Eirine grids (r, z, phi) coordinates, which is classified by zones.
+        """Load EMC3-EIRENE grids (r, z, phi) coordinates, which is classified by zones.
         The grids are loaded as the type of dictonary.
         Labels of zones are in ['zone0',..., 'zone21'].
         The number of radial, poloindal toroidal and cells are also loaded.
@@ -434,7 +434,7 @@ class EMC3:
 
     @property
     def num_cells(self):
-        """Number of geometric cells in EMC3-Eirene in each zones.
+        """Number of geometric cells in EMC3-EIRENE in each zones.
         This property value is obtained after calling load_grids method.
 
         Returns
