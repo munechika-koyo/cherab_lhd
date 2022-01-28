@@ -116,7 +116,9 @@ class DataLoader:
         # divide values by index
         density = re.split(self.pattern_index, density)
 
-        density = np.asarray_chkfinite(density[1], dtype=np.float64) * 1.0e6  # [1/cc] -> [1/m^3]
+        density = (
+            np.asarray_chkfinite(re.findall(self.pattern_value, density[1]), dtype=np.float64) * 1.0e6
+        )  # [1/cc] -> [1/m^3]
 
         # validation
         if density.size != self.num_plasma:
@@ -203,7 +205,7 @@ class DataLoader:
             temp = f.read().split()
 
         temp_e = np.asarray_chkfinite(temp[: self.num_plasma], dtype=np.float64)
-        temp_ion = np.asarray_chkfinite(temp[self.num_plasma:], dtype=np.float64)
+        temp_ion = np.asarray_chkfinite(temp[self.num_plasma :], dtype=np.float64)
 
         # validation
         if temp_ion.size != self.num_plasma:
