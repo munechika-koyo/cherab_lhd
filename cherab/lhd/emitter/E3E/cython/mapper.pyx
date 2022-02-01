@@ -33,49 +33,6 @@ cdef class EMC3Mapper(Function3D):
         self._index_func = index_func
         self._default_value = default_value
 
-    @classmethod
-    def instance(cls, EMC3Mapper instance not None, object data not None, object default_value=None):
-        """
-        Creates a new EMC3Mapper instance from an existing EMC3Mapper instance.
-
-        The new EMC3Mapper instance will share the same internal acceleration
-        data as the original EMC3Mapper. The data and default_value
-        settings of the new instance can be redefined by setting the appropriate
-        attributes. If any of the attributes are set to None (default) then the
-        value from the original EMC3Mapper will be copied.
-
-        This method should be used if the user has multiple sets of data
-        that lie on the same EMC3 index function. Using this methods avoids the
-        repeated rebuilding of index function by sharing the
-        geometry data between multiple EMC3Mapper objects.
-
-        :param EMC3Mapper instance: EMC3Mapper object.
-        :param array-like data: An 1D array of data defined by EMC3.
-        :param double default_value: The value to return outside the data size limits, by default 0.0.
-        :return: An EMC3Mapper object.
-        :rtype: EMC3Mapper
-        """
-        cdef EMC3Mapper m
-
-        # copy source data
-        m = EMC3Mapper.__new__(EMC3Mapper)
-        m._index_func = instance._index_func
-
-        data = array(data, dtype=float64)
-        if data.ndim != 1:
-            raise ValueError("data array must be 1D.")
-        m._data = data
-
-        # create memoryview
-        m._data_mv = data
-
-        # do we have a replacement default value?
-        if default_value is None:
-            m._default_value = instance._default_value
-        else:
-            m._default_value = default_value
-        
-        return m
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -91,3 +48,13 @@ cdef class EMC3Mapper(Function3D):
             return self._default_value
         else:
             return self._data_mv[index]
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cpdef int inside_grids(self, double x, double y, double z):
+        """
+        mask function returning True if Point (x, y, z) in any grids,
+        otherwise False.
+        """
+        return self._index_func(x, y, z) > 0

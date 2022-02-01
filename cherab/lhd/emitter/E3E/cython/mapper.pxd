@@ -13,3 +13,5 @@ cdef class EMC3Mapper(Function3D):
 
 
     cdef double evaluate(self, double x, double y, double z) except? -1e999
+
+    cpdef int inside_grids(self, double x, double y, double z)
