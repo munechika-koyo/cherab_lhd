@@ -205,7 +205,7 @@ class DataLoader:
             temp = f.read().split()
 
         temp_e = np.asarray_chkfinite(temp[: self.num_plasma], dtype=np.float64)
-        temp_ion = np.asarray_chkfinite(temp[self.num_plasma :], dtype=np.float64)
+        temp_ion = np.asarray_chkfinite(temp[self.num_plasma:], dtype=np.float64)
 
         # validation
         if temp_ion.size != self.num_plasma:
@@ -224,7 +224,7 @@ class DataLoader:
         Returns
         -------
         dict{str: numpy.ndarray}
-            key is label of species and value is density data [eV]
+            key is label of species and value is temperature data [eV]
         """
         temperature_neutral = {atom: None for atom in ["H", "H2"]}
         files = ["TEMPERATURE_A", "TEMPERATURE_M"]
@@ -232,9 +232,9 @@ class DataLoader:
         for file, atom in zip(files, temperature_neutral.keys()):
 
             with open(os.path.join(self.path, file), "r") as f:
-                density = f.read()
+                temperature = f.read()
 
-            temperature_neutral[atom] = np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64)
+            temperature_neutral[atom] = np.asarray_chkfinite(re.findall(self.pattern_value, temperature), dtype=np.float64)
 
             # validation
             if temperature_neutral[atom].size != self.num_plasma_vac:

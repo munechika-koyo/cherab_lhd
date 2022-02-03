@@ -8,7 +8,7 @@ from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
 
 from cherab.openadas import OpenADAS
 from cherab.core import Species, Maxwellian, Plasma, Line, elements
-from cherab.core.math import VectorAxisymmetricMapper, Constant3D, ConstantVector3D
+from cherab.core.math import Constant3D, ConstantVector3D
 from cherab.core.model import ExcitationLine, RecombinationLine, Bremsstrahlung
 
 from .geometry import EMC3
@@ -52,7 +52,7 @@ def import_plasma(parent, species=None):
     # setting plasma properties
     plasma.atomic_data = adas
     plasma.integrator = NumericalIntegrator(step=0.001)
-    plasma.b_field = VectorAxisymmetricMapper(Constant3D(0.0))
+    plasma.b_field = ConstantVector3D(Vector3D(0, 0, 0))
 
     # create plasma geometry as subtraction of two cylinders
     inner_radius = RMIN
