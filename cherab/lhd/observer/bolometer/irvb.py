@@ -152,7 +152,7 @@ class IRVBCamera(Node):
 
         self.foil_detector.observe()
 
-    def plot_bolometer_geometry(self, fig=None, plot_pixel_rays={}, show_foil_xy_axes=True):
+    def plot_bolometer_geometry(self, fig=None, plot_pixel_rays=False, show_foil_xy_axes=True):
         """3D plotting of bolometer geometry using plotly module
         If you want to use this method, must install `Plotly <https://plotly.com/python/>`_ module.
 
@@ -160,9 +160,10 @@ class IRVBCamera(Node):
         ----------
         fig : :obj:`plotly.graph_objs.Figure`, optional
             Figure object created by plotly, by default ``fig = go.Figure()`` if fig is None.
-        plot_pixel_rays : dict, optional
-            setting option of plotting rays, by default
-            {"plot", False, "pixels", (0, 0), "num_rays", 50}
+        plot_pixel_rays : bool or dict, optional
+            properties of plotting rays, by default False.
+            If True, default option: {"pixels": (0, 0), "num_rays": 50} is applied.
+            Different values of this option are available.
         show_foil_xy_axes : bool, optional
             whether or not to show the local foil x, y axis, by default True
 
@@ -183,14 +184,6 @@ class IRVBCamera(Node):
                 raise TypeError("The fig argument must be of type plotly.graph_objs.Figure")
         else:
             fig = go.Figure()
-
-        if not isinstance(plot_pixel_rays, dict):
-            raise TypeError("The plot_pixel_rays argument must be of type dict.")
-
-        # set default plot_pixel_rays
-        plot_pixel_rays.setdefault("plot", False)  # whether or not to show pixel rays
-        plot_pixel_rays.setdefault("pixels", (0, 0))  # select pixel number
-        plot_pixel_rays.setdefault("num_rays", 50)  # number of rays plotted
 
         # target slit
         corners = [
@@ -257,7 +250,12 @@ class IRVBCamera(Node):
         )
 
         # plot rays
-        if plot_pixel_rays["plot"]:
+        if plot_pixel_rays:
+            # set default properties
+            plot_pixel_rays.setdefault("pixels", (0, 0))  # select pixel number
+            plot_pixel_rays.setdefault("num_rays", 50)  # number of rays plotted
+
+            # set corners' points of one pixel
             pixels = plot_pixel_rays["pixels"]
             UpperRight = Point3D(width * 0.5 - pixels[0] * pixel_pitch, height * 0.5 - pixels[1] * pixel_pitch, 0)
             points = [
