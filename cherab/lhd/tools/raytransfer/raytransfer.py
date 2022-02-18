@@ -25,7 +25,7 @@ def load_rte_emc3(parent, path=None, bins=None):
     parent : :obj:~`raysect.optical.world`
         raysect world Node
     path : str, optional
-        path to picklized index function, by default ~/output/index_zones0-15.pickle
+        path to picklized index function, by default cherab_lhd/output/index_zones0-15.pickle
     bins : int, optional
         the number of grids, by default ``14 * 18``
 
@@ -36,9 +36,9 @@ def load_rte_emc3(parent, path=None, bins=None):
     """
 
     bins = bins or 14 * 18  # 14 zones x 18 degrees
-    path = path or INDEX_FUNC_PATH
-    with open(path, "rb") as f:
-        index_func = pickle.load(f)
+
+    # Load index function
+    index_func = load_index_function(path=path)
 
     # material as emitter
     material = Discrete3DMeshRayTransferEmitter(index_func, bins, integration_step=0.001)
@@ -50,13 +50,64 @@ def load_rte_emc3(parent, path=None, bins=None):
     return emitter
 
 
-def create_14_zones(emc):
-    """ Create 14 zones using EMC3-Eirine to facilitate the 3D tomography in LHD.
+def load_index_function(path=None):
+    """
+    Load index function for Raytransfor Matrix
+
+    Parameters
+    ----------
+    path : str
+        path to picklized index function file, by default cherab_lhd/output/index_zones0-15.pickle
+
+    Returns
+    -------
+    :obj:`.Discrete3DMesh`
+        index function object
+    """
+    path = path or INDEX_FUNC_PATH
+    with open(path, "rb") as f:
+        index_func = pickle.load(f)
+
+    return index_func
+
+
+def create_14_zones():
+    """ Create 14 zones using EMC3-EIRINE to facilitate the 3D tomography in LHD
+    which returns a callable created by Discrete3DMesh class.
     """
 
-    if not isinstance(emc, EMC3):
-        raise TypeError("an argument must be an instance of the EMC3 class.")
+    emc = EMC3()
 
+    # load cell indeices mapping for tomography
+    emc._phys_cells = mapping_14zones()
+
+    # tetrahedralization
+    emc.tetrahedralization()
+
+    # create index function
+    print("creating a geometric index function...")
+    path = os.path.join(CHERAB_LHD_ROOT, "output", "index_zones0-15")
+    func = emc.generate_index_function(path=path)
+
+    return func
+
+
+def mapping_14zones() -> dict:
+    """
+    Create 14 zones cell mapping table.
+    This function returns mapping table which denotes the relationship
+    between E3E's geometry cell index and 14 zones cell index for tomography.
+
+    Returns
+    -------
+    dict{str: numpy.ndarray}
+        each zones indices, e.g. {"zone0": array([0, 0, 0, ...])}
+    """
+    # define returns
+    cell_map = {}
+
+    # instatiate EMC3 class
+    emc = EMC3()
     emc.load_grids()
 
     # -------------------------- zone0 -------------------------------
@@ -98,7 +149,7 @@ def create_14_zones(emc):
 
                 i += 1
 
-    emc._phys_cells[zone] = tet_data
+    cell_map[zone] = tet_data
 
     # ----------------------- zone1-4 --------------------------
     for zone, index in zip([f"zone{i}" for i in range(1, 5)], range(10, 14)):
@@ -108,7 +159,7 @@ def create_14_zones(emc):
         for i_tor in range(0, emc.num_toroidal[zone] - 1, 4):
             tet_data[i_tor * n: (i_tor + 4) * n] = index
             index += 14
-        emc._phys_cells[zone] = tet_data
+        cell_map[zone] = tet_data
 
     # ----------------------------------------------------------
 
@@ -118,7 +169,7 @@ def create_14_zones(emc):
     # prepare indices data as teterahedra data
     tet_data = np.zeros(emc.num_cells[zone], dtype=np.uint32)
 
-    offset = emc._phys_cells["zone4"][-1] + 1
+    offset = cell_map["zone4"][-1] + 1
     i = 0
     for i_tor in range(0, emc.num_toroidal[zone] - 1):
 
@@ -151,9 +202,9 @@ def create_14_zones(emc):
 
                 i += 1
 
-    emc._phys_cells[zone] = tet_data
+    cell_map[zone] = tet_data
 
-    next_index = emc._phys_cells["zone4"][-1] + 11
+    next_index = cell_map["zone4"][-1] + 11
     # ----------------------- zone12-15 --------------------------
     for zone, index in zip([f"zone{i}" for i in range(12, 16)], range(next_index, next_index + 4)):
         tet_data = np.zeros(emc.num_cells[zone], dtype=np.uint32)
@@ -162,23 +213,17 @@ def create_14_zones(emc):
         for i_tor in range(0, emc.num_toroidal[zone] - 1, 4):
             tet_data[i_tor * n: (i_tor + 4) * n] = index
             index += 14
-        emc._phys_cells[zone] = tet_data
+        cell_map[zone] = tet_data
 
     # ----------------------------------------------------------
 
-    # tetrahedralization
-    # emc.tetrahedralization(zones=[f"zone{i}" for i in range(11, 16)])
-    emc.tetrahedralization()
-
-    # create index function
-    print("creating a geometric index function...")
-    path = os.path.join(CHERAB_LHD_ROOT, "output", "index_zones0-15")
-    func = emc.generate_index_function(path=path)
-
-    return func
+    return cell_map
 
 
 if __name__ == "__main__":
-    emc = EMC3()
-    func = create_14_zones(emc)
-    pass
+    # emc = EMC3()
+    # func = create_14_zones(emc)
+    print("start debugging")
+    cell_map = mapping_14zones()
+
+    print("end debugging")
