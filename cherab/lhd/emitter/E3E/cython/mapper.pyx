@@ -57,4 +57,4 @@ cdef class EMC3Mapper(Function3D):
         mask function returning True if Point (x, y, z) in any grids,
         otherwise False.
         """
-        return self._index_func(x, y, z) > 0
+        return self._index_func(x, y, z) > -1
