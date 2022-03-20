@@ -141,3 +141,7 @@ output/
 
 # calcam files
 *.ccm
+*.ccc
+
+# EMC3-EIRINE data files
+cherab/lhd/emitter/E3E/data
