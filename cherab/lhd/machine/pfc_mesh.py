@@ -16,7 +16,8 @@ def load_pfc_mesh(
     roughness={"Be": 0.26, "W": 0.29, "Ss": 0.13, "SUS": 0.0125},
 ):
     """ Loads LHD PFC mesh and connects it to Raysect World() instance.
-        Note that currently the entire first wall is obtained by copying and rotating the 1st sector 5 times.
+        Note that currently the entire first wall is obtained by copying and rotating the 1st sector 5 times,
+        and the divertor assemble is also obtained by copying and rotating the 1st sector 10 times.
         The coordinates of custom port plugs are given in TGCS.
         The coordinates of general port plugs are given in internal coordinate system (which can be
         transformed to TGCS for the sector 1 by rotating on 10 deg counter-clockwise over Z-axis).
@@ -38,6 +39,7 @@ def load_pfc_mesh(
     # How many times each PFC element must be copy-pasted
     ncopy = defaultdict(lambda: 1)
     ncopy["plates"] = 5
+    ncopy["divertor"] = 10
 
     if reflections:
         materials = defaultdict(lambda: RoughSUS316L(roughness["SUS"]))
