@@ -45,3 +45,9 @@ def plot_lhd_wall_outline(style="k"):
     plt.xlabel("$R$[m]")
     plt.ylabel("$Z$[m]")
     plt.axis("equal")
+
+
+if __name__ == "__main__":
+    plot_lhd_wall_outline()
+    plt.show()
+    pass

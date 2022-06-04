@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
 import os
 from collections import defaultdict
 from raysect.optical import rotate
@@ -13,26 +11,33 @@ def load_pfc_mesh(
     world,
     path=os.path.join(os.path.dirname(__file__), "geometry", "data", "RSMfiles"),
     reflections=True,
-    roughness={"Be": 0.26, "W": 0.29, "Ss": 0.13, "SUS": 0.0125},
+    roughness={"Be": 0.26, "W": 0.29, "Fe": 0.13, "SUS": 0.0125},
 ):
-    """ Loads LHD PFC mesh and connects it to Raysect World() instance.
-        Note that currently the entire first wall is obtained by copying and rotating the 1st sector 5 times,
-        and the divertor assemble is also obtained by copying and rotating the 1st sector 10 times.
-        The coordinates of custom port plugs are given in TGCS.
-        The coordinates of general port plugs are given in internal coordinate system (which can be
-        transformed to TGCS for the sector 1 by rotating on 10 deg counter-clockwise over Z-axis).
+    """
+    Loads LHD Plasma Facing Components mesh and connects it to
+    Raysect :obj:`~raysect.core.scenegraph.world.World` instance.
 
-        Parameters
-        ----------
-        world : object instance
-            Raysect World() instance
-        path : string, optional
-            Path to .rsm mesh files
-        reflections : bool, optional
-            Reflection on/off. Default: True.
-        roughness : dict, optional
-            Roughness dict for PFC materials ('Be', 'W', 'Ss').
-        """
+    Parameters
+    ----------
+    world : :obj:`~raysect.core.scenegraph.world.World`
+        Raysect World instance
+    path : str, optional
+        Path to directory containing .rsm files, by default "../cherab/lhd/machine/geometry/data/RSMfiles"
+    reflections : bool, optional
+        Reflection on/off, by default True
+    roughness : dict, optional
+        Roughness dict for PFC materials, by default {"Be": 0.26, "W": 0.29, "Fe": 0.13, "SUS": 0.0125}.
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> from raysect.core import World
+        >>> from cherab.lhd.machine import load_pfc_mesh
+        >>>
+        >>> world = World()
+        >>> mesh = load_pfc_mesh(world, reflections=True)
+    """
 
     pfc_list = ["vessel", "plates", "port_65u", "port_65l", "divertor"]
 
@@ -42,6 +47,12 @@ def load_pfc_mesh(
     ncopy["divertor"] = 10
 
     if reflections:
+        # set default roughness
+        roughness.setdefault("Be", 0.26)
+        roughness.setdefault("W", 0.29)
+        roughness.setdefault("Fe", 0.13)
+        roughness.setdefault("SUS", 0.0125)
+
         materials = defaultdict(lambda: RoughSUS316L(roughness["SUS"]))
         materials["divertor"] = RoughTungsten(roughness["W"])
     else:

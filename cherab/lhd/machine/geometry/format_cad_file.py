@@ -1,5 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
+"""
+This script converts LHD machine .STL files to .rsm ones which are firendly format for raysect
+"""
+
 import os
 import glob
 from raysect.optical import World

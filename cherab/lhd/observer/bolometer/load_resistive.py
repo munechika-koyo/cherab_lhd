@@ -51,9 +51,13 @@ def load_resistive(port="6.5L", model_variant="I", parent=None):
         [Point3D(*slit) for slit in raw_data["slit"]]
     )
     slit = BolometerSlit(
-        slit_id="slit", centre_point=slit_centre,
-        basis_x=slit_basis_x, dx=width, basis_y=slit_basis_y, dy=height,
-        parent=bolometer_camera
+        slit_id="slit",
+        centre_point=slit_centre,
+        basis_x=slit_basis_x,
+        dx=width,
+        basis_y=slit_basis_y,
+        dy=height,
+        parent=bolometer_camera,
     )
 
     for id, foil_geom in raw_data["foil"].items():
@@ -62,10 +66,14 @@ def load_resistive(port="6.5L", model_variant="I", parent=None):
         foil = BolometerFoil(
             detector_id=f"Foil {id}",
             centre_point=centre,
-            basis_x=basis_x, dx=width,
-            basis_y=basis_y, dy=height,
-            slit=slit, parent=bolometer_camera, units="Power",
-            accumulate=False
+            basis_x=basis_x,
+            dx=width,
+            basis_y=basis_y,
+            dy=height,
+            slit=slit,
+            parent=bolometer_camera,
+            units="Power",
+            accumulate=False,
         )
         bolometer_camera.add_foil_detector(foil)
 
@@ -76,12 +84,9 @@ def load_resistive(port="6.5L", model_variant="I", parent=None):
     face = Box(Point3D(-width, -width, -slit.dz * 0.5), Point3D(width, width, slit.dz * 0.5))
     slit_box = Box(
         lower=Point3D(-slit.dx * 0.5, -slit.dy * 0.5, -slit.dz * 0.6),
-        upper=Point3D(slit.dx * 0.5, slit.dy * 0.5, slit.dz * 0.6)
+        upper=Point3D(slit.dx * 0.5, slit.dy * 0.5, slit.dz * 0.6),
     )
-    _ = Subtract(
-        face, slit_box, parent=slit,
-        material=AbsorbingSurface(), name=f"{slit.name} - CSG Aperture"
-    )
+    _ = Subtract(face, slit_box, parent=slit, material=AbsorbingSurface(), name=f"{slit.name} - CSG Aperture")
 
     return bolometer_camera
 

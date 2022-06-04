@@ -49,21 +49,28 @@ def load_irvb(port="6.5U", model_variant="BC02", parent=None):
     except KeyError:
         raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
 
-    # transform slit and foil corners to Point3D data
-    slit_corners = np.asarray_chkfinite(raw_data["slit"])
-    foil_corners = np.asarray_chkfinite(raw_data["foil"])
-
-    slit_corners = [Point3D(*slit_corners[i, :]) for i in range(4)]
-    foil_corners = [Point3D(*foil_corners[i, :]) for i in range(4)]
-
-    slit_geometry = _centre_basis_and_dimensions(slit_corners)
+    # generate slit and foil geometry
+    foil_corners = [Point3D(*xyz) for xyz in raw_data["foil"]]
     foil_geometry = _centre_basis_and_dimensions(foil_corners)
-
-    # -------------------------- #
-    # define geometry constants
-    # -------------------------- #
-    slit_centre, slit_basis_x, slit_basis_y, SLIT_WIDTH, SLIT_HEIGHT = slit_geometry
     foil_centre, foil_basis_x, foil_basis_y, _, _ = foil_geometry
+
+    if "slit" in raw_data:
+        slit_corners = [Point3D(*xyz) for xyz in raw_data["slit"]]
+        slit_geometry = _centre_basis_and_dimensions(slit_corners)
+
+    elif "slit_centre" in raw_data:
+        slit_centre = Point3D(*raw_data["slit_centre"])
+        SLIT_WIDTH, SLIT_HEIGHT = raw_data["slit_size"]
+        slit_geometry = (
+            slit_centre, foil_basis_x, foil_basis_y, SLIT_WIDTH, SLIT_HEIGHT
+        )
+        slit_corners = _corners_coords(
+            slit_centre, foil_basis_x, foil_basis_y, SLIT_WIDTH, SLIT_HEIGHT
+        )
+    else:
+        raise KeyError("slit or slit_centre must be exist in IRVB database.")
+
+    slit_centre, slit_basis_x, slit_basis_y, SLIT_WIDTH, SLIT_HEIGHT = slit_geometry
 
     # vector the centre of foil to that of slit
     foil_normal = foil_basis_x.cross(foil_basis_y)
@@ -341,6 +348,17 @@ def _centre_basis_and_dimensions(corners):
     width = corners[0].distance_to(corners[1])
     height = corners[1].distance_to(corners[2])
     return centre, basis_x, basis_y, width, height
+
+
+def _corners_coords(centre, basis_x, basis_y, width, height):
+    """Calculate the rectangular corners
+    """
+    return [
+        centre + basis_x * width * 0.5 + basis_y * height * 0.5,
+        centre + basis_x * width * 0.5 - basis_y * height * 0.5,
+        centre - basis_x * width * 0.5 - basis_y * height * 0.5,
+        centre - basis_x * width * 0.5 + basis_y * height * 0.5,
+    ]
 
 
 if __name__ == "__main__":
