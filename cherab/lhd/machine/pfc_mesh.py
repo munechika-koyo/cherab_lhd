@@ -4,7 +4,7 @@ from raysect.optical import rotate
 from raysect.optical.library import RoughBeryllium, RoughIron, RoughTungsten
 from raysect.optical.material import AbsorbingSurface
 from raysect.primitive.mesh import Mesh
-from cherab.phix.machine.material import RoughSUS316L
+from cherab.lhd.machine.material import RoughSUS316L
 
 
 def load_pfc_mesh(
