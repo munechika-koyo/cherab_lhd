@@ -5,7 +5,7 @@ from raysect.core.math import Point3D
 from raysect.primitive import Box, Subtract
 from raysect.optical.material import AbsorbingSurface
 from cherab.tools.observers import BolometerCamera, BolometerSlit, BolometerFoil
-from .load_irvb import _centre_basis_and_dimensions
+from cherab.lhd.observer.bolometer.load_irvb import _centre_basis_and_dimensions
 
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), "data")
