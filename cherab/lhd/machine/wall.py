@@ -108,8 +108,8 @@ def wall_outline(phi):
     phi_left, phi_right = adjacent_toroidal_angles(phi_t, phis)
 
     # load rz wall outline
-    rz_left = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_left])) * 1.0e-3  # [cm] -> [m]
-    rz_right = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_right])) * 1.0e-3
+    rz_left = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_left])) * 1.0e-2  # [cm] -> [m]
+    rz_right = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_right])) * 1.0e-2
 
     # fliped value for z axis
     flip = -1 if fliped else 1
