@@ -93,7 +93,8 @@ def wall_outline(phi):
     Return
     ------
     tuple of (:obj:`~numpy.ndarray`, :obj:`~numpy.ndarray`)
-        each of which is a wall outline in :math:`(r, z)` and :math:`(x, y, z)` coordinates, respectively
+        each of which is a wall outline in :math:`(r, z)` and :math:`(x, y, z)` coordinates, respectively.
+        The shapes of each array are ``(N, 2)`` in :math:`(r, z)` and ``(N, 3)`` in :math:`(x, y, z)`.
     """
 
     # extract toroidal angles from file name
@@ -139,7 +140,7 @@ def wall_outline(phi):
         ]
     )
 
-    return (rz, xyz)
+    return (rz.T, xyz.T)
 
 
 def plot_lhd_wall_outline(phi):
@@ -151,7 +152,7 @@ def plot_lhd_wall_outline(phi):
         toroidal angle in unit of degree
     """
     rz, _ = wall_outline(phi)
-    plt.plot(rz[0, :], rz[1, :])
+    plt.plot(rz[:, 0], rz[:, 1])
     plt.xlabel("$R$[m]")
     plt.ylabel("$Z$[m]")
     plt.axis("equal")
