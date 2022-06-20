@@ -4,7 +4,9 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator, AutoLocator, ScalarFormatter
 
-from cherab.lhd.emitter.E3E import Discrete3DMesh, EMC3Mapper
+from cherab.core.math import PolygonMask2D
+from cherab.core.math import sample2d
+from cherab.lhd.machine import wall_outline
 from cherab.lhd.tools import sample3d_rz
 
 from multiprocessing import Process, Manager
@@ -17,7 +19,7 @@ ZMAX = 1.6
 
 
 def show_profile_phi_degs(
-    func, phi_degs=np.linspace(0, 17.99, 6), nrows_ncols=(2, 3), resolution=5.0e-3, masked=False, max_value=None, clabel=None, cmap="plasma", **kwargs
+    func, phi_degs=np.linspace(0, 17.99, 6), nrows_ncols=(2, 3), resolution=5.0e-3, masked="wall", max_value=None, clabel=None, cmap="plasma", **kwargs
 ):
     """
     show E3E discretized data function in r - z plane with several toroidal angles.
@@ -33,10 +35,11 @@ def show_profile_phi_degs(
         If None, this is automatically rearranged by the length of `.phi_degs`.
     resolution : float, optional
         sampling resolution, by default 5.0e-3
-    masked : bool or callable, optional
-        if True, sampled values are masked using func's :obj:`~EMC3Mapper.inside_grids`.
-        if callable is given, sampled values are masked by the callable.
-        callable must inherit :obj:`~.Discrete3DMesh`, by default False
+    masked : str, optional
+        masking profile by the following method:
+        If ``"wall"``, profile is masked in the wall outline LHD.
+        If ``"EMC3"``, profile is masked in the EMC3 grid outline which derived from :obj:`.EMC3Mask`(:obj:`func`).
+        Otherwise profile is not masked, by default "wall"
     max_value : float, optional
         maximum value of colorbar limits, by default None.
         If None, maximum value is chosen of all sampled values
@@ -60,15 +63,6 @@ def show_profile_phi_degs(
     else:
         nrows_ncols = (1, len(phi_degs))
 
-    if masked:
-        if callable(masked):
-            if not isinstance(masked, Discrete3DMesh):
-                raise TypeError("callable masked must be a index function which returns -1 ouside undefined-grid area")
-        else:
-            if not isinstance(func, EMC3Mapper):
-                raise TypeError("func must be instantiated by EMC3Mapper if masked == True.")
-            masked = func.inside_grids
-
     # sampling rate
     nr = int(round((RMAX - RMIN) / resolution))
     nz = int(round((ZMAX - ZMIN) / resolution))
@@ -89,7 +83,7 @@ def show_profile_phi_degs(
 
     for i, phi_deg in enumerate(phi_degs):
         process = Process(
-            target=_sampling_funcion,
+            target=_sampling_function,
             kwargs={
                 "phi_deg": phi_deg,
                 "func": func,
@@ -164,7 +158,7 @@ def show_profile_phi_degs(
 
 
 def show_profiles_rz_plane(
-    funcs, phi_deg=0.0, masked=False, nrows_ncols=None, labels=None, max_value=None, resolution=5.0e-3, clabel=None, cmap="plasma", **kwargs
+    funcs, phi_deg=0.0, masked="wall", nrows_ncols=None, labels=None, max_value=None, resolution=5.0e-3, clabel=None, cmap="plasma", **kwargs
 ):
     """
     show several E3E discretized data functions in one r - z plane.
@@ -178,10 +172,11 @@ def show_profiles_rz_plane(
     nrows_ncols : (int, int)
         Number of rows and columns in the grid.
         This is automatically rearranged by the length of `.funcs`.
-    masked : bool or callable, optional
-        if True, sampled values masked by :obj:`.EMC3Mask`(:obj:`func`) is shown.
-        if callable is given, sampled values masked by the callable is shown.
-        callbel must inherit :obj:`~.Discrete3DMesh`, by default False
+    masked : str, optional
+        masking profile by the following method:
+        If ``"wall"``, profile is masked in the wall outline LHD.
+        If ``"EMC3"``, profile is masked in the EMC3 grid outline which derived from :obj:`.EMC3Mask`(:obj:`func`).
+        Otherwise profile is not masked, by default "wall"
     labels : list of str, optional
         each profile title is renderered in each axis.
     max_value : float, optional
@@ -212,15 +207,6 @@ def show_profiles_rz_plane(
     else:
         nrows_ncols = (1, len(funcs))
 
-    if masked:
-        if callable(masked):
-            if not isinstance(masked, Discrete3DMesh):
-                raise TypeError("callable masked must be a index function which returns -1 ouside undefined-grid area")
-        else:
-            if not isinstance(funcs[0], EMC3Mapper):
-                raise TypeError("funcs[0] must be instantiated by EMC3Mapper.")
-            masked = funcs[0].inside_grids
-
     # sampling rate
     nr = int(round((RMAX - RMIN) / resolution))
     nz = int(round((ZMAX - ZMIN) / resolution))
@@ -241,7 +227,7 @@ def show_profiles_rz_plane(
 
     for i, func in enumerate(funcs):
         process = Process(
-            target=_sampling_funcion,
+            target=_sampling_function,
             kwargs={
                 "phi_deg": phi_deg,
                 "func": func,
@@ -278,14 +264,15 @@ def show_profiles_rz_plane(
         mappable = grids[i].pcolormesh(r_pts, z_pts, profiles_dict[i], cmap=cmap, shading="auto", vmin=0, vmax=max_value)
 
         # annotation of toroidal angle
-        grids[i].text(
-            RMIN + 0.1,
-            ZMAX - 0.1,
-            f"{labels[i]}",
-            fontsize=10,
-            va="top",
-            bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-        )
+        if bool(labels):
+            grids[i].text(
+                RMIN + 0.1,
+                ZMAX - 0.1,
+                f"{labels[i]}",
+                fontsize=10,
+                va="top",
+                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+            )
 
         # set each axis
         grids[i].set_xlabel("R[m]")
@@ -315,7 +302,7 @@ def show_profiles_rz_plane(
     return (fig, grids)
 
 
-def _sampling_funcion(phi_deg, func, masked, nr, nz, profiles_dict, process_index):
+def _sampling_function(phi_deg, func, masked, nr, nz, profiles_dict, process_index):
     """excute one sampling process.
     This is defined for multiple processing
     """
@@ -324,8 +311,17 @@ def _sampling_funcion(phi_deg, func, masked, nr, nz, profiles_dict, process_inde
     _, _, fvar = sample3d_rz(func, (RMIN, RMAX, nr), (ZMIN, ZMAX, nz), phi_deg)
 
     # sampling masked function
-    if masked:
-        _, _, mask = sample3d_rz(masked, (RMIN, RMAX, nr), (ZMIN, ZMAX, nz), phi_deg)
+    if masked == "wall":
+        wall_contour, _ = wall_outline(phi_deg)
+        inside_wall = PolygonMask2D(wall_contour[:-1, :].copy(order="C"))
+        _, _, mask = sample2d(inside_wall, (RMIN, RMAX, nr), (ZMIN, ZMAX, nz))
+
+    elif masked == "EMC3":
+        _, _, mask = sample3d_rz(func.inside_grids, (RMIN, RMAX, nr), (ZMIN, ZMAX, nz), phi_deg)
+
+    elif masked == "below_zero":
+        mask = fvar > 0
+
     else:
         mask = np.ones_like(fvar, dtype=np.bool8)
 
@@ -334,3 +330,18 @@ def _sampling_funcion(phi_deg, func, masked, nr, nz, profiles_dict, process_inde
 
     # store
     profiles_dict[process_index] = profile
+
+
+if __name__ == "__main__":
+    from cherab.lhd.emitter.E3E import EMC3, EMC3Mapper, DataLoader
+
+    index_func = EMC3.load_index_func()
+    loader = DataLoader()
+    radiation = EMC3Mapper(index_func, loader.radiation())
+    fig, grids = show_profiles_rz_plane(
+        [radiation],
+        masked=None,
+        phi_deg=0.0,
+        clabel=r"$P_{rad}$ [W/m$^3$]"
+    )
+    fig.show()
