@@ -205,7 +205,8 @@ class EMC3:
 
         return index_func
 
-    def load_index_func(self, path=None):
+    @classmethod
+    def load_index_func(cls, path=None):
         """Load pickeled EMC3's physical index function
 
         Parameters
