@@ -62,12 +62,12 @@ def load_pfc_mesh(
 
     for pfc in pfc_list:
         mesh[pfc] = [
-            Mesh.from_file(os.path.join(path, f"{pfc}.rsm"), parent=world, material=materials[pfc])
+            Mesh.from_file(os.path.join(path, f"{pfc}.rsm"), parent=world, material=materials[pfc], name=pfc)
         ]  # master element
         angle = 360.0 / ncopy[pfc]  # rotate around Z by this angle
         for i in range(1, ncopy[pfc]):  # copies of the master element
             mesh[pfc].append(
-                mesh[pfc][0].instance(parent=world, transform=rotate(0, 0, angle * i), material=materials[pfc])
+                mesh[pfc][0].instance(parent=world, transform=rotate(0, 0, angle * i), material=materials[pfc], name=pfc)
             )
 
     return mesh
