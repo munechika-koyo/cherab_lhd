@@ -39,6 +39,7 @@ def show_profile_phi_degs(
         masking profile by the following method:
         If ``"wall"``, profile is masked in the wall outline LHD.
         If ``"EMC3"``, profile is masked in the EMC3 grid outline which derived from :obj:`.EMC3Mask`(:obj:`func`).
+        If ``"bellow_zero"``, profile is masked bellow zero values.
         Otherwise profile is not masked, by default "wall"
     max_value : float, optional
         maximum value of colorbar limits, by default None.
@@ -176,6 +177,7 @@ def show_profiles_rz_plane(
         masking profile by the following method:
         If ``"wall"``, profile is masked in the wall outline LHD.
         If ``"EMC3"``, profile is masked in the EMC3 grid outline which derived from :obj:`.EMC3Mask`(:obj:`func`).
+        If ``"bellow_zero"``, profile is masked bellow zero values.
         Otherwise profile is not masked, by default "wall"
     labels : list of str, optional
         each profile title is renderered in each axis.
@@ -319,7 +321,7 @@ def _sampling_function(phi_deg, func, masked, nr, nz, profiles_dict, process_ind
     elif masked == "EMC3":
         _, _, mask = sample3d_rz(func.inside_grids, (RMIN, RMAX, nr), (ZMIN, ZMAX, nz), phi_deg)
 
-    elif masked == "below_zero":
+    elif masked == "bellow_zero":
         mask = fvar > 0
 
     else:
