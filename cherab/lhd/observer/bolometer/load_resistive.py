@@ -63,6 +63,11 @@ def load_resistive(port="6.5L", model_variant="I", parent=None):
     for id, foil_geom in raw_data["foil"].items():
         foil_geometry = _centre_basis_and_dimensions([Point3D(*foil_xyz) for foil_xyz in foil_geom])
         centre, basis_x, basis_y, width, height = foil_geometry
+
+        # correct foil's direction (normal vector)
+        if (centre.vector_to(slit.centre_point)).dot(basis_x.cross(basis_y)) < 0:
+            basis_x = -basis_x
+
         foil = BolometerFoil(
             detector_id=f"Foil {id}",
             centre_point=centre,
