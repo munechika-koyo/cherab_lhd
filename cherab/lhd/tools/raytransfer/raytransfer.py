@@ -1,7 +1,6 @@
 # This module offers the helper function to easily set raytransfer material
 
 import os
-import pickle
 import numpy as np
 from raysect.core.math import translate
 from raysect.primitive import Cylinder
@@ -38,7 +37,7 @@ def load_rte_emc3(parent, path=None, bins=None):
     bins = bins or 14 * 18  # 14 zones x 18 degrees
 
     # Load index function
-    index_func = load_index_function(path=path)
+    index_func = EMC3.load_index_func(path=path)
 
     # material as emitter
     material = Discrete3DMeshRayTransferEmitter(index_func, bins, integration_step=0.001)
@@ -48,27 +47,6 @@ def load_rte_emc3(parent, path=None, bins=None):
     emitter = Cylinder(RMAX, ZMAX - ZMIN, transform=shift, parent=parent, material=material)
 
     return emitter
-
-
-def load_index_function(path=None):
-    """
-    Load index function for Raytransfor Matrix
-
-    Parameters
-    ----------
-    path : str
-        path to picklized index function file, by default cherab_lhd/output/index_zones0-15.pickle
-
-    Returns
-    -------
-    :obj:`.Discrete3DMesh`
-        index function object
-    """
-    path = path or INDEX_FUNC_PATH
-    with open(path, "rb") as f:
-        index_func = pickle.load(f)
-
-    return index_func
 
 
 def create_14_zones():
@@ -220,10 +198,45 @@ def mapping_14zones() -> dict:
     return cell_map
 
 
+def mapping_2Dtomography() -> dict:
+    """
+    Create 2D-tomography-cell mapping table.
+    This function returns mapping table which denotes the relationship
+    between E3E's geometry cell index and helical symmetric cell index for 2D tomography.
+
+    Returns
+    -------
+    dict{str: numpy.ndarray}
+        each zones cell indices, e.g. {"zone0": array([0, 0, 0, ...])}
+    """
+    # define returns
+    cell_map = {}
+
+    # instatiate EMC3 class
+    emc = EMC3()
+    emc.load_grids()
+
+    offset = 0
+
+    for zone in emc.zones:
+
+        # (maximum index number + 1) at each zone
+        num_index = int(emc.num_cells[zone] / (emc.num_toroidal[zone] - 1))
+
+        cell_map[zone] = np.asarray_chkfinite(
+            [i + offset for i in range(num_index)] * (emc.num_toroidal[zone] - 1), dtype=np.uint32
+        )
+
+        offset += num_index
+
+    return cell_map
+
+
 if __name__ == "__main__":
     # emc = EMC3()
     # func = create_14_zones(emc)
     print("start debugging")
-    cell_map = mapping_14zones()
+    # cell_map = mapping_14zones()
+    cell_map = mapping_2Dtomography()
 
     print("end debugging")
