@@ -15,8 +15,8 @@ CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO")
 def read_E3E_grid(path=None, save=False) -> tuple:
     """
     Read EMC3-EIRINE grid data. The grid position data (r, z) in each toroidal angle
-    and zone are written in grid-***.txt. This function allows to read them and return variables
-    one of which is dict contining (r, z, phi) ndarray which each zone's key and some numbers (num_rad, num_pol, num_tor, num_cells).
+    and zone are written in grid-*.txt. This function allows to read them and return variables
+    one of which is dict containing (r, z, phi) ndarray which each zone's key and some numbers (num_rad, num_pol, num_tor, num_cells).
 
     Parameters
     ----------
