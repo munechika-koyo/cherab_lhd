@@ -45,13 +45,13 @@ class DataLoader:
         # load number of plasma cells
         self.num_total, self.num_plasma, self.num_plasma_vac = _num_cells(self.path)
 
-    def radiation(self) -> np.ndarray:
+    def plasma_radiation(self) -> np.ndarray:
         """Load plasma radation data
 
         Returns
         -------
         numpy.ndarray
-            1D radiation data [W/m^3]
+            1D plasma radiation data [W/m^3]
         """
         with open(os.path.join(self.path, "RADIATION_1"), "r") as f:
             _ = f.readline()  # skip first row
@@ -101,6 +101,18 @@ class DataLoader:
         radiation[radiation < 0] = 0.0
 
         return radiation
+
+    def radiation(self) -> np.ndarray:
+        """Load total radation data.
+        which means plasma + impurity radiation
+
+        Returns
+        -------
+        numpy.ndarray
+            1D radiation data [W/m^3].
+            negative values are made positive.
+        """
+        return self.plasma_radiation() + self.impurity_radiation()
 
     def density_electron(self) -> np.ndarray:
         """Load electron density data which is same as H+ ones
@@ -275,3 +287,6 @@ if __name__ == "__main__":
     loader = DataLoader()
     ne = loader.density_electron()
     nn = loader.density_neutrals()
+
+    rad = loader.radiation()
+    pass
