@@ -5,7 +5,7 @@ from numpy import array, float64
 
 cdef class EMC3Mapper(Function3D):
     """
-    Mapping EMC3-Eirine data to tetrahedra meshs.
+    Mapping EMC3-EIRENE data to tetrahedra meshs.
     Several EMC3's data are stored in some EMC3's geometric cells.
     This instance is callable function returning physical data corresponding in 
     3D space where EMC3's index function returns a physical index
