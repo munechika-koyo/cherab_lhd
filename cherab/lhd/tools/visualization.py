@@ -334,6 +334,30 @@ def _sampling_function(phi_deg, func, masked, nr, nz, profiles_dict, process_ind
     profiles_dict[process_index] = profile
 
 
+def set_axis_properties(axes):
+    """
+    Set x-, y-axis property.
+    This function set axis labels and tickers.
+
+    Parameter
+    ---------
+    axes : :obj:`~matplotlib.axes.Axes`
+
+    Return
+    ------
+    :obj:`~matplotlib.axes.Axes`
+        axes object with new properties
+    """
+    axes.set_xlabel("R[m]")
+    axes.xaxis.set_minor_locator(MultipleLocator(0.1))
+    axes.yaxis.set_minor_locator(MultipleLocator(0.1))
+    axes.xaxis.set_major_formatter("{x:.1f}")
+    axes.yaxis.set_major_formatter("{x:.1f}")
+    axes.tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
+
+    return axes
+
+
 if __name__ == "__main__":
     from cherab.lhd.emitter.E3E import EMC3, EMC3Mapper, DataLoader
 
