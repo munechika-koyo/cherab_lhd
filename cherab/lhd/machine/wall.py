@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 DIR_WALL = os.path.join(os.path.dirname(__file__), "geometry", "data", "wall_outline")
 
 
-def periodic_toroidal_angle(phi):
+def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     """
     Return toroidal angle & z coordinate under periodic boundary condition.
     The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree.
@@ -19,7 +19,7 @@ def periodic_toroidal_angle(phi):
 
     Returns
     -------
-    tuple of (float, bool)
+    tuple[float, bool]
         (toroidal angle, flag of flipping)
         If this flag is  ``True``, :math:`z` component is multiplied by -1.
     """
@@ -37,7 +37,7 @@ def periodic_toroidal_angle(phi):
     return (phi, fliped)
 
 
-def adjacent_toroidal_angles(phi, phis):
+def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[int, int]:
     """
     Generate adjacent toroidal angles.
     if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
@@ -52,7 +52,7 @@ def adjacent_toroidal_angles(phi, phis):
 
     Returns
     -------
-    tuple
+    tuple[int, int]
         (left, right) adjacent toroidal angle indices
     """
     if phi < 0.0 or phi > 18.0:
@@ -72,7 +72,7 @@ def adjacent_toroidal_angles(phi, phis):
         return (index - 1, index)
 
 
-def wall_outline(phi):
+def wall_outline(phi: float) -> tuple[np.ndarray, np.ndarray]:
     """
     :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
@@ -92,7 +92,7 @@ def wall_outline(phi):
 
     Return
     ------
-    tuple of (:obj:`~numpy.ndarray`, :obj:`~numpy.ndarray`)
+    tuple[:obj:`~numpy.ndarray`, :obj:`~numpy.ndarray`]
         each of which is a wall outline in :math:`(r, z)` and :math:`(x, y, z)` coordinates, respectively.
         The shapes of each array are ``(N, 2)`` in :math:`(r, z)` and ``(N, 3)`` in :math:`(x, y, z)`.
     """
@@ -143,7 +143,7 @@ def wall_outline(phi):
     return (rz.T, xyz.T)
 
 
-def plot_lhd_wall_outline(phi):
+def plot_lhd_wall_outline(phi: float) -> None:
     """plot LHD vessel wall polygons
 
     Parameters

@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections.abc import Callable
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
@@ -11,6 +11,7 @@ from cherab.lhd.tools import sample3d_rz
 
 from multiprocessing import Process, Manager
 
+
 # Const.
 RMIN = 2.0  # [m]
 RMAX = 5.5
@@ -19,8 +20,16 @@ ZMAX = 1.6
 
 
 def show_profile_phi_degs(
-    func, phi_degs=np.linspace(0, 17.99, 6), nrows_ncols=(2, 3), resolution=5.0e-3, masked="wall", max_value=None, clabel=None, cmap="plasma", **kwargs
-):
+    func: Callable[[float, float, float], int | float],
+    phi_degs=np.linspace(0, 17.99, 6),
+    nrows_ncols: tuple[int, int] = None,
+    resolution=5.0e-3,
+    masked: str = "wall",
+    max_value: float = None,
+    clabel: str = None,
+    cmap="plasma",
+    **kwargs,
+) -> tuple[plt.Figure, ImageGrid]:
     """
     show E3E discretized data function in r - z plane with several toroidal angles.
 
@@ -28,10 +37,10 @@ def show_profile_phi_degs(
     ----------
     func : callable
         callable object
-    phi_degs : list of float, optional
+    phi_degs : list[float], optional
         toroidal angles, by default `np.linspace(0, 17.99, 6)`
-    nrows_ncols : (int, int)
-        Number of rows and columns in the grid, by default (2, 3).
+    nrows_ncols : tuple[int, int], optional
+        Number of rows and columns in the grid, by default None.
         If None, this is automatically rearranged by the length of `.phi_degs`.
     resolution : float, optional
         sampling resolution, by default 5.0e-3
@@ -71,7 +80,7 @@ def show_profile_phi_degs(
     fig = plt.figure()
 
     # set default ImageGrid parameters
-    grid_params = defaultdict(**kwargs)
+    grid_params = dict(**kwargs)
     grid_params.setdefault("axes_pad", 0.0)
     grid_params.setdefault("label_mode", "L")
     grid_params.setdefault("cbar_mode", "single")
@@ -80,6 +89,7 @@ def show_profile_phi_degs(
 
     # parallelized sampling
     manager = Manager()
+    profiles_dict: dict
     profiles_dict = manager.dict()
 
     for i, phi_deg in enumerate(phi_degs):
@@ -118,7 +128,9 @@ def show_profile_phi_degs(
     for i, phi_deg in enumerate(phi_degs):
 
         # mapping
-        mappable = grids[i].pcolormesh(r_pts, z_pts, profiles_dict[i], cmap=cmap, shading="auto", vmin=0, vmax=max_value)
+        mappable = grids[i].pcolormesh(
+            r_pts, z_pts, profiles_dict[i], cmap=cmap, shading="auto", vmin=0, vmax=max_value
+        )
 
         # annotation of toroidal angle
         grids[i].text(
@@ -159,8 +171,17 @@ def show_profile_phi_degs(
 
 
 def show_profiles_rz_plane(
-    funcs, phi_deg=0.0, masked="wall", nrows_ncols=None, labels=None, max_value=None, resolution=5.0e-3, clabel=None, cmap="plasma", **kwargs
-):
+    funcs: list[Callable[[float, float, float], int | float]],
+    phi_deg=0.0,
+    masked="wall",
+    nrows_ncols: tuple[int, int] = None,
+    labels: list[str] = [],
+    max_value: float = None,
+    resolution=5.0e-3,
+    clabel: str = None,
+    cmap="plasma",
+    **kwargs,
+) -> tuple[plt.Figure, ImageGrid]:
     """
     show several E3E discretized data functions in one r - z plane.
 
@@ -171,8 +192,8 @@ def show_profiles_rz_plane(
     phi_deg : float, optional
         toroidal angle, by default 0.0
     nrows_ncols : (int, int)
-        Number of rows and columns in the grid.
-        This is automatically rearranged by the length of `.funcs`.
+        Number of rows and columns in the grid, by default None.
+        If None, this is automatically rearranged by the length of `.funcs`.
     masked : str, optional
         masking profile by the following method:
         If ``"wall"``, profile is masked in the wall outline LHD.
@@ -216,7 +237,7 @@ def show_profiles_rz_plane(
     fig = plt.figure()
 
     # set default ImageGrid parameters
-    grid_params = defaultdict(**kwargs)
+    grid_params = dict(**kwargs)
     grid_params.setdefault("axes_pad", 0.0)
     grid_params.setdefault("label_mode", "L")
     grid_params.setdefault("cbar_mode", "single")
@@ -225,6 +246,7 @@ def show_profiles_rz_plane(
 
     # parallelized sampling
     manager = Manager()
+    profiles_dict: dict
     profiles_dict = manager.dict()
 
     for i, func in enumerate(funcs):
@@ -263,10 +285,12 @@ def show_profiles_rz_plane(
     for i in range(len(profiles_dict)):
 
         # mapping
-        mappable = grids[i].pcolormesh(r_pts, z_pts, profiles_dict[i], cmap=cmap, shading="auto", vmin=0, vmax=max_value)
+        mappable = grids[i].pcolormesh(
+            r_pts, z_pts, profiles_dict[i], cmap=cmap, shading="auto", vmin=0, vmax=max_value
+        )
 
         # annotation of toroidal angle
-        if bool(labels):
+        if len(labels) > i:
             grids[i].text(
                 RMIN + 0.1,
                 ZMAX - 0.1,
@@ -334,7 +358,7 @@ def _sampling_function(phi_deg, func, masked, nr, nz, profiles_dict, process_ind
     profiles_dict[process_index] = profile
 
 
-def set_axis_properties(axes):
+def set_axis_properties(axes: plt.Axes) -> plt.Axes:
     """
     Set x-, y-axis property.
     This function set axis labels and tickers.
@@ -365,9 +389,6 @@ if __name__ == "__main__":
     loader = DataLoader()
     radiation = EMC3Mapper(index_func, loader.radiation())
     fig, grids = show_profiles_rz_plane(
-        [radiation],
-        masked=None,
-        phi_deg=0.0,
-        clabel=r"$P_{rad}$ [W/m$^3$]"
+        [radiation], masked=None, phi_deg=0.0, clabel=r"$P_{rad}$ [W/m$^3$]"
     )
     fig.show()
