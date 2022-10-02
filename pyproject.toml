@@ -4,7 +4,7 @@ requires = [
     "wheel",
     "numpy",
     "cython",
-    "raysect >= 0.7.1",
-    "cherab >= 1.3.0"
+    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
+    "cherab @ git+https://github.com/cherab/core.git@raysect-0.8-compat",
 ]
 build-backend = "setuptools.build_meta"

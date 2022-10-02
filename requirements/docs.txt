@@ -1,15 +1,16 @@
 # these are dependencies required to build package documentation
-docutils < 0.18,>= 0.14
+docutils >= 0.19, < 0.20
 ipykernel
 ipywidgets
 nbsphinx
-numpydoc
 pillow
 pygments >= 2.11.0
-sphinx >= 3.2.0
+sphinx >= 4, < 6
 sphinx-gallery
 sphinx-prompt
 sphinx-copybutton
 pydata-sphinx-theme
 numpy-stl
 plotly
+sphinx-design
+pandoc
