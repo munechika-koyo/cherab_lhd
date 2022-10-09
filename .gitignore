@@ -75,6 +75,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/source/_api
 
 # PyBuilder
 target/
@@ -137,11 +138,11 @@ dmypy.json
 .vscode/
 
 # Other directories
-output/
+local/
 
 # calcam files
 *.ccm
 *.ccc
 
-# EMC3-EIRINE data files
-cherab/lhd/emitter/E3E/data
+# EMC3-EIRENE data files
+cherab/lhd/emc3/data

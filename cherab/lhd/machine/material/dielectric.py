@@ -1,8 +1,13 @@
+"""
+Module defining dielectric material classes
+"""
 from os import path
 import json
 from numpy import array
 from raysect.optical import InterpolatedSF
 from raysect.optical.material import Dielectric
+
+__all__ = ["PCTFE"]
 
 
 class _DataLoader(Dielectric):

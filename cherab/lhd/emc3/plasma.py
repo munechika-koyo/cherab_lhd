@@ -1,21 +1,26 @@
-import numpy as np
-from matplotlib import pyplot as plt
-from scipy.constants import electron_mass, atomic_mass
+"""
+Module offers helper functions to generate :obj:`~cherab.core.Plasma` object
+"""
+from __future__ import annotations
 
-from raysect.core import translate, Vector3D
-from raysect.primitive import Cylinder, Subtract
-from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
-
-from cherab.openadas import OpenADAS
-from cherab.core import Species, Maxwellian, Plasma, Line, elements
+from cherab.core import Line, Maxwellian, Plasma, Species, elements
 from cherab.core.math import Constant3D, ConstantVector3D
-from cherab.core.model import ExcitationLine, RecombinationLine, Bremsstrahlung
-
-from .geometry import EMC3
-from .cython import EMC3Mapper
-from .data_loader import DataLoader
-
+from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
 from cherab.lhd.tools.visualization import show_profile_phi_degs
+from cherab.openadas import OpenADAS
+from matplotlib import pyplot as plt
+from raysect.core import Node, Vector3D, translate
+from raysect.core.math.function.float.function3d.base import Function3D
+from raysect.core.math.function.vector3d.function3d.base import Function3D as VectorFunction3D
+from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
+from raysect.primitive import Cylinder, Subtract
+from scipy.constants import atomic_mass, electron_mass
+
+from .cython import EMC3Mapper
+from .dataio import DataLoader
+from .geometry import PhysIndex
+
+__all__ = ["import_plasma", "LHDSpecies"]
 
 
 # Const.
@@ -25,17 +30,18 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 
-def import_plasma(parent, species=None):
+def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
     """Helper function of generating LHD plasma
-    As emissions, H :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`, H :math:`\\delta` are applied.
+    As emissions, H :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`,
+    H :math:`\\delta` are applied.
 
     Parameters
     ----------
-    parent : :obj:`~raysect.core.scenegraph.node.Node`
+    parent
         Raysect's scene-graph parent node
-    species : object , optional
-        user-defined species object having composition which is a list of :obj:`~cherab.core.Species` objects
-        and electron distribution function attributes,
+    species
+        user-defined species object having composition which is a list of
+        :obj:`~cherab.core.Species` objects and electron distribution function attributes,
         by default :py:class:`.LHDSpecies`
 
     Returns
@@ -112,8 +118,7 @@ class LHDSpecies:
         # load dataloader
         data = DataLoader()
 
-        emc = EMC3()
-        func = emc.load_index_func()
+        func = PhysIndex()
 
         # load data arrays
         e_density = data.density_electron()
@@ -129,7 +134,7 @@ class LHDSpecies:
             EMC3Mapper(func, e_density),
             EMC3Mapper(func, temp_e_ion[0]),
             bulk_velocity,
-            electron_mass
+            electron_mass,
         )
 
         # initialize composition
@@ -138,23 +143,23 @@ class LHDSpecies:
         # append species to composition list
         # H
         self.set_species(
-            element="hydrogen",
-            charge=0,
+            "hydrogen",
+            0,
             density=EMC3Mapper(func, n_densities["H"]),
             temperature=EMC3Mapper(func, temp_n["H"]),
         )
         # H+
         self.set_species(
-            element="hydrogen",
-            charge=1,
+            "hydrogen",
+            1,
             density=EMC3Mapper(func, ion_densities["H+"]),
             temperature=EMC3Mapper(func, temp_e_ion[1]),
         )
         # C1+ - C6+
         for i in range(1, 7):
             self.set_species(
-                element="carbon",
-                charge=i,
+                "carbon",
+                i,
                 density=EMC3Mapper(func, ion_densities[f"C{i}+"]),
                 temperature=EMC3Mapper(func, temp_e_ion[1]),
             )
@@ -162,8 +167,8 @@ class LHDSpecies:
         # Ne1+ - Ne10+
         for i in range(1, 11):
             self.set_species(
-                element="neon",
-                charge=i,
+                "neon",
+                i,
                 density=EMC3Mapper(func, ion_densities[f"Ne{i}+"]),
                 temperature=EMC3Mapper(func, temp_e_ion[1]),
             )
@@ -173,35 +178,30 @@ class LHDSpecies:
 
     def set_species(
         self,
-        element=None,
-        charge=0,
-        density=Constant3D(1.0e19),
-        temperature=Constant3D(1.0e2),
-        bulk_velocity=ConstantVector3D(Vector3D(0, 0, 0)),
-    ):
+        element: str,
+        charge: int,
+        density: Function3D = Constant3D(1.0e19),
+        temperature: Function3D = Constant3D(1.0e2),
+        bulk_velocity: VectorFunction3D = ConstantVector3D(Vector3D(0, 0, 0)),
+    ) -> None:
         """add species to composition which is assumed to be Maxwellian distribution.
 
         Parameters
-        ------------
-        element : str, required
-            element name registored in cherabs elements.pyx, by default None
-        charge : int, required
+        ----------
+        element
+            element name registored in cherabs elements.pyx
+        charge
             element's charge state, by default 0
-        density : :obj:`~raysect.core.math.function.float.function3d.base.Function3D`, optional
-            density distribution, by default Constant3D(1.0e19)
-        temperature : :obj:`~raysect.core.math.function.float.function3d.base.Function3D`, optional
-            temperature distribution, by default Constant3D(1.0e2)
-        bulk_velocity : :obj:`~raysect.core.math.function.vector3d.function3d.base.Function3D`, optional
-            bulk velocity, by default ConstantVector3D(0)
+        density
+            density distribution, by default :obj:`~cherab.core.math.Constant3D` (1.0e19)
+        temperature
+            temperature distribution, by default :obj:`~cherab.core.math.Constant3D` (1.0e2)
+        bulk_velocity
+            bulk velocity, by default :obj:`~cherab.core.math.ConstantVector3D` (0)
         """
-
-        if not element:
-            message = "Parameter 'element' is required to be input."
-            raise ValueError(message)
-
         # extract specified element object
-        element = getattr(elements, element, None)
-        if not element:
+        element_obj = getattr(elements, element, None)
+        if not element_obj:
             message = (
                 f"element name '{element}' is not implemented."
                 f"You can implement manually using Element class"
@@ -209,30 +209,36 @@ class LHDSpecies:
             raise NotImplementedError(message)
 
         # element mass
-        element_mass = element.atomic_weight * atomic_mass
+        element_mass = element_obj.atomic_weight * atomic_mass
 
         # Maxwellian distribution
         distribution = Maxwellian(density, temperature, bulk_velocity, element_mass)
 
         # append plasma.composition
-        self.composition.append(Species(element, charge, distribution))
+        self.composition.append(Species(element_obj, charge, distribution))
 
-    def plot_distribution(self, res=5.0e-3):
+    def plot_distribution(self, res: float = 5.0e-3):
         """plot species density and temperature profile
 
         Parameters
         ----------
-        res : float, optional
+        res
             Spactial resolution for sampling, by default 0.005 [m]
         """
         # plot electron distribution
         fig, _ = show_profile_phi_degs(
-            self.electron_distribution._density, masked=True, clabel="density [1/m$^3$]", resolution=res
+            self.electron_distribution._density,
+            masked="wall",
+            clabel="density [1/m$^3$]",
+            resolution=res,
         )
         fig.suptitle("electron density", y=0.92)
 
         fig, _ = show_profile_phi_degs(
-            self.electron_distribution._temperature, masked=True, clabel="temperature [eV]", resolution=res
+            self.electron_distribution._temperature,
+            masked="wall",
+            clabel="temperature [eV]",
+            resolution=res,
         )
         fig.suptitle("electron temperature", y=0.92)
 
@@ -246,11 +252,9 @@ class LHDSpecies:
                     f"{species.element.symbol}{species.charge}+ density",
                     f"{species.element.symbol}{species.charge}+ temperature",
                 ],
-                ["density [1/m$^3$]", "temperature [eV]"]
+                ["density [1/m$^3$]", "temperature [eV]"],
             ):
-                fig, _ = show_profile_phi_degs(
-                    func, masked=True, clabel=clabel
-                )
+                fig, _ = show_profile_phi_degs(func, masked="wall", clabel=clabel)
                 fig.suptitle(title, y=0.92)
 
         plt.show()
@@ -264,6 +268,6 @@ if __name__ == "__main__":
     species.plot_distribution()
 
     world = World()
-    plasma = import_plasma()
+    plasma = import_plasma(world)
     print([i for i in plasma.models])
     pass

@@ -1,12 +1,19 @@
+"""
+Module defining the IRVB Camera class
+"""
+from __future__ import annotations
 import numpy as np
+from numpy import ndarray
 
 from raysect.core import Node, Primitive
-from raysect.core.math import Point3D, Vector3D
+from raysect.core.math import Point3D, Vector3D, AffineMatrix3D
 from raysect.optical import Ray
 from raysect.optical.observer import TargettedCCDArray
 from raysect.optical.material import NullMaterial
 
 from cherab.tools.observers import BolometerSlit, BolometerFoil
+
+__all__ = ["IRVBCamera"]
 
 
 XAXIS = Vector3D(1, 0, 0)
@@ -35,6 +42,8 @@ class IRVBCamera(Node):
     name : str, optional
         IRVB name.
 
+    Examples
+    --------
     .. prompt:: python >>> auto
 
        >>> from raysect.optical import World
@@ -44,12 +53,18 @@ class IRVBCamera(Node):
        >>> camera = IRVBCamera(name="MyBolometer", parent=world)
     """
 
-    def __init__(self, camera_geometry=None, parent=None, transform=None, name="") -> None:
+    def __init__(
+        self,
+        camera_geometry: Primitive | None = None,
+        parent: Node | None = None,
+        transform: AffineMatrix3D | None = None,
+        name: str = "",
+    ) -> None:
 
         super().__init__(parent=parent, transform=transform, name=name)
 
-        self._foil_detector = None
-        self._slit = None
+        self._foil_detector: TargettedCCDArray | None = None
+        self._slit: BolometerSlit | None = None
 
         if camera_geometry is not None:
             if not isinstance(camera_geometry, Primitive):
@@ -58,14 +73,14 @@ class IRVBCamera(Node):
         self._camera_geometry = camera_geometry
 
     @property
-    def slit(self):
+    def slit(self) -> BolometerSlit:
         """
-        :obj:`~cherab.tools.observers.bolometry.BolometerSlit`: BolometerSlit instances.
+        BolometerSlit instances.
         """
         return self._slit
 
     @slit.setter
-    def slit(self, value):
+    def slit(self, value: BolometerSlit):
 
         if not isinstance(value, BolometerSlit):
             raise TypeError("The slit attribute must be a BolometerSlit instance.")
@@ -76,14 +91,14 @@ class IRVBCamera(Node):
         self._slit = value
 
     @property
-    def foil_detector(self):
+    def foil_detector(self) -> TargettedCCDArray:
         """
-        :obj:`~raysect.optical.observer.imaging.TargettedCCDArray`: a TargettedCCDArray instance.
+        A TargettedCCDArray instance.
         """
         return self._foil_detector
 
     @foil_detector.setter
-    def foil_detector(self, value):
+    def foil_detector(self, value: TargettedCCDArray):
 
         if not isinstance(value, TargettedCCDArray):
             raise TypeError("The foil_detector attribute must be a TargettedCCDArray instance.")
@@ -94,9 +109,9 @@ class IRVBCamera(Node):
         self._foil_detector = value
 
     @property
-    def pixels_as_foils(self):
+    def pixels_as_foils(self) -> ndarray:
         """
-        :obj:`numpy.ndarray`: an array, the element which is a BolometerFoil's instance defined by
+        An array, the element which is a BolometerFoil's instance defined by
         regarding each pixel as a bolometer foil.
         """
 
@@ -111,7 +126,11 @@ class IRVBCamera(Node):
         for x in range(nx):
             pixel_column = []
             for y in range(ny):
-                pixel_centre = foil_upper_right - (x + 0.5) * XAXIS * pixel_pitch - (y + 0.5) * YAXIS * pixel_pitch
+                pixel_centre = (
+                    foil_upper_right
+                    - (x + 0.5) * XAXIS * pixel_pitch
+                    - (y + 0.5) * YAXIS * pixel_pitch
+                )
                 pixel = BolometerFoil(
                     detector_id="IRVB pixel ({},{})".format(x + 1, y + 1),
                     centre_point=pixel_centre,
@@ -128,7 +147,7 @@ class IRVBCamera(Node):
         return np.asarray(pixels, dtype="object")
 
     @property
-    def sightline_rays(self):
+    def sightline_rays(self) -> ndarray:
         """
         :obj:`numpy.ndarray` of :obj:`~raysect.optical.Ray`: an array containing sightline rays, each of which
         starts from the centre of each pixel and passes through
@@ -137,7 +156,10 @@ class IRVBCamera(Node):
         return np.asarray(
             [
                 [
-                    Ray(pixel.centre_point, pixel.centre_point.vector_to(self._slit.centre_point))
+                    Ray(
+                        pixel.centre_point,
+                        pixel.centre_point.vector_to(getattr(self._slit, "centre_point")),
+                    )
                     for pixel in pixel_column
                 ]
                 for pixel_column in self.pixels_as_foils
@@ -148,7 +170,8 @@ class IRVBCamera(Node):
     def observe(self) -> None:
         """
         Take an observation with this camera.
-        Call observe() on a foil detector
+        Call `observe()` on a foil detector:
+        :obj:`~raysect.optical.observer.imaging.TargettedCCDArray.observe`
         """
 
         self.foil_detector.observe()
@@ -188,13 +211,19 @@ class IRVBCamera(Node):
 
         # target slit
         corners = [
-            self.slit.centre_point - 0.5 * (+self.slit.dx * self.slit.basis_x + self.slit.dy * self.slit.basis_y),
-            self.slit.centre_point - 0.5 * (-self.slit.dx * self.slit.basis_x + self.slit.dy * self.slit.basis_y),
-            self.slit.centre_point - 0.5 * (-self.slit.dx * self.slit.basis_x - self.slit.dy * self.slit.basis_y),
-            self.slit.centre_point - 0.5 * (+self.slit.dx * self.slit.basis_x - self.slit.dy * self.slit.basis_y),
+            self.slit.centre_point
+            - 0.5 * (+self.slit.dx * self.slit.basis_x + self.slit.dy * self.slit.basis_y),
+            self.slit.centre_point
+            - 0.5 * (-self.slit.dx * self.slit.basis_x + self.slit.dy * self.slit.basis_y),
+            self.slit.centre_point
+            - 0.5 * (-self.slit.dx * self.slit.basis_x - self.slit.dy * self.slit.basis_y),
+            self.slit.centre_point
+            - 0.5 * (+self.slit.dx * self.slit.basis_x - self.slit.dy * self.slit.basis_y),
         ]
         corners = np.array([[*point] for point in corners])
-        fig.add_trace(go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="target"))
+        fig.add_trace(
+            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="target")
+        )
 
         # foil screen
         foil_centre_point = ORIGIN.transform(self.foil_detector.to_root())
@@ -211,7 +240,9 @@ class IRVBCamera(Node):
             foil_centre_point - 0.5 * (+width * basis_x - height * basis_y),
         ]
         corners = np.array([[*point] for point in corners])
-        fig.add_trace(go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="screen"))
+        fig.add_trace(
+            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="screen")
+        )
 
         # camera box
         xaxis = XAXIS.transform(self.to_root())
@@ -258,14 +289,20 @@ class IRVBCamera(Node):
 
             # set corners' points of one pixel
             pixels = plot_pixel_rays["pixels"]
-            UpperRight = Point3D(width * 0.5 - pixels[0] * pixel_pitch, height * 0.5 - pixels[1] * pixel_pitch, 0)
+            UpperRight = Point3D(
+                width * 0.5 - pixels[0] * pixel_pitch, height * 0.5 - pixels[1] * pixel_pitch, 0
+            )
             points = [
                 Point3D(*UpperRight).transform(self.foil_detector.to_root()),
-                Point3D(UpperRight.x - pixel_pitch, UpperRight.y, UpperRight.z).transform(self.foil_detector.to_root()),
-                Point3D(UpperRight.x - pixel_pitch, UpperRight.y - pixel_pitch, UpperRight.z).transform(
+                Point3D(UpperRight.x - pixel_pitch, UpperRight.y, UpperRight.z).transform(
                     self.foil_detector.to_root()
                 ),
-                Point3D(UpperRight.x, UpperRight.y - pixel_pitch, UpperRight.z).transform(self.foil_detector.to_root()),
+                Point3D(
+                    UpperRight.x - pixel_pitch, UpperRight.y - pixel_pitch, UpperRight.z
+                ).transform(self.foil_detector.to_root()),
+                Point3D(UpperRight.x, UpperRight.y - pixel_pitch, UpperRight.z).transform(
+                    self.foil_detector.to_root()
+                ),
             ]
 
             corners = np.array([[*point] for point in points])
@@ -281,7 +318,9 @@ class IRVBCamera(Node):
             )
 
             ray_temp = Ray()
-            rays = self.foil_detector._generate_rays(pixels[0], pixels[1], ray_temp, plot_pixel_rays["num_rays"])
+            rays = self.foil_detector._generate_rays(
+                pixels[0], pixels[1], ray_temp, plot_pixel_rays["num_rays"]
+            )
             for ray in rays:
 
                 origin = ray[0].origin.transform(self.foil_detector.to_root())
@@ -297,12 +336,16 @@ class IRVBCamera(Node):
 
                     elif isinstance(intersection.primitive.material, NullMaterial):
                         # apply a small displacement to avoid infinite self collisions due to numerics
-                        hit_point = intersection.hit_point.transform(intersection.primitive_to_world)
+                        hit_point = intersection.hit_point.transform(
+                            intersection.primitive_to_world
+                        )
                         ray_displacement = pixel_pitch / 100
                         origin = hit_point + direction * ray_displacement
                         continue
                     else:
-                        hit_point = intersection.hit_point.transform(intersection.primitive_to_world)
+                        hit_point = intersection.hit_point.transform(
+                            intersection.primitive_to_world
+                        )
                         break
 
                 line = np.array([[*origin_0], [*hit_point]])
@@ -321,7 +364,9 @@ class IRVBCamera(Node):
 
         # axis vector
         if show_foil_xy_axes:
-            slit_sensor_separation = abs(foil_centre_point.vector_to(self.slit.centre_point).dot(zaxis))
+            slit_sensor_separation = abs(
+                foil_centre_point.vector_to(self.slit.centre_point).dot(zaxis)
+            )
             centre = Point3D(0, 0, -slit_sensor_separation).transform(self.to_root())
             xaxis_vector = go.Scatter3d(
                 x=[centre.x, centre.x + width * self.slit.basis_x.x],

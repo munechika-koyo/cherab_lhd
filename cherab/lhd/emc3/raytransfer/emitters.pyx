@@ -1,36 +1,17 @@
-# cython: language_level=3
-
-# Copyright 2016-2018 Euratom
-# Copyright 2016-2018 United Kingdom Atomic Energy Authority
-# Copyright 2016-2018 Centro de Investigaciones Energéticas, Medioambientales y Tecnológicas
-#
-# Licensed under the EUPL, Version 1.1 or – as soon they will be approved by the
-# European Commission - subsequent versions of the EUPL (the "Licence");
-# You may not use this work except in compliance with the Licence.
-# You may obtain a copy of the Licence at:
-#
-# https://joinup.ec.europa.eu/software/page/eupl5
-#
-# Unless required by applicable law or agreed to in writing, software distributed
-# under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR
-# CONDITIONS OF ANY KIND, either express or implied.
-#
-# See the Licence for the specific language governing permissions and limitations
-# under the Licence.
-
 """
 The following emitters and integrators are used in ray transfer objects.
 Note that these emitters support other integrators as well, however high performance
 with other integrators is not guaranteed.
 """
-
 import numpy as np
 from raysect.optical cimport World, Primitive, Ray, Spectrum, Point3D, Vector3D, AffineMatrix3D
 from raysect.optical.material cimport VolumeIntegrator, InhomogeneousVolumeEmitter
 from cherab.tools.raytransfer.emitters cimport RayTransferIntegrator
-from cherab.lhd.emitter.E3E.cython cimport IntegerFunction3D, autowrap_intfunction3d
+from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D, autowrap_intfunction3d
 cimport numpy as np
 cimport cython
+
+__all__ = ["Discrete3DMeshRayTransferIntegrator", "Discrete3DMeshRayTransferEmitter"]
 
 
 cdef class Discrete3DMeshRayTransferIntegrator(RayTransferIntegrator):
@@ -42,6 +23,9 @@ cdef class Discrete3DMeshRayTransferIntegrator(RayTransferIntegrator):
     The value for each voxel is stored in respective bin of the spectral array.
     The distances traveled by the ray through the voxel is calculated
     approximately and the accuracy depends on the integration step.
+
+    :param float step: integration step, by default 0.001
+    :param int min_samples: number of minimum samples of integration
     """
 
     def __init__(self, double step=0.001, int min_samples=2):
@@ -103,15 +87,12 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
     Note that for performance reason there are no boundary checks in `emission_function()`,
     or in `Discrete3DMeshRayTransferIntegrator`, so this emitter must be placed inside a bounding box.
 
-    :param object index_function: IntegerFunction3D: 
+    :param object index_function: IntegerFunction3D
     :param float integration_step: The length of line integration step defaults to 0.01.
-    :param raysect.optical.material.VolumeIntegrator integrator: Volume integrator,
-        defaults to `integrator=Discrete3DMeshRayTransferIntegrator(integration_step)`
+    :param integrator: Volume integrator, defaults to :obj:`.Discrete3DMeshRayTransferIntegrator(integration_step)`
+    :type integrator: :obj:`~raysect.optical.material.VolumeIntegrator` 
 
-    :ivar bins: int: The number of defined RayTransfer meshes which must be the maximum number of a value
-        returned by the `index_function`.
-
-     .. code-block:: pycon
+    .. prompt:: python >>> auto
 
         >>> from numpy import hypot
         >>> from raysect.optical import World, translate, Point3D
@@ -128,13 +109,13 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
         >>>
         >>> world = World()
         >>> bins = 2  # Note that bins must be same as the number of meshes.
-                      # Here thinking of two meshes like bins.shape = (2, ).
+        >>>           # Here thinking of two meshes like bins.shape = (2, ).
         >>> material = Discrete3DMeshRayTransferEmitter(index_func, bins, integration_step=0.001)
         >>> eps = 1.e-6  # ray must never leave the grid when passing through the volume
         >>> radius = 2.0 - eps
         >>> height = 10.0
         >>> cylinder = Cylinder(radius, height, material=material, parent=world, transform=translate(0, 0, -0.5 * height))
-        ...
+        >>>
         >>> camera.spectral_bins = material.bins
         >>> # ray transfer matrix will be calculated for 600.5 nm
         >>> camera.min_wavelength = 600.

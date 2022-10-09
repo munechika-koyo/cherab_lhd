@@ -1,4 +1,4 @@
-from cherab.lhd.emitter.E3E.cython cimport IntegerFunction3D
+from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D
 from libc.limits cimport INT_MIN
 
 

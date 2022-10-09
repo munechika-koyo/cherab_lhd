@@ -1,16 +1,19 @@
-from setuptools import setup, Extension
-from Cython.Build import cythonize
-import sys
-import numpy
+from __future__ import annotations
+
+import multiprocessing
 import os
 import os.path as path
-import multiprocessing
+import sys
 
-multiprocessing.set_start_method('fork')
+import numpy
+from Cython.Build import cythonize
+from setuptools import Extension, setup
+
+multiprocessing.set_start_method("fork")
+NCORES = multiprocessing.cpu_count()
 
 force = False
 profile = False
-install_rates = False
 
 if "--force" in sys.argv:
     force = True
@@ -22,24 +25,26 @@ if "--profile" in sys.argv:
 
 
 compilation_includes = [".", numpy.get_include()]
-compilation_args = []
+compilation_args = ["-fopenmp"]
+compilation_links = ["-fopenmp"]
 cython_directives = {"language_level": 3}
 
 setup_path = path.dirname(path.abspath(__file__))
 
 # build .pyx extension list
-extensions = []
+EXTENSIONS_TO_BUILD = []
 for root, dirs, files in os.walk(setup_path):
     for file in files:
         if path.splitext(file)[1] == ".pyx":
             pyx_file = path.relpath(path.join(root, file), setup_path)
             module = path.splitext(pyx_file)[0].replace("/", ".")
-            extensions.append(
+            EXTENSIONS_TO_BUILD.append(
                 Extension(
                     module,
                     [pyx_file],
                     include_dirs=compilation_includes,
                     extra_compile_args=compilation_args,
+                    extra_link_args=compilation_links,
                 )
             )
 
@@ -47,13 +52,28 @@ if profile:
     cython_directives["profile"] = True
 
 # generate .c files from .pyx
-extensions = cythonize(
-    extensions,
-    nthreads=multiprocessing.cpu_count(),
+EXTENSIONS = cythonize(
+    EXTENSIONS_TO_BUILD,
+    nthreads=NCORES,
     force=force,
     compiler_directives=cython_directives,
 )
 
-setup(
-    ext_modules=extensions,
-)
+
+def setup_given_extensions(extensions: list[Extension]):
+    setup(
+        ext_modules=extensions,
+    )
+
+
+def setup_extensions_in_parallel():
+    mp = multiprocessing.get_context("fork")
+    pool = mp.Pool(processes=NCORES)
+    extensions = [[e] for e in EXTENSIONS]
+    pool.imap(setup_given_extensions, extensions)
+    pool.close()
+    pool.join()
+
+
+if __name__ == "__main__":
+    setup_extensions_in_parallel()

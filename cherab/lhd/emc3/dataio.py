@@ -1,7 +1,17 @@
-# This module was made to parse and load E3E each raw data
+"""
+Module to parse and load raw data calculated by EMC3-EIRENE
+"""
+from __future__ import annotations
+
 import os
 import re
+from collections.abc import Iterable
+
 import numpy as np
+from numpy.typing import NDArray
+
+__all__ = ["DataLoader"]
+
 
 DEFAULT_DATA_REPOSITORY = os.path.join(os.path.dirname(__file__), "data")
 
@@ -12,12 +22,12 @@ class DataLoader:
 
     Parameters
     ----------
-    path : str
+    path
         path to directory where raw data (CELL_GEO, DENSITY, etc...) are stored
 
     Example
     -------
-    .. prompt:: python auto
+    .. prompt:: python >>> auto
 
         >>> from cherab.lhd.emitter.E3E import DataLoader
         >>> loader = DataLoader()
@@ -33,7 +43,7 @@ class DataLoader:
         }
     """
 
-    def __init__(self, path=None) -> None:
+    def __init__(self, path: str | None = None) -> None:
 
         # path to E3E data files
         self.path = path or DEFAULT_DATA_REPOSITORY
@@ -43,21 +53,24 @@ class DataLoader:
         self.pattern_value = re.compile(r" -?\d\.\d{4}E[+-]\d{2}")  # e.g.) -1.2345E+12
 
         # load number of plasma cells
-        self.num_total, self.num_plasma, self.num_plasma_vac = _num_cells(self.path)
+        self.num_total, self.num_plasma, self.num_plasma_vac = _num_cells(
+            os.path.join(DEFAULT_DATA_REPOSITORY, "grid-360")
+        )
 
-    def radiation(self) -> np.ndarray:
+    def plasma_radiation(self) -> NDArray[np.float64]:
         """Load plasma radation data
 
         Returns
         -------
         numpy.ndarray
-            1D radiation data [W/m^3]
+            1D plasma radiation data [W/m^3]
         """
         with open(os.path.join(self.path, "RADIATION_1"), "r") as f:
             _ = f.readline()  # skip first row
             radiation = f.read()
         # extract values
         radiation = re.findall(self.pattern_value, radiation)
+
         radiation = np.asarray_chkfinite(radiation, dtype=np.float64) * 1.0e6  # [W/cm^3] -> [W/m^3]
 
         # validation
@@ -72,7 +85,7 @@ class DataLoader:
 
         return radiation
 
-    def impurity_radiation(self) -> np.ndarray:
+    def impurity_radiation(self) -> NDArray[np.float64]:
         """Load impurity radation data.
 
         Returns
@@ -102,7 +115,19 @@ class DataLoader:
 
         return radiation
 
-    def density_electron(self) -> np.ndarray:
+    def radiation(self) -> NDArray[np.float64]:
+        """Load total radation data.
+        which means plasma + impurity radiation
+
+        Returns
+        -------
+        numpy.ndarray
+            1D radiation data [W/m^3].
+            negative values are made positive.
+        """
+        return self.plasma_radiation() + self.impurity_radiation()
+
+    def density_electron(self) -> NDArray[np.float64]:
         """Load electron density data which is same as H+ ones
 
         Returns
@@ -117,7 +142,8 @@ class DataLoader:
         density = re.split(self.pattern_index, density)
 
         density = (
-            np.asarray_chkfinite(re.findall(self.pattern_value, density[1]), dtype=np.float64) * 1.0e6
+            np.asarray_chkfinite(re.findall(self.pattern_value, density[1]), dtype=np.float64)
+            * 1.0e6
         )  # [1/cc] -> [1/m^3]
 
         # validation
@@ -129,7 +155,7 @@ class DataLoader:
 
         return density
 
-    def density_ions(self) -> dict:
+    def density_ions(self) -> dict[str, NDArray[np.float64]]:
         """Load ions density data.
         the list of species state is:
         H+, C1+, C2+,..., C+6, Ne1+,..., Ne10+.
@@ -137,7 +163,7 @@ class DataLoader:
 
         Returns
         -------
-        dict{str: numpy.ndarray}
+        dict[str, numpy.ndarray]
             key is label of ion and value is density data [1/m^3]
         """
         state_list = ["H+"] + [f"C{i}+" for i in range(1, 7)] + [f"Ne{i}+" for i in range(1, 11)]
@@ -151,7 +177,8 @@ class DataLoader:
         # mapping density values into each state lavel
         for ion, density in zip(density_ions.keys(), densities[1:]):
             density_ions[ion] = (
-                np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64) * 1.0e6
+                np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64)
+                * 1.0e6
             )  # [1/cc] -> [1/m^3]
             # validation
             if density_ions[ion].size != self.num_plasma:
@@ -162,14 +189,14 @@ class DataLoader:
 
         return density_ions
 
-    def density_neutrals(self) -> dict:
+    def density_neutrals(self) -> dict[str, NDArray[np.float64]]:
         """Load neutral particles density data.
         the list of species state is:
         H, H2, C, Ne.
 
         Returns
         -------
-        dict{str: numpy.ndarray}
+        dict[str, numpy.ndarray]
             key is label of species and value is density data [1/m^3]
         """
         density_neutral = {atom: None for atom in ["H", "H2", "C", "Ne"]}
@@ -181,11 +208,15 @@ class DataLoader:
                 density = f.read()
 
             density_neutral[atom] = (
-                np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64) * 1.0e6
+                np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64)
+                * 1.0e6
             )  # [1/cc] -> [1/m^3]
 
             # validation
-            if density_neutral[atom].size != self.num_plasma_vac and density_neutral[atom].size != self.num_plasma:
+            if (
+                density_neutral[atom].size != self.num_plasma_vac
+                and density_neutral[atom].size != self.num_plasma
+            ):
                 raise ValueError(
                     f"The size of {atom} density data ({density_neutral[atom].size}) "
                     f"must be same as the number of plasma ({self.num_plasma_vac}) with vacuume cells"
@@ -193,19 +224,19 @@ class DataLoader:
 
         return density_neutral
 
-    def temperature_electron_ion(self) -> tuple:
+    def temperature_electron_ion(self) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Load electron and ion (H+) temperature
 
         Returns
         -------
-        tuple(numpy.ndarray)
+        tuple[numpy.ndarray]
             electron and ion temperature data [eV]
         """
         with open(os.path.join(self.path, "TE_TI"), "r") as f:
             temp = f.read().split()
 
         temp_e = np.asarray_chkfinite(temp[: self.num_plasma], dtype=np.float64)
-        temp_ion = np.asarray_chkfinite(temp[self.num_plasma:], dtype=np.float64)
+        temp_ion = np.asarray_chkfinite(temp[self.num_plasma :], dtype=np.float64)
 
         # validation
         if temp_ion.size != self.num_plasma:
@@ -216,14 +247,14 @@ class DataLoader:
 
         return (temp_e, temp_ion)
 
-    def temperature_neutrals(self) -> dict:
+    def temperature_neutrals(self) -> dict[str, NDArray[np.float64]]:
         """Load neutral particles temperature data.
         the list of species state is:
         H, H2
 
         Returns
         -------
-        dict{str: numpy.ndarray}
+        dict[str, numpy.ndarray]
             key is label of species and value is temperature data [eV]
         """
         temperature_neutral = {atom: None for atom in ["H", "H2"]}
@@ -234,7 +265,9 @@ class DataLoader:
             with open(os.path.join(self.path, file), "r") as f:
                 temperature = f.read()
 
-            temperature_neutral[atom] = np.asarray_chkfinite(re.findall(self.pattern_value, temperature), dtype=np.float64)
+            temperature_neutral[atom] = np.asarray_chkfinite(
+                re.findall(self.pattern_value, temperature), dtype=np.float64
+            )
 
             # validation
             if temperature_neutral[atom].size != self.num_plasma_vac:
@@ -246,17 +279,17 @@ class DataLoader:
         return temperature_neutral
 
 
-def _num_cells(path) -> tuple:
-    """Read the number of 3 type cells from .data/CELL_GEO file.
+def _num_cells(path: str) -> tuple[int, int, int]:
+    """Read the number of 3 type cells from .data/grid-360/CELL_GEO file.
 
     Parameters
     ----------
-    path : str
+    path
         path to CELL_GEO directory
 
     Returns
     -------
-    tuple(int)
+    tuple[int, int, int]
         number of total cells
         number of plasma cells
         number of plasma with vacuume cells
@@ -265,7 +298,7 @@ def _num_cells(path) -> tuple:
         try:
             num_total, num_plasma, num_plasma_vac = list(map(int, f.readline().split()))
         except Exception:
-            raise ("Reading the number of cells didn't work well.")
+            raise Exception("Reading the number of cells didn't work well.")
 
     return (num_total, num_plasma, num_plasma_vac)
 
@@ -275,3 +308,6 @@ if __name__ == "__main__":
     loader = DataLoader()
     ne = loader.density_electron()
     nn = loader.density_neutrals()
+
+    rad = loader.radiation()
+    pass
