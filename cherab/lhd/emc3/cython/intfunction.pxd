@@ -1,5 +1,3 @@
-# cython: language_level=3
-
 from libc.limits cimport INT_MIN
 from raysect.core.math.function.base cimport Function
 

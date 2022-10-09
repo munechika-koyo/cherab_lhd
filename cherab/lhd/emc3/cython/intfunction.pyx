@@ -1,10 +1,11 @@
-# cython: language_level=3
-
-# This module is optimized for EMC3-EIRINE in LHD by Koyo Munechika.
-
+"""
+Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
+"""
 import numbers
 from libc.limits cimport INT_MIN
 from raysect.core.math.function.base cimport Function
+
+__all__ = ["IntegerFunction3D", "IntegerConstant3D", "PythonIntegerFunction3D"]
 
 
 cdef class IntegerFunction3D:
