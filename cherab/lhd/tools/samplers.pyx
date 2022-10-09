@@ -1,8 +1,3 @@
-from numpy import empty, linspace, sin, cos, deg2rad
-from raysect.core.math.function.float cimport Function3D, autowrap_function3d
-cimport cython
-cimport numpy as np
-
 """
 This module provides a set of sampling functions for rapidly generating samples
 of a 3D functions with cylindrical coords.
@@ -10,31 +5,39 @@ of a 3D functions with cylindrical coords.
 These functions use C calls when sampling Function3D
 objects and are therefore considerably faster than the equivalent Python code.
 """
+from numpy import empty, linspace, sin, cos
+
+from libc.math cimport M_PI
+from numpy cimport ndarray, float64_t
+from raysect.core.math.function.float cimport Function3D, autowrap_function3d
+cimport cython
+
+
+__all__ = ["sample3d_rz"]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
 cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double phi=0.0):
     """
     Samples a 3D function over the specified range with r - z coords
     at a certain toroidal angle
 
-    Parameters
-    ----------
-    function3d : function
-        a Python function or Function3D object
-    r_range : tuple
-        the r sample range: (r_min, r_max, r_samples)
-    z_range : tuple
-        the z sample range: (z_min, z_max, z_samples)
-    phi : double
-        toroidal angle in degree, by default 0.0 [deg]
+    :param function3d: a Python function or Function3D object
+    :type function3d: Callable[[float, float, float], float]
+    :param r_range: the r sample range: (r_min, r_max, r_samples)
+    :type r_range: tuple[float, float, int]
+    :param z_range: the z sample range: (z_min, z_max, z_samples)
+    :type z_range: tuple[float, float, int]
+    :param phi: toroidal angle in degree, by default 0.0 [deg]
+    :type phi: float
 
-    Return
-    ------
-    tuple
-        sampled values: (r_points, z_points, function_samples)
+    :return: sampled values (r_points, z_points, function_samples)
+    :rtype: tuple[ndarray, ndarray, ndarray]
 
-    .. code-block:: pycon
+    .. prompt:: python >>> auto
 
        >>> from cherab.lhd.tools import sample3d_rz
        >>>
@@ -55,8 +58,10 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
         Function3D f3d
         int r_samples, z_samples
         double phi_rad
-        double[::1] x_view, y_view, z_view
-        double[:, ::1] v_view
+        ndarray[float64_t, ndim=1] r, x, y, z
+        ndarray[float64_t, ndim=2] v
+        float64_t[::1] x_view, y_view, z_view
+        float64_t[:, ::1] v_view
 
     if len(r_range) != 3:
         raise ValueError("R range must be a tuple containing: (min range, max range, no. of samples).")
@@ -76,7 +81,7 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
     if z_range[2] < 1:
         raise ValueError("The number of z samples must be >= 1.")
 
-    phi_rad = deg2rad(phi)
+    phi_rad = phi * M_PI / 180.0
 
     f3d = autowrap_function3d(function3d)
     r_samples = r_range[2]
@@ -99,7 +104,3 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
             v_view[i, j] = f3d.evaluate(x_view[i], y_view[i], z_view[j])
 
     return (r, z, v)
-
-
-if __name__ == "__main__":
-    pass
