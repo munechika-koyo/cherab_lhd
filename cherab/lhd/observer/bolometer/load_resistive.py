@@ -1,3 +1,7 @@
+"""
+Module offers helper functions related to resistive bolometers
+"""
+from __future__ import annotations
 import os
 from json import load
 from raysect.core import World
@@ -7,21 +11,25 @@ from raysect.optical.material import AbsorbingSurface
 from cherab.tools.observers import BolometerCamera, BolometerSlit, BolometerFoil
 from cherab.lhd.observer.bolometer.load_irvb import _centre_basis_and_dimensions
 
+__all__ = ["load_resistive"]
+
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), "data")
 
 
-def load_resistive(port="6.5L", model_variant="I", parent=None):
+def load_resistive(
+    port: str = "6.5L", model_variant: str = "I", parent: World | None = None
+) -> BolometerCamera:
     """helper function of generating a Resistive bolometer camera object.
     An bolometers' configuration is defined in json file, the name of which is "RB.json" stored in ../data folder.
 
     Parameters
     ----------
-    port : str
+    port
         user-specified port name, by default "6.5L"
-    model_variant : str
+    model_variant
         The variant of bolometer model, by default "I"
-    parent : :obj:`~raysect.core.scenegraph.node.Node`, optional
+    parent
         The parent node of this camera in the scenegraph, often
         an optical :obj:`~raysect.core.scenegraph.world.World` object, by default None
 
@@ -91,7 +99,9 @@ def load_resistive(port="6.5L", model_variant="I", parent=None):
         lower=Point3D(-slit.dx * 0.5, -slit.dy * 0.5, -slit.dz * 0.6),
         upper=Point3D(slit.dx * 0.5, slit.dy * 0.5, slit.dz * 0.6),
     )
-    _ = Subtract(face, slit_box, parent=slit, material=AbsorbingSurface(), name=f"{slit.name} - CSG Aperture")
+    _ = Subtract(
+        face, slit_box, parent=slit, material=AbsorbingSurface(), name=f"{slit.name} - CSG Aperture"
+    )
 
     return bolometer_camera
 

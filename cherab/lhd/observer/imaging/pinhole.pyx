@@ -1,40 +1,13 @@
-# cython: language_level=3
-
-# Copyright (c) 2014-2021, Dr Alex Meakins, Raysect Project
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright notice,
-#        this list of conditions and the following disclaimer.
-#
-#     2. Redistributions in binary form must reproduce the above copyright
-#        notice, this list of conditions and the following disclaimer in the
-#        documentation and/or other materials provided with the distribution.
-#
-#     3. Neither the name of the Raysect Project nor the names of its
-#        contributors may be used to endorse or promote products derived from
-#        this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-
+"""
+Module to define :obj:`.PinholeCamera` class
+"""
 from raysect.optical.observer.pipeline import RGBPipeline2D
 
 from raysect.optical cimport Ray, AffineMatrix3D, Point3D, new_point3d, Vector3D, translate
 from libc.math cimport M_PI
 from raysect.optical.observer.imaging cimport CCDArray
+
+__all__ = ["PinholeCamera"]
 
 
 cdef class PinholeCamera(CCDArray):
@@ -44,14 +17,12 @@ cdef class PinholeCamera(CCDArray):
     A ray triggered from each pixel always goes through the arbitrary pinhole point.
     The distance from pinhole and imaging sensor represents focal length.
 
-    :param tuple pixels: A tuple of pixel dimensions for the camera (default=(512, 512)).
+    :param tuple pixels: A tuple of pixel dimensions for the camera (default= ``(512, 512)`` ).
     :param float width: The CCD sensor x-width in metres (default=35mm).
     :param float focal_length: The distance between pinhole and CCD sensor (defalut=24mm).
-    :param tuple pinhole_point: The position of pinhole point from the centre of CCD,
-      which represents as (x, y) coordinate (default=(0, 0)).
-    :param list pipelines: The list of pipelines that will process the spectrum measured
-      at each pixel by the camera (default=RGBPipeline2D()).
-    :param kwargs: **kwargs and properties from Observer2D and _ObserverBase.
+    :param tuple pinhole_point: The position of pinhole point from the centre of CCD, which represents as (x, y) coordinate (default= ``(0, 0)`` ).
+    :param list pipelines: The list of pipelines that will process the spectrum measured at each pixel by the camera (default= `RGBPipeline2D` ()).
+    :param kwargs: kwargs and properties from `Observer2D` and `_ObserverBase`.
     """
 
     cdef:
@@ -59,8 +30,13 @@ cdef class PinholeCamera(CCDArray):
         tuple _pinhole_point
 
     def __init__(
-            self, pixels=(512, 512), width=0.035, focal_length=0.024, pinhole_point=(0, 0),
-            parent=None, transform=None, name=None, pipelines=None
+            self,
+            pixels=(512, 512),
+            width=0.035,
+            focal_length=0.024,
+            pinhole_point=(0, 0),
+            pipelines=None,
+            **kwargs
         ):
 
         # set initial values
@@ -69,9 +45,7 @@ cdef class PinholeCamera(CCDArray):
 
         pipelines = pipelines or [RGBPipeline2D()]
 
-        super().__init__(
-            pixels=pixels, width=width, parent=parent, transform=transform, name=name, pipelines=pipelines
-        )
+        super().__init__(pixels=pixels, width=width, pipelines=pipelines, **kwargs)
 
     @property
     def focal_length(self):
