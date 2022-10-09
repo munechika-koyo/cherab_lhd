@@ -2,8 +2,11 @@
 Module to offer wall contour fetures
 """
 import os
+
 import numpy as np
 from matplotlib import pyplot as plt
+from numpy import float64, intp
+from numpy.typing import NDArray
 
 __all__ = [
     "wall_outline",
@@ -47,7 +50,7 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     return (phi, fliped)
 
 
-def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[int, int]:
+def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
     """
     Generate adjacent toroidal angles.
     if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
@@ -82,7 +85,7 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[int, int]:
         return (index - 1, index)
 
 
-def wall_outline(phi: float, basis: str = "rz") -> np.ndarray:
+def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     """
     :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
