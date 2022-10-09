@@ -1,8 +1,13 @@
+"""
+Module defining Rough metal material classes
+"""
 from os import path
 import json
 from numpy import array
 from raysect.optical import InterpolatedSF
 from raysect.optical.material import RoughConductor
+
+__all__ = ["RoughSUS316L"]
 
 
 class _DataLoader(RoughConductor):

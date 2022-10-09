@@ -1,8 +1,13 @@
+"""
+Module defining metal material classes
+"""
 from os import path
 import json
 from numpy import array
 from raysect.optical import InterpolatedSF
 from raysect.optical.material import Conductor
+
+__all__ = ["SUS316L"]
 
 
 class _DataLoader(Conductor):

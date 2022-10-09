@@ -1,6 +1,16 @@
+"""
+Module to offer wall contour fetures
+"""
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+
+__all__ = [
+    "wall_outline",
+    "plot_lhd_wall_outline",
+    "periodic_toroidal_angle",
+    "adjacent_toroidal_angles",
+]
 
 
 DIR_WALL = os.path.join(os.path.dirname(__file__), "geometry", "data", "wall_outline")
@@ -14,7 +24,7 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
 
     Parameters
     ----------
-    phi : float
+    phi
         toroidal angle
 
     Returns
@@ -45,9 +55,9 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[int, int]:
 
     Parameters
     ----------
-    phi : float
+    phi
         toroidal angle betwenn 0 and 18 degree
-    phis : :obj:`~numpy.ndarray`
+    phis
         1D array of toroidal angles
 
     Returns
@@ -72,7 +82,7 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[int, int]:
         return (index - 1, index)
 
 
-def wall_outline(phi: float) -> tuple[np.ndarray, np.ndarray]:
+def wall_outline(phi: float, basis: str = "rz") -> np.ndarray:
     """
     :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
@@ -85,17 +95,36 @@ def wall_outline(phi: float) -> tuple[np.ndarray, np.ndarray]:
     where :math:`\\varphi_{i} < \\varphi < \\varphi_{i+1}` and :math:`xyz_{i}` and :math:`xyz_{i+1}` is wall outline coordinates at
     :math:`\\varphi_{i}` and :math:`\\varphi_{i+1}`, respectively.
 
-    Parameter
-    ---------
-    phi : float
+    Parameters
+    ----------
+    phi
         toroidal angle in units of degree.
+    basis : str `{"rz" or "xyz"}`
+        coordinate system for returned points, by default `"rz"`
 
-    Return
-    ------
-    tuple[:obj:`~numpy.ndarray`, :obj:`~numpy.ndarray`]
-        each of which is a wall outline in :math:`(r, z)` and :math:`(x, y, z)` coordinates, respectively.
-        The shapes of each array are ``(N, 2)`` in :math:`(r, z)` and ``(N, 3)`` in :math:`(x, y, z)`.
+    Returns
+    -------
+    :obj:`~numpy.ndarray`
+        wall outline points in either :math:`(r, z)` or :math:`(x, y, z)` coordinates which depends on
+        the `basis` parameter.
+        The shape of ndarray is either `(N, 2)` in :math:`(r, z)` or `(N, 3)` in :math:`(x, y, z)`.
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> from cherab.lhd.machine import wall_outline
+        >>> rz = wall_outline(15.0, basis="rz")
+        >>> rz
+        array([[ 4.40406713,  1.51311291],
+               [ 4.39645296,  1.42485631],
+               ...
+               [ 4.40406713,  1.51311291]])
     """
+
+    # validate basis parameter
+    if basis not in {"rz", "xyz"}:
+        raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
     # extract toroidal angles from file name
     filenames = os.listdir(DIR_WALL)
@@ -119,39 +148,46 @@ def wall_outline(phi: float) -> tuple[np.ndarray, np.ndarray]:
         [
             rz_left[:, 0] * np.cos(np.deg2rad(phis[phi_left])),
             rz_left[:, 0] * np.sin(np.deg2rad(phis[phi_left])),
-            rz_left[:, 1] * flip
+            rz_left[:, 1] * flip,
         ]
     )
     xyz_right = np.array(
         [
             rz_right[:, 0] * np.cos(np.deg2rad(phis[phi_right])),
             rz_right[:, 0] * np.sin(np.deg2rad(phis[phi_right])),
-            rz_right[:, 1] * flip
+            rz_right[:, 1] * flip,
         ]
     )
 
     # linearly interpolate wall outline
-    xyz = ((phi_t - phis[phi_left]) * xyz_right + (phis[phi_right] - phi_t) * xyz_left) / (phis[phi_right] - phis[phi_left])
-
-    rz = np.array(
-        [
-            np.hypot(xyz[0, :], xyz[1, :]),
-            xyz[2, :]
-        ]
+    xyz = ((phi_t - phis[phi_left]) * xyz_right + (phis[phi_right] - phi_t) * xyz_left) / (
+        phis[phi_right] - phis[phi_left]
     )
 
-    return (rz.T, xyz.T)
+    if basis == "xyz":
+        return xyz.T
+    else:
+        return np.array([np.hypot(xyz[0, :], xyz[1, :]), xyz[2, :]]).T
 
 
 def plot_lhd_wall_outline(phi: float) -> None:
-    """plot LHD vessel wall polygons
+    """plot LHD vessel wall polygons in a :math:`r` - :math:`z` plane
 
     Parameters
     ----------
-    phi : float
+    phi
         toroidal angle in unit of degree
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> from cherab.lhd.machine import plot_lhd_wall_outline
+        >>> plot_lhd_wall_outline(15.0)
+
+    .. image:: ../../_static/images/plotting/plot_lhd_wall_outline.png
     """
-    rz, _ = wall_outline(phi)
+    rz = wall_outline(phi, basis="rz")
     plt.plot(rz[:, 0], rz[:, 1])
     plt.xlabel("$R$[m]")
     plt.ylabel("$Z$[m]")
