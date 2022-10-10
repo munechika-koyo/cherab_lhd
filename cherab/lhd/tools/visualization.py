@@ -464,7 +464,7 @@ def _sampler(
 
     elif mask == "grid":
         if hasattr(func, "inside_grids"):
-            _, _, mask_arr = sample2d(getattr(func, "inside_grid"), r_range, z_range)
+            _, _, mask_arr = sample3d_rz(getattr(func, "inside_grids"), r_range, z_range, phi_deg)
             mask_arr = np.logical_not(mask_arr)
         else:
             mask_arr = sampled < 0
