@@ -20,7 +20,7 @@ if not hasattr(sys.modules[__name__], "__file__"):
     __file__ = inspect.getfile(inspect.currentframe())
 
 
-__all__ = ["CellIndex", "PhysIndex", "TomographyZone"]
+__all__ = ["_indexBase", "CellIndex", "PhysIndex", "TomographyZone"]
 
 
 cdef:
@@ -318,15 +318,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 48:
                                     indices_mv[i] = 4 + val
                                 elif 48 <= m < 170:
@@ -359,15 +359,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 53:
                                     indices_mv[i] = 5 + val
                                 elif 53 <= m < 141:
@@ -435,15 +435,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 48:
                                     indices_mv[i] = 6 + val
                                 elif 48 <= m < 170:
@@ -477,15 +477,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 53:
                                     indices_mv[i] = 5 + val
                                 elif 53 <= m < 141:
@@ -553,15 +553,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 48:
                                     indices_mv[i] = 7 + val
                                 elif 48 <= m < 170:
@@ -595,15 +595,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 53:
                                     indices_mv[i] = 8 + val
                                 elif 53 <= m < 141:
@@ -671,15 +671,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 48:
                                     indices_mv[i] = 9 + val
                                 elif 48 <= m < 170:
@@ -713,15 +713,15 @@ cdef class TomographyZone(_IndexBase):
                     for m in range(M - 1):
                         for l in range(L - 1):
                             i = n * (L - 1) * (M - 1) + m * (L - 1) + l
-                            if l < 4:
+                            if l < 5:
                                 indices_mv[i] = 0 + val
-                            elif 4 <= l < 8:
+                            elif 5 <= l < 9:
                                 indices_mv[i] = 1 + val
-                            elif 8 <= l < 12:
+                            elif 9 <= l < 13:
                                 indices_mv[i] = 2 + val
-                            elif 12 <= l < 16:
+                            elif 13 <= l < 17:
                                 indices_mv[i] = 3 + val
-                            else:  # l >= 16
+                            else:  # l >= 17
                                 if m < 53:
                                     indices_mv[i] = 8 + val
                                 elif 53 <= m < 141:
