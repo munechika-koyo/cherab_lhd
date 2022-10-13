@@ -18,7 +18,7 @@ GRID_PATH = os.path.join(BASE, "data", "grid-360", "grid-360.txt")
 CELLGEO_PATH = os.path.join(BASE, "data", "grid-360", "CELL_GEO")
 
 
-def grid2array(path: str = GRID_PATH) -> None:
+def grid2array(path: str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6, 0.0)) -> None:
     """
     Convert raw grid text data into numpy 3-D ndarray binary file.
     EMC3-EIRENE has several comutational area (which is called "zone").
@@ -29,15 +29,23 @@ def grid2array(path: str = GRID_PATH) -> None:
     This function also generates ``grid_config.json`` file into the same path's directory.
     In this json file, the number of grid resolution, cells in each zone is recorded.
 
+    In the case of ``"zone0"`` and ``"zone11"``, magnetic axis point :math:`(R_0, Z_0)` is added to
+    the original grid data. So the radial grid resolution ``L`` is altered to ``L + 1``.
+    (Of course, the number of cells is increased accordingly.)
+
     Parameters
     ----------
     path
         path to the raw text file by default ``./data/grid/grid-360.txt``
+    magnetic_axis
+        Magnetic axis point in the :math:`(R, Z)` coordinates, by default ``(3.6, 0.0)``
     """
 
-    # check if file path exists
+    # validate parameters
     if not os.path.exists(path):
         raise FileNotFoundError(f"{path} does not exists.")
+    if not isinstance(magnetic_axis, tuple) and len(magnetic_axis) != 2:
+        raise ValueError("magnetic_axis must be a tuple containing 2 float elements.")
 
     # zone labels, by default zone0 ~ zone21
     zones = [f"zone{i}" for i in range(0, 21 + 1)]
@@ -59,7 +67,13 @@ def grid2array(path: str = GRID_PATH) -> None:
             # Parse number of grid resolution
             line = file.readline()
             L, M, N = [int(x) for x in line.split()]
-            num_rows = ceil(L * M / 6)  # number of table rows per r/z points
+
+            # number of table rows per r/z points
+            num_rows = ceil(L * M / 6)
+
+            # Raial grid resolution is increased by 1 deu to the adding magnetic axis point
+            if zone in {"zone0", "zone11"}:
+                L += 1
 
             # grid array
             grid = np.zeros((L * M, 3, N), dtype=np.float64)
@@ -81,6 +95,14 @@ def grid2array(path: str = GRID_PATH) -> None:
                     z_coords += [float(x) * 1.0e-2 for x in line.split()]  # [cm] -> [m]
 
                 line = file.readline()  # to skip one line
+
+                # Add magnetic axis point coordinates
+                if zone in {"zone0", "zone11"}:
+                    index = 0
+                    for _ in range(M):
+                        r_coords.insert(index, magnetic_axis[0])
+                        z_coords.insert(index, magnetic_axis[1])
+                        index += L
 
                 # store coordinates into 3-D ndarray (r, z, phi)
                 grid[:, 0, n] = r_coords
@@ -143,9 +165,25 @@ def physical_index2array(path: str = CELLGEO_PATH) -> None:
     start = 0
     for zone in grid_config.keys():
         num_cells = grid_config[zone]["num_cells"]
+        L = grid_config[zone]["L"]
+        M = grid_config[zone]["M"]
+        N = grid_config[zone]["N"]
         filename = os.path.join(os.path.dirname(path), f"indices-{zone}.npy")
-        np.save(filename, indices[start : start + num_cells])
-        start += num_cells
+        if zone in {"zone0", "zone11"}:
+            L -= 1
+            num_cells = (L - 1) * (M - 1) * (N - 1)
+            index_array = indices[start : start + num_cells]
+            value = index_array[0]
+            inserting_indices = [
+                m * (L - 1) + n * (L - 1) * (M - 1) for n in range(N - 1) for m in range(M - 1)
+            ]
+            np.insert(index_array, inserting_indices, [value] * len(inserting_indices))
+            start += num_cells
+        else:
+            index_array = indices[start : start + num_cells]
+            start += num_cells
+
+        np.save(filename, index_array)
 
 
 if __name__ == "__main__":
