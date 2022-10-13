@@ -9,6 +9,7 @@ from raysect.optical.library import RoughTungsten
 from raysect.optical.material import AbsorbingSurface
 from raysect.primitive.mesh import Mesh
 from cherab.lhd.machine.material import RoughSUS316L
+from cherab.lhd.tools import Spinner
 
 
 __all__ = ["load_pfc_mesh"]
@@ -69,32 +70,39 @@ def load_pfc_mesh(
         materials = defaultdict(lambda: AbsorbingSurface())
 
     mesh = {}
-
-    for pfc in pfc_list:
-        try:
-            mesh[pfc] = [
-                Mesh.from_file(
-                    os.path.join(path, f"{pfc}.rsm"),
-                    parent=world,
-                    material=materials[pfc],
-                    name=pfc,
-                )
-            ]  # master element
-            angle = 360.0 / ncopy[pfc]  # rotate around Z by this angle
-            for i in range(1, ncopy[pfc]):  # copies of the master element
-                mesh[pfc].append(
-                    mesh[pfc][0].instance(
+    with Spinner(text="Loading PFCs...") as spinner:
+        for pfc in pfc_list:
+            try:
+                mesh[pfc] = [
+                    Mesh.from_file(
+                        os.path.join(path, f"{pfc}.rsm"),
                         parent=world,
-                        transform=rotate(0, 0, angle * i),
                         material=materials[pfc],
-                        name=f"{pfc}-{i}",
+                        name=pfc,
                     )
-                )
-        except FileNotFoundError as e:
-            print(e)
-            continue
-        except Exception as e:
-            raise (e)
+                ]  # master element
+                angle = 360.0 / ncopy[pfc]  # rotate around Z by this angle
+                for i in range(1, ncopy[pfc]):  # copies of the master element
+                    mesh[pfc].append(
+                        mesh[pfc][0].instance(
+                            parent=world,
+                            transform=rotate(0, 0, angle * i),
+                            material=materials[pfc],
+                            name=f"{pfc}-{i}",
+                        )
+                    )
+                if hasattr(materials[pfc], "roughness"):
+                    material_str = f"(roughness:{getattr(materials[pfc], 'roughness'):.5f})"
+                else:
+                    material_str = "(Absorbing Surface)"
+
+                spinner.write(f"✅ {pfc: <9} {material_str} was loaded.")
+
+            except FileNotFoundError as e:
+                spinner.write(f"💥 {e}")
+                continue
+            except Exception as e:
+                spinner.write(f"💥 {e}")
 
     return mesh
 
