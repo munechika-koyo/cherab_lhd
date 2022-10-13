@@ -211,7 +211,7 @@ class Spinner:
         self._hide_spin.clear()
         try:
             self._spin_process.start()
-        finally:
+        except Exception:
             self._show_cursor()
         return self
 
