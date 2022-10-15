@@ -173,11 +173,17 @@ def physical_index2array(path: str = CELLGEO_PATH) -> None:
             L -= 1
             num_cells = (L - 1) * (M - 1) * (N - 1)
             index_array = indices[start : start + num_cells]
-            value = index_array[0]
-            inserting_indices = [
-                m * (L - 1) + n * (L - 1) * (M - 1) for n in range(N - 1) for m in range(M - 1)
-            ]
-            np.insert(index_array, inserting_indices, [value] * len(inserting_indices))
+            values = np.zeros((N - 1) * (M - 1))
+            insert_indices = np.zeros((N - 1) * (M - 1), dtype=int)
+            j = 0
+            for n in range(N - 1):
+                for m in range(M - 1):
+                    i = n * (M - 1) * (L - 1) + m * (L - 1)
+                    insert_indices[j] = i
+                    values[j] = index_array[i]
+                    j += 1
+
+            index_array = np.insert(index_array, insert_indices, values)
             start += num_cells
         else:
             index_array = indices[start : start + num_cells]
