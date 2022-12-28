@@ -1,20 +1,19 @@
-"""
-This script converts LHD machine .STL files to .rsm ones which are firendly format for raysect
-"""
+"""This script converts LHD machine .STL files to .rsm ones which are firendly
+format for raysect."""
+from __future__ import annotations
 
-import os
-import glob
+from pathlib import Path
+
 from raysect.optical import World
 from raysect.primitive import import_stl
 
-
-GEOMETRY_PATH = os.path.dirname(__file__)
-STL_PATH_LIST = glob.glob(os.path.join(GEOMETRY_PATH, "data", "STLfiles", "*.stl"))
-RSM_PATH = os.path.join(GEOMETRY_PATH, "data", "RSMfiles")
+GEOMETRY_PATH = Path(__file__).parent.resolve()
+STL_PATH_LIST = [stl for stl in (GEOMETRY_PATH / "data" / "STLfiles").glob("*.STL")]
+RSM_PATH = GEOMETRY_PATH / "data" / "RSMfiles"
 
 world = World()
 
-for pfc_fname in STL_PATH_LIST:
-    print(f"transforming {pfc_fname.split('.STL')[0]} into .rsm file")
-    mesh = import_stl(pfc_fname, scaling=1.0, parent=world)
-    mesh.save(os.path.join(RSM_PATH, os.path.splitext(os.path.split(pfc_fname)[-1])[0] + ".rsm"))
+for pfc_path in STL_PATH_LIST:
+    print(f"transforming {pfc_path.name} into .rsm file")
+    mesh = import_stl(pfc_path, scaling=1.0, parent=world)
+    mesh.save(RSM_PATH / pfc_path.with_suffix(".rsm").name)

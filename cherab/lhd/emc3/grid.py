@@ -1,22 +1,21 @@
-"""
-Module to deal with EMC3-EIRENE-defined grids
-"""
+"""Module to deal with EMC3-EIRENE-defined grids."""
 import json
-import os
+from pathlib import Path
 
 import numpy as np
-from cherab.lhd.tools.visualization import set_axis_properties
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy.typing import NDArray
 
+from cherab.lhd.tools.visualization import set_axis_properties
+
 __all__ = ["EMC3Grid"]
 
 
-BASE = os.path.dirname(__file__)
-GRID_BASE_PATH = os.path.join(BASE, "data", "grid-360")
-CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO.pickle")
+BASE = Path(__file__).parent.resolve()
+GRID_BASE_PATH = BASE / "data" / "grid-360"
+CELLGEO_PATH = BASE / "data" / "CELL_GEO.pickle"
 
 ZONES = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
@@ -30,12 +29,12 @@ ZMAX = 1.6
 
 
 class EMC3Grid:
-    """
-    Grid vertices and cell indices generation of EMC3-EIRENE.
-    This class offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)` coordinates
-    and cell indices representing a cubic-like mesh with 8 vertices.
-    Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
-    instance is also implemented.
+    """Grid vertices and cell indices generation of EMC3-EIRENE. This class
+    offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)`
+    coordinates and cell indices representing a cubic-like mesh with 8
+    vertices. Using these data, procedure of generating a
+    :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instance is also
+    implemented.
 
     Total number of grids coordinates is L x M x N:<br>
     L: Radial grid resolution<br>
@@ -58,30 +57,33 @@ class EMC3Grid:
 
         >>> grid = EMC3Grid("zone0")
         >>> grid
-
     """
 
-    def __init__(self, zone: str, grid_directory: str = GRID_BASE_PATH) -> None:
+    def __init__(self, zone: str, grid_directory: Path | str = GRID_BASE_PATH) -> None:
         # === Parameters validation ================================================================
         # set and validate grid stored directory
-        if not isinstance(grid_directory, str):
-            raise TypeError("grid_directory must be string")
-        if not os.path.exists(grid_directory):
-            raise FileNotFoundError(f"{grid_directory} does not exists")
-        self._grid_directory = grid_directory
+        if isinstance(grid_directory, (Path, str)):
+            self._grid_directory = Path(grid_directory)
+        else:
+            raise TypeError("grid_directory must be a string or a pathlib.Path instance.")
+
+        if not self._grid_directory.exists():
+            raise FileNotFoundError(f"{self._grid_directory} does not exists")
 
         # set and validate zone name
         if not isinstance(zone, str):
             raise TypeError("zone must be string")
-        grid_data_path = os.path.join(grid_directory, f"grid-{zone}.npy")
-        if not os.path.exists(grid_data_path):
-            raise FileNotFoundError(f"grid-{zone}.npy file does not exits in {self.grid_directory}")
+        grid_data_path = self._grid_directory / f"grid-{zone}.npy"
+        if not grid_data_path.exists():
+            raise FileNotFoundError(
+                f"grid-{zone}.npy file does not exits in {self._grid_directory}"
+            )
         self._zone = zone
 
         # === Load Grid Configuration ==============================================================
         # check if grid_config.json file exists
-        grid_config_path = os.path.join(grid_directory, "grid_config.json")
-        if not os.path.exists(grid_config_path):
+        grid_config_path = self._grid_directory / "grid_config.json"
+        if not grid_config_path.exists():
             raise FileNotFoundError(f"{grid_config_path} does not exists.")
 
         # load grid config
@@ -100,18 +102,19 @@ class EMC3Grid:
         return msg
 
     @property
-    def grid_directory(self) -> str:
-        """directory name to store grid data"""
+    def grid_directory(self) -> Path:
+        """directory path to store grid data."""
         return self._grid_directory
 
     @property
     def zone(self) -> str:
-        """name of zone"""
+        """name of zone."""
         return self._zone
 
     @property
     def grid_config(self) -> dict[str, int]:
-        """configuration dictionary containing grid resolutions and number of cells
+        """configuration dictionary containing grid resolutions and number of
+        cells.
 
         .. prompt:: python >>> auto
 
@@ -123,9 +126,9 @@ class EMC3Grid:
 
     @property
     def grid_data(self) -> NDArray[np.float64]:
-        """
-        Raw Grid array data.
-        This array is directly loaded from ``.npy`` file.
+        """Raw Grid array data. This array is directly loaded from ``.npy``
+        file.
+
         The dimension of array is 3D, shaping ``(L * M, 3, N)``.
         The coordinate is :math:`(R, Z, \\phi)`.
 
@@ -152,9 +155,8 @@ class EMC3Grid:
         return self._grid_data
 
     def generate_vertices(self) -> NDArray[np.float64]:
-        """Generate grid vertices array.
-        A `grid_data` array is converted to 2D array which represents a vertex in :math:`(X, Y, Z)`
-        coordinates.
+        """Generate grid vertices array. A `grid_data` array is converted to 2D
+        array which represents a vertex in :math:`(X, Y, Z)` coordinates.
 
         Returns
         -------
@@ -240,6 +242,7 @@ class EMC3Grid:
     def plot(
         self,
         fig: Figure | None = None,
+        ax: Axes | None = None,
         n_phi: int = 0,
         rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
     ):
@@ -247,9 +250,11 @@ class EMC3Grid:
 
         Parameters
         ----------
-        fig, optional
-            matplotlib figure object, by default ``plt.subplots(dpi=200)``
-        n_phi, optional
+        fig
+            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
+        ax
+            matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        n_phi
             index of toroidal grid, by default 0
         rz_range
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
@@ -264,9 +269,10 @@ class EMC3Grid:
             raise ValueError("Invalid rz_range")
 
         if not isinstance(fig, Figure):
-            fig, ax = plt.subplots(dpi=200)
-        else:
-            ax = fig.add_axes()
+            fig = plt.figure(dpi=200)
+
+        if not isinstance(ax, Axes):
+            ax = fig.add_subplot()
 
         ax.set_aspect("equal")
 
@@ -315,6 +321,7 @@ class EMC3Grid:
 
 def plot_grids_rz(
     fig: Figure | None = None,
+    ax: Axes | None = None,
     zone_type: int = 1,
     n_phi: int = 0,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
@@ -323,13 +330,15 @@ def plot_grids_rz(
 
     Parameters
     ----------
-    fig, optional
-        matplotlib figure object, by default ``plt.subplots(dpi=200)``
-    zone_type, optional
+    fig
+        matplotlib figure object, by default ``plt.figure(dpi=200)``
+    ax
+        matplotlib axes object, by default ``ax = fig.add_subplot()``.
+    zone_type
         type of zones collections, by default 1
         type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
         type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
-    n_phi, optional
+    n_phi
         index of toroidal grid, by default 0
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
@@ -344,9 +353,10 @@ def plot_grids_rz(
         raise ValueError("Invalid rz_range")
 
     if not isinstance(fig, Figure):
-        fig, ax = plt.subplots(dpi=200)
-    else:
-        ax = fig.add_axes()
+        fig = plt.figure(dpi=200)
+
+    if not isinstance(ax, Axes):
+        ax = fig.add_subplot()
 
     ax.set_aspect("equal")
 

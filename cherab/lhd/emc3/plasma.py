@@ -1,12 +1,10 @@
-"""
-Module offers helper functions to generate :obj:`~cherab.core.Plasma` object
-"""
+"""Module offers helper functions to generate :obj:`~cherab.core.Plasma`
+object."""
 from __future__ import annotations
 
 from cherab.core import Line, Maxwellian, Plasma, Species, elements
 from cherab.core.math import Constant3D, ConstantVector3D
 from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
-from cherab.lhd.tools.visualization import show_profile_phi_degs
 from cherab.openadas import OpenADAS
 from matplotlib import pyplot as plt
 from raysect.core import Node, Vector3D, translate
@@ -15,6 +13,9 @@ from raysect.core.math.function.vector3d.function3d.base import Function3D as Ve
 from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
 from raysect.primitive import Cylinder, Subtract
 from scipy.constants import atomic_mass, electron_mass
+
+from cherab.lhd.tools import Spinner
+from cherab.lhd.tools.visualization import show_profile_phi_degs
 
 from .cython import EMC3Mapper
 from .dataio import DataLoader
@@ -30,10 +31,11 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 
+@Spinner(text="Loading Plasma Object...", timer=True)
 def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
-    """Helper function of generating LHD plasma
-    As emissions, H :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`,
-    H :math:`\\delta` are applied.
+    """Helper function of generating LHD plasma As emissions, H
+    :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`, H :math:`\\delta` are
+    applied.
 
     Parameters
     ----------
@@ -102,7 +104,7 @@ def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
 
 
 class LHDSpecies:
-    """Class representing LHD plasma species
+    """Class representing LHD plasma species.
 
     Attributes
     -----------
@@ -114,7 +116,6 @@ class LHDSpecies:
     """
 
     def __init__(self):
-
         # load dataloader
         data = DataLoader()
 
@@ -184,7 +185,8 @@ class LHDSpecies:
         temperature: Function3D = Constant3D(1.0e2),
         bulk_velocity: VectorFunction3D = ConstantVector3D(Vector3D(0, 0, 0)),
     ) -> None:
-        """add species to composition which is assumed to be Maxwellian distribution.
+        """add species to composition which is assumed to be Maxwellian
+        distribution.
 
         Parameters
         ----------
@@ -218,7 +220,7 @@ class LHDSpecies:
         self.composition.append(Species(element_obj, charge, distribution))
 
     def plot_distribution(self, res: float = 5.0e-3):
-        """plot species density and temperature profile
+        """plot species density and temperature profile.
 
         Parameters
         ----------

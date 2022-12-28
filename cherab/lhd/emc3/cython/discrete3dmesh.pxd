@@ -1,8 +1,8 @@
 from libc.limits cimport INT_MIN
-from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D
-from raysect.primitive.mesh cimport TetraMesh
 from numpy cimport import_array, uint32_t
+from raysect.primitive.mesh cimport TetraMesh
 
+from .intfunction cimport IntegerFunction3D
 
 import_array()
 

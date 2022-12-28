@@ -1,7 +1,5 @@
-"""
-Module to offer wall contour fetures
-"""
-import os
+"""Module to offer wall contour fetures."""
+from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -16,14 +14,14 @@ __all__ = [
 ]
 
 
-DIR_WALL = os.path.join(os.path.dirname(__file__), "geometry", "data", "wall_outline")
+DIR_WALL = Path(__file__).parent.resolve() / "geometry" / "data" / "wall_outline"
 
 
 def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
-    """
-    Return toroidal angle & z coordinate under periodic boundary condition.
-    The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree.
-    For example, the poloidal grid plane in 27 degree corresponds to fliped one in 9 degree.
+    """Return toroidal angle & z coordinate under periodic boundary condition.
+    The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree. For
+    example, the poloidal grid plane in 27 degree corresponds to fliped one in
+    9 degree.
 
     Parameters
     ----------
@@ -130,9 +128,8 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
         raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
     # extract toroidal angles from file name
-    filenames = os.listdir(DIR_WALL)
-    filenames.sort()
-    phis = np.array([float(file.strip(".txt")) for file in filenames])
+    filenames = sorted(DIR_WALL.glob("*.txt"))
+    phis = np.array([float(file.stem) for file in filenames])
 
     # phi -> phi in 0 - 18 deg
     phi_t, fliped = periodic_toroidal_angle(phi)
@@ -141,8 +138,8 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     phi_left, phi_right = adjacent_toroidal_angles(phi_t, phis)
 
     # load rz wall outline
-    rz_left = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_left])) * 1.0e-2  # [cm] -> [m]
-    rz_right = np.loadtxt(os.path.join(DIR_WALL, filenames[phi_right])) * 1.0e-2
+    rz_left = np.loadtxt(DIR_WALL / filenames[phi_left]) * 1.0e-2  # [cm] -> [m]
+    rz_right = np.loadtxt(DIR_WALL / filenames[phi_right]) * 1.0e-2
 
     # fliped value for z axis
     flip = -1 if fliped else 1

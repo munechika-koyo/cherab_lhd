@@ -2,14 +2,13 @@
 Module to offer masking features EMC3-EIRENE in LHD
 """
 cimport cython
-from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D
 from libc.limits cimport INT_MIN
 
 
 cdef class EMC3Mask(IntegerFunction3D):
     """
     Masking EMC3-EIRINE grid space to identify whether or not a mesh exists at the point.
-    This instance is callable function returning 1 corresponding in 
+    This instance is callable function returning 1 corresponding in
     3D space where EMC3's index function returns a physical index, otherwise 0.
 
     :param IntegerFunction3D index_func: EMC3's index_funcion returning a physical index.
@@ -20,7 +19,7 @@ cdef class EMC3Mask(IntegerFunction3D):
         # validate arguments
         if not callable(index_func):
             raise TypeError("This function is not callable.")
-    
+
         # populate internal attributes
         self._index_func = index_func
 
@@ -28,7 +27,7 @@ cdef class EMC3Mask(IntegerFunction3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
-        
+
         cdef:
             int index
 

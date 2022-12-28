@@ -1,6 +1,4 @@
-"""
-Module relating to visualizing, plotting, etc.
-"""
+"""Module relating to visualizing, plotting, etc."""
 from __future__ import annotations
 
 from collections.abc import Callable, Collection
@@ -9,13 +7,14 @@ from numbers import Real
 
 import numpy as np
 from cherab.core.math import PolygonMask2D, sample2d
-from cherab.lhd.machine import wall_outline
-from cherab.lhd.tools import sample3d_rz
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator, MultipleLocator, ScalarFormatter
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
+
+from ..machine import wall_outline
+from .samplers import sample3d_rz
 
 __all__ = ["show_profile_phi_degs", "show_profiles_rz_plane", "set_axis_properties"]
 
@@ -88,8 +87,18 @@ def show_profile_phi_degs(
     if nrows_ncols is not None:
         if not (isinstance(nrows_ncols, tuple) and len(nrows_ncols) == 2):
             raise TypeError("nrows_ncols must be list containing two elements.")
-        if nrows_ncols[0] * nrows_ncols[1] < len(phi_degs):
+        nrows = nrows_ncols[0]
+        ncols = nrows_ncols[1]
+        if nrows < 1:
+            nrows = round(len(phi_degs) / ncols)
+        elif ncols < 1:
+            ncols = round(len(phi_degs) / nrows)
+
+        if nrows * ncols < len(phi_degs):
             raise ValueError("nrows_ncols must have numbers over length of phi_degs.")
+
+        nrows_ncols = (nrows, ncols)
+
     else:
         nrows_ncols = (1, len(phi_degs))
 
@@ -406,7 +415,7 @@ def _worker1(
     job_queue: Queue,
     profiles: dict,
 ) -> None:
-    """worker process to generate sampled & masked profiles"""
+    """worker process to generate sampled & masked profiles."""
     while not job_queue.empty():
         try:
             # extract a task
@@ -429,7 +438,7 @@ def _worker2(
     job_queue: Queue,
     profiles: dict,
 ) -> None:
-    """worker process to generate sampled & masked profiles"""
+    """worker process to generate sampled & masked profiles."""
     while not job_queue.empty():
         try:
             # extract a task
@@ -485,9 +494,7 @@ def _sampler(
 
 
 def set_axis_properties(axes: Axes) -> Axes:
-    """
-    Set x-, y-axis property.
-    This function set axis labels and tickers.
+    """Set x-, y-axis property. This function set axis labels and tickers.
 
     Parameters
     ----------

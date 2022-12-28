@@ -1,3 +1,5 @@
+import raytransfer
+
 from .cython.discrete3dmesh import Discrete3DMesh
 from .cython.mapper import EMC3Mapper, IndexMapper
 from .dataio import DataLoader
@@ -16,4 +18,5 @@ __all__ = [
     "TomographyZone",
     "EMC3Grid",
     "DataLoader",
+    "raytransfer",
 ]

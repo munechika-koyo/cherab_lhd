@@ -1,11 +1,9 @@
-"""
-Module to provide useful functions around EMC3-EIRENE file IO
-"""
+"""Module to provide useful functions around EMC3-EIRENE file IO."""
 from __future__ import annotations
 
 import json
-import os
 from math import ceil
+from pathlib import Path
 
 import numpy as np
 from cherab.core.utility import RecursiveDict
@@ -13,21 +11,23 @@ from cherab.core.utility import RecursiveDict
 __all__ = ["grid2array", "physical_index2array"]
 
 
-BASE = os.path.dirname(__file__)
-GRID_PATH = os.path.join(BASE, "data", "grid-360", "grid-360.txt")
-CELLGEO_PATH = os.path.join(BASE, "data", "grid-360", "CELL_GEO")
+BASE = Path(__file__).parent.resolve()
+GRID_PATH = BASE / "data" / "grid-360" / "grid-360.txt"
+CELLGEO_PATH = BASE / "data" / "grid-360" / "CELL_GEO"
 
 
-def grid2array(path: str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6, 0.0)) -> None:
-    """
-    Convert raw grid text data into numpy 3-D ndarray binary file.
-    EMC3-EIRENE has several comutational area (which is called "zone").
-    Each zone is defined by grids of :math:`(R, Z)` coordinates at each toroidal angle :math:`\\phi`,
-    which are recorded in ``grid-*.txt`` file. This function allows to read and parse them, and
-    returns 3-D ndarrays containing :math:`(R, Z, \\phi)` coordinates at one poloidal plane in one
-    dimension.
-    This function also generates ``grid_config.json`` file into the same path's directory.
-    In this json file, the number of grid resolution, cells in each zone is recorded.
+def grid2array(
+    path: Path | str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6, 0.0)
+) -> None:
+    """Convert raw grid text data into numpy 3-D ndarray binary file.
+    EMC3-EIRENE has several comutational area (which is called "zone"). Each
+    zone is defined by grids of :math:`(R, Z)` coordinates at each toroidal
+    angle :math:`\\phi`, which are recorded in ``grid-*.txt`` file. This
+    function allows to read and parse them, and returns 3-D ndarrays containing
+    :math:`(R, Z, \\phi)` coordinates at one poloidal plane in one dimension.
+    This function also generates ``grid_config.json`` file into the same path's
+    directory. In this json file, the number of grid resolution, cells in each
+    zone is recorded.
 
     In the case of ``"zone0"`` and ``"zone11"``, magnetic axis point :math:`(R_0, Z_0)` is added to
     the original grid data. So the radial grid resolution ``L`` is altered to ``L + 1``.
@@ -40,10 +40,14 @@ def grid2array(path: str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6,
     magnetic_axis
         Magnetic axis point in the :math:`(R, Z)` coordinates, by default ``(3.6, 0.0)``
     """
-
     # validate parameters
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} does not exists.")
+    if isinstance(path, (Path, str)):
+        path = Path(path)
+    else:
+        raise TypeError("1st argument must be string or pathlib.Path instance.")
+
+    if not path.exists():
+        raise FileNotFoundError(f"{path.as_posix()} does not exists.")
     if not isinstance(magnetic_axis, tuple) and len(magnetic_axis) != 2:
         raise ValueError("magnetic_axis must be a tuple containing 2 float elements.")
 
@@ -110,7 +114,7 @@ def grid2array(path: str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6,
                 grid[:, 2, n] = np.repeat(toroidal_angle, L * M)
 
             # save grid data as .npy file
-            filename = os.path.join(os.path.dirname(path), f"grid-{zone}.npy")
+            filename = path.parent.resolve() / f"grid-{zone}.npy"
             np.save(filename, grid)
 
             # store grid config
@@ -120,17 +124,17 @@ def grid2array(path: str = GRID_PATH, magnetic_axis: tuple[float, float] = (3.6,
             grid_config[zone]["num_cells"] = (L - 1) * (M - 1) * (N - 1)
 
     # save grid config as json format
-    json_path = os.path.join(os.path.dirname(path), "grid_config.json")
+    json_path = path.parent.resolve() / "grid_config.json"
     with open(json_path, "w") as file:
         json.dump(grid_config.freeze(), file, indent=4)
 
 
-def physical_index2array(path: str = CELLGEO_PATH) -> None:
-    """
-    Convert EMC3-EIRENE physical cell indices stored in raw text file into numpy ndarray.
-    EMC3 has numerous geometric cells, each of which forms a cubic-like shape with 8 vetices
-    in each zones. To identify cells, an index number, which is called 'physical index' is allocated
-    to each cell. Here such indices are parsed from text file and save them into numpy ndarray
+def physical_index2array(path: Path | str = CELLGEO_PATH) -> None:
+    """Convert EMC3-EIRENE physical cell indices stored in raw text file into
+    numpy ndarray. EMC3 has numerous geometric cells, each of which forms a
+    cubic-like shape with 8 vetices in each zones. To identify cells, an index
+    number, which is called 'physical index' is allocated to each cell. Here
+    such indices are parsed from text file and save them into numpy ndarray
     binary file in each zone.
 
     .. note::
@@ -144,14 +148,20 @@ def physical_index2array(path: str = CELLGEO_PATH) -> None:
         path to the raw text file: CELL_GEO, by default ``".../data/grid/CELL_GEO"``
         The default ``CELL_GEO`` file has geometric indices in all zones.
     """
+    # validate parameters
+    if isinstance(path, (Path, str)):
+        path = Path(path)
+    else:
+        raise TypeError("1st argument must be string or pathlib.Path instance.")
+
     # check if file path exists
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} does not exists.")
+    if not path.exists():
+        raise FileNotFoundError(f"{path.as_posix()} does not exists.")
 
     # check if grid_config.json file exists
-    grid_config_path = os.path.join(os.path.dirname(path), "grid_config.json")
-    if not os.path.exists(grid_config_path):
-        raise FileNotFoundError(f"{grid_config_path} does not exists.")
+    grid_config_path = path.parent.resolve() / "grid_config.json"
+    if not grid_config_path.exists():
+        raise FileNotFoundError(f"{grid_config_path.as_posix()} does not exists.")
 
     # load grid config
     with open(grid_config_path, "r") as file:
@@ -168,7 +178,7 @@ def physical_index2array(path: str = CELLGEO_PATH) -> None:
         L = grid_config[zone]["L"]
         M = grid_config[zone]["M"]
         N = grid_config[zone]["N"]
-        filename = os.path.join(os.path.dirname(path), f"indices-{zone}.npy")
+        filename = path.parent.resolve() / f"indices-{zone}.npy"
         if zone in {"zone0", "zone11"}:
             L -= 1
             num_cells = (L - 1) * (M - 1) * (N - 1)

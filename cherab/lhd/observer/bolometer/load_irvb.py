@@ -1,24 +1,20 @@
-"""
-Module offers helper functions related to a IRVB camera.
-"""
+"""Module offers helper functions related to a IRVB camera."""
 from __future__ import annotations
 
-import os
-from json import load
+import json
+from importlib import resources
 
 import numpy as np
-from cherab.lhd.observer.bolometer import IRVBCamera
-from cherab.lhd.observer.imaging import PinholeCamera
 from cherab.tools.observers import BolometerSlit
 from raysect.core.math import Point3D, Vector3D, rotate_basis, rotate_vector, rotate_z, translate
 from raysect.optical.material import AbsorbingSurface
 from raysect.optical.observer import TargettedCCDArray
 from raysect.primitive import Box, Subtract
 
+from ..imaging.pinhole import PinholeCamera
+from .irvb import IRVBCamera
+
 __all__ = ["load_irvb", "load_irvb_as_pinhole_camera", "calcam_virtual_calibration"]
-
-
-DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), "data")
 
 XAXIS = Vector3D(1, 0, 0)
 YAXIS = Vector3D(0, 1, 0)
@@ -27,18 +23,18 @@ ORIGIN = Point3D(0, 0, 0)
 
 
 def load_irvb(
-    port: str = "6.5U", model_variant: str = "BC02", parent: World | None = None
+    port: str = "6.5U", flange: str = "CC01_04", parent: World | None = None
 ) -> IRVBCamera:
-    """helper function of generating a IRVB camera object.
-    An IRVB's configuration is defined in json file, the name of which is "IRVB.json"
+    """helper function of generating a IRVB camera object. An IRVB's
+    configuration is defined in json file, the name of which is "IRVB.json"
     stored in ``../data folder``.
 
     Parameters
     ----------
     port
-        user-specified port name, by default "6.5U"
-    model_variant
-        The variant of IRVB model, by default "BC02"
+        user-specified port name, by default ``"6.5U"``
+    flange
+        specific flange name, by default ``"CC01_04"``
     parent
         The parent node of this camera in the scenegraph, often
         an optical :obj:`~raysect.core.scenegraph.world.World` object, by default None
@@ -49,64 +45,30 @@ def load_irvb(
         populated :obj:`.IRVBCamera` instance
     """
 
-    # Load IRVB config. from .json file
-    file = os.path.join(DATA_DIRECTORY, "IRVB.json")
-    with open(file=file, mode="r") as f:
-        raw_data = load(f)
+    # import IRVB configs as a resource
+    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+        raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
-        raw_data = raw_data[port][model_variant]
+        raw_data = raw_data[port][flange]
     except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
+        raise KeyError(f"spcified parameters: {port}-{flange} are not defined.")
 
-    # generate slit and foil geometry
-    foil_corners = [Point3D(*xyz) for xyz in raw_data["foil"]]
-    foil_geometry = _centre_basis_and_dimensions(foil_corners)
-    foil_centre, foil_basis_x, foil_basis_y, _, _ = foil_geometry
-
-    if "slit" in raw_data:
-        slit_corners = [Point3D(*xyz) for xyz in raw_data["slit"]]
-        slit_geometry = _centre_basis_and_dimensions(slit_corners)
-
-    elif "slit_centre" in raw_data:
-        slit_centre = Point3D(*raw_data["slit_centre"])
+    # Construct Foil and Slit from port local coordinates
+    if raw_data.get("basis_x"):
         SLIT_WIDTH, SLIT_HEIGHT = raw_data["slit_size"]
-        slit_geometry = (slit_centre, foil_basis_x, foil_basis_y, SLIT_WIDTH, SLIT_HEIGHT)
-        slit_corners = _corners_coords(
-            slit_centre, foil_basis_x, foil_basis_y, SLIT_WIDTH, SLIT_HEIGHT
-        )
-    else:
-        raise KeyError("slit or slit_centre must be exist in IRVB database.")
+        FOIL_WIDTH, FOIL_HEIGHT = raw_data["foil_size"]
+        foil_centre = Point3D(*raw_data["foil_centre"])
+        slit_centre_in_local = Point3D(*raw_data["slit_centre_in_local"])
+        basis_x = Vector3D(*raw_data["basis_x"]).normalise()
+        basis_y = Vector3D(*raw_data["basis_y"]).normalise()
+        PIXELS = raw_data["pixels"]
 
-    slit_centre, slit_basis_x, slit_basis_y, SLIT_WIDTH, SLIT_HEIGHT = slit_geometry
-
-    # vector the centre of foil to that of slit
-    foil_normal = foil_basis_x.cross(foil_basis_y)
-    vector_foil_to_slit_centre = foil_centre.vector_to(slit_centre)
-
-    # distance between slit and foil
-    if foil_normal.dot(vector_foil_to_slit_centre) < 0:
-        foil_normal = -1.0 * foil_normal  # normal in the direction from foil to slit
-    SLIT_FOIL_SEPARATION: float = abs(foil_normal.dot(foil_corners[0].vector_to(slit_corners[0])))
-
-    # IRVB camera box dimensions
-    BOX_HEIGHT = foil_geometry[4] + 1e-3  # add padding
-    BOX_WIDTH = foil_geometry[3] + 1e-3
-    BOX_DEPTH = SLIT_FOIL_SEPARATION + 1e-3
-
-    # foil screen dimensions
-    PIXELS = raw_data["pixels"]
-    PIXEL_PITCH: float = min([foil_geometry[i + 3] / PIXELS[i] for i in range(2)])
-    SCREEN_WIDTH: float = PIXEL_PITCH * PIXELS[0]
-    # SCREEN_HEIGHT = PIXEL_PITCH * PIXELS[1]
-
-    # slit local coords.
-    centre_slit_local = Point3D(
-        -vector_foil_to_slit_centre.dot(slit_basis_x),
-        vector_foil_to_slit_centre.dot(slit_basis_y),
-        0,
-    )
+        BOX_WIDTH = FOIL_WIDTH + 1.0e-3
+        BOX_HEIGHT = FOIL_HEIGHT + 1.0e-3
+        foil_forward = basis_x.cross(basis_y)
+        BOX_DEPTH = slit_centre_in_local.z
 
     # ----------------------------------- #
     # Construct bolometer camera object
@@ -114,8 +76,8 @@ def load_irvb(
 
     # Camera Box
     inner_box = Box(
-        lower=Point3D(-BOX_WIDTH * 0.5, -BOX_HEIGHT * 0.5, -BOX_DEPTH),
-        upper=Point3D(BOX_WIDTH * 0.5, BOX_HEIGHT * 0.5, 0),
+        lower=Point3D(-BOX_WIDTH * 0.5, -BOX_HEIGHT * 0.5, -1e-3),
+        upper=Point3D(BOX_WIDTH * 0.5, BOX_HEIGHT * 0.5, BOX_DEPTH),
     )
     outside_box = Box(
         lower=inner_box.lower - Vector3D(1e-5, 1e-5, 1e-5),
@@ -125,10 +87,14 @@ def load_irvb(
 
     aperture = Box(
         lower=Point3D(
-            centre_slit_local.x - SLIT_WIDTH * 0.5, centre_slit_local.y - SLIT_HEIGHT * 0.5, -1e-4
+            slit_centre_in_local.x - SLIT_WIDTH * 0.5,
+            slit_centre_in_local.y - SLIT_HEIGHT * 0.5,
+            slit_centre_in_local.z - 1e-4,
         ),
         upper=Point3D(
-            centre_slit_local.x + SLIT_WIDTH * 0.5, centre_slit_local.y + SLIT_HEIGHT * 0.5, 1e-4
+            slit_centre_in_local.x + SLIT_WIDTH * 0.5,
+            slit_centre_in_local.y + SLIT_HEIGHT * 0.5,
+            slit_centre_in_local.z + 1e-4,
         ),
     )
 
@@ -136,58 +102,54 @@ def load_irvb(
     camera_box.material = AbsorbingSurface()
 
     bolometer_camera = IRVBCamera(
-        camera_geometry=camera_box, parent=parent, name=f"IRVB-{port}-{model_variant}"
+        camera_geometry=camera_box, parent=parent, name=f"IRVB-{port}-{flange}"
     )
 
     # Slit
     slit = BolometerSlit(
         slit_id="slit",
-        centre_point=centre_slit_local,
-        basis_x=XAXIS,
+        centre_point=slit_centre_in_local,
+        basis_x=basis_x,
         dx=SLIT_WIDTH,
-        basis_y=YAXIS,
+        basis_y=basis_y,
         dy=SLIT_HEIGHT,
         parent=bolometer_camera,
     )
 
-    # Screen
-    screen = TargettedCCDArray(
+    # Foil
+    foil = TargettedCCDArray(
         [slit.target],
         pixels=PIXELS,
-        width=SCREEN_WIDTH,
+        width=FOIL_WIDTH,
         parent=bolometer_camera,
-        transform=translate(0, 0, -SLIT_FOIL_SEPARATION),
         targetted_path_prob=0.99,
         name="foil",
     )
 
-    # apply a slit & screen
+    # apply a slit & foil
     bolometer_camera.slit = slit
-    bolometer_camera.foil_detector = screen
+    bolometer_camera.foil_detector = foil
 
     # camera rotate
     bolometer_camera.transform = (
-        rotate_z(raw_data["rotate"])
-        * translate(*slit_centre)
-        * rotate_basis(foil_normal, foil_basis_y)
-        * translate(-centre_slit_local.x, -centre_slit_local.y, 0)
+        rotate_z(raw_data["rotate"]) * translate(*foil_centre) * rotate_basis(foil_forward, basis_y)
     )
 
     return bolometer_camera
 
 
 def load_irvb_as_pinhole_camera(
-    port: str = "6.5U", model_variant: str = "BC02", parent: World | None = None
+    port: str = "6.5U", flange: str = "BC02", parent: World | None = None
 ) -> PinholeCamera:
-    """helper function of generating an IRVB camera as Pinhole Camara
-    An IRVB's configuration is defined in json file, the name of which is "IRVB.json"
+    """helper function of generating an IRVB camera as Pinhole Camara An IRVB's
+    configuration is defined in json file, the name of which is "IRVB.json"
     stored in ``../data folder``.
 
     Parameters
     ----------
     port
         user-specified port name, by default "6.5U"
-    model_variant
+    flange
         The variant of IRVB model, by default "BC02"
     parent
         The parent node of this camera in the scenegraph, often
@@ -198,17 +160,15 @@ def load_irvb_as_pinhole_camera(
     :obj:`.PinholeCamera`
         populated :obj:`.PinholeCamera` instance
     """
-
-    # Load IRVB config. from .json file
-    file = os.path.join(DATA_DIRECTORY, "IRVB.json")
-    with open(file=file, mode="r") as f:
-        raw_data = load(f)
+    # import IRVB configs as a resource
+    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+        raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
-        raw_data = raw_data[port][model_variant]
+        raw_data = raw_data[port][flange]
     except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
+        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.")
 
     # transform slit and foil corners to Point3D data
     slit_corners = np.asarray_chkfinite(raw_data["slit"])
@@ -235,14 +195,14 @@ def load_irvb_as_pinhole_camera(
         foil_normal = -1.0 * foil_normal
     SLIT_FOIL_SEPARATION = abs(foil_normal.dot(foil_corners[0].vector_to(slit_corners[0])))
 
-    # foil screen dimensions
+    # foil  dimensions
     PIXELS = raw_data["pixels"]
     PIXEL_PITCH = min([foil_geometry[i + 3] / PIXELS[i] for i in range(2)])
     SCREEN_WIDTH = PIXEL_PITCH * PIXELS[0]
     # SCREEN_HEIGHT = PIXEL_PITCH * PIXELS[1]
 
     # slit local coords.
-    centre_slit_local = Point3D(
+    slit_centre_local = Point3D(
         -vector_foil_to_slit_centre.dot(slit_basis_x),
         vector_foil_to_slit_centre.dot(slit_basis_y),
         0,
@@ -256,9 +216,9 @@ def load_irvb_as_pinhole_camera(
         pixels=PIXELS,
         width=SCREEN_WIDTH,
         focal_length=SLIT_FOIL_SEPARATION,
-        pinhole_point=(centre_slit_local.x, centre_slit_local.y),
+        pinhole_point=(slit_centre_local.x, slit_centre_local.y),
         parent=parent,
-        name=f"IRVB-{port}-{model_variant}",
+        name=f"IRVB-{port}-{flange}",
     )
 
     # camera rotate
@@ -266,23 +226,24 @@ def load_irvb_as_pinhole_camera(
         rotate_z(raw_data["rotate"])
         * translate(*slit_centre)
         * rotate_basis(foil_normal, foil_basis_y)
-        * translate(-centre_slit_local.x, -centre_slit_local.y, 0)
+        * translate(-slit_centre_local.x, -slit_centre_local.y, 0)
     )
 
     return bolometer_camera
 
 
 def calcam_virtual_calibration(
-    port: str = "6.5U", model_variant: str = "BC02"
+    port: str = "6.5U", flange: str = "BC02"
 ) -> dict[str, float | tuple[int, int] | tuple[float, float, float]]:
-    """generate virtual calibration parameters used in calcam for IRVB.
-    This function calculate virtual pixel pitch, camera position, and camera orientation (target and roll)
+    """generate virtual calibration parameters used in calcam for IRVB. This
+    function calculate virtual pixel pitch, camera position, and camera
+    orientation (target and roll)
 
     Parameters
     ----------
     port
         user-specified port name, by default "6.5U"
-    model_variant
+    flange
         The variant of IRVB model, by default "BC02"
 
     Returns
@@ -296,16 +257,15 @@ def calcam_virtual_calibration(
         "target": (float, float, float),
         "roll": float
     """
-    # Load IRVB config. from .json file
-    file = os.path.join(DATA_DIRECTORY, "IRVB.json")
-    with open(file=file, mode="r") as f:
-        raw_data = load(f)
+    # import IRVB configs as a resource
+    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+        raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
-        raw_data = raw_data[port][model_variant]
+        raw_data = raw_data[port][flange]
     except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
+        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.")
 
     # transform slit and foil corners to Point3D data
     slit_corners = np.asarray_chkfinite(raw_data["slit"])
@@ -337,7 +297,7 @@ def calcam_virtual_calibration(
     vec_b = foil_corners[2].vector_to(slit_centre).normalise()
     angle = vec_a.angle(vec_b)
 
-    # foil screen dimensions
+    # foil  dimensions
     PIXELS: tuple[int, int] = tuple(raw_data["pixels"])
     PIXEL_PITCH = 2.0 * SLIT_FOIL_SEPARATION * np.tan(0.5 * np.deg2rad(angle)) / np.hypot(*PIXELS)
 
@@ -367,7 +327,8 @@ def calcam_virtual_calibration(
 def _centre_basis_and_dimensions(
     corners: Point3D,
 ) -> tuple[Point3D, Vector3D, Vector3D, float, float]:
-    """Calculate the centre point, basis vectors, width and height given 4 corners."""
+    """Calculate the centre point, basis vectors, width and height given 4
+    corners."""
     centre = Point3D(
         np.mean([corner.x for corner in corners]),
         np.mean([corner.y for corner in corners]),
@@ -383,7 +344,7 @@ def _centre_basis_and_dimensions(
 def _corners_coords(
     centre: Point3D, basis_x: Vector3D, basis_y: Vector3D, width: float, height: float
 ) -> list[Point3D]:
-    """Calculate the rectangular corners"""
+    """Calculate the rectangular corners."""
     return [
         centre + basis_x * width * 0.5 + basis_y * height * 0.5,
         centre + basis_x * width * 0.5 - basis_y * height * 0.5,

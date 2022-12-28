@@ -1,8 +1,10 @@
-"""
-Module offering terminal spinner
-Spinner implementation is referred by the `yaspin` package:
+"""Module offering terminal spinner Spinner implementation is referred by the
+`yaspin` package:
+
 https://github.com/pavdmyt/yaspin
 """
+from __future__ import annotations
+
 import contextlib
 import functools
 import sys
@@ -19,9 +21,8 @@ SPINNERS = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
 
 
 class Spinner:
-    """
-    Implements a context manager that spawns a child process to write spinner frames into
-    a tty (stdout) duringcontext execution.
+    """Implements a context manager that spawns a child process to write
+    spinner frames into a tty (stdout) duringcontext execution.
 
     Parameters
     ----------
@@ -82,7 +83,6 @@ class Spinner:
     Here is the result when the above script is excuted.
 
     .. image:: ../../_static/images/spinner_example.gif
-
     """
 
     def __init__(
@@ -135,7 +135,7 @@ class Spinner:
     # === Properties ===============================================================================
     @property
     def text(self) -> str:
-        """Text to show along with spinner"""
+        """Text to show along with spinner."""
         return self._text
 
     @text.setter
@@ -146,7 +146,7 @@ class Spinner:
 
     @property
     def interval(self) -> float:
-        """spinners wait time"""
+        """spinners wait time."""
         return self._interval
 
     @interval.setter
@@ -157,7 +157,7 @@ class Spinner:
 
     @property
     def frames(self) -> Iterable[str]:
-        """spinner animated frames"""
+        """spinner animated frames."""
         return self._frames
 
     @frames.setter
@@ -170,7 +170,7 @@ class Spinner:
 
     @property
     def timer(self) -> bool:
-        """Prints a timer showing the elapsed time"""
+        """Prints a timer showing the elapsed time."""
         return self._timer
 
     @timer.setter
@@ -181,7 +181,7 @@ class Spinner:
 
     @property
     def side(self):
-        """Place spinner to the right or left end of the text string"""
+        """Place spinner to the right or left end of the text string."""
         return self._side
 
     @side.setter
@@ -192,7 +192,7 @@ class Spinner:
 
     @property
     def elapsed_time(self) -> float:
-        """Return calculated elapsed time"""
+        """Return calculated elapsed time."""
         if self._start_time is None:
             return 0
 
@@ -203,7 +203,7 @@ class Spinner:
 
     # === methods ==================================================================================
     def start(self):
-        """start spinner process"""
+        """start spinner process."""
         self._hide_cursor()
         self._start_time = time.time()
         self._stop_time = None
@@ -216,7 +216,7 @@ class Spinner:
         return self
 
     def stop(self):
-        """stop spinner process"""
+        """stop spinner process."""
         self._stop_time = time.time()
 
         if self._spin_process:
@@ -242,7 +242,7 @@ class Spinner:
 
     @contextlib.contextmanager
     def hidden(self):
-        """Hide the spinner within a block, can be nested"""
+        """Hide the spinner within a block, can be nested."""
         if self._hidden_level == 0:
             self.hide()
         self._hidden_level += 1
@@ -341,7 +341,7 @@ class Spinner:
         return out
 
     def _animate(self) -> None:
-        """animate spinners in a child process"""
+        """animate spinners in a child process."""
         while not self._stop_spin.is_set():
 
             if self._hide_spin.is_set():
