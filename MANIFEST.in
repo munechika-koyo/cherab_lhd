@@ -1,6 +1,16 @@
-include README.md CHANGELOG.txt LICENSE.txt CONTRIBUTING.txt AUTHORS.txt MANIFEST.in setup.py .gitignore
-include cherab/phix/VERSION
-global-exclude *.c
-recursive-include cherab *.py *.pyx *.pxd *.csv *.json *.npy *.rsm *.dat *.ccm *.ccc *.txt
-recursive-include demos *.py *.pyx *.pxd *.csv *.obj *.rsm
-recursive-include docs *
+# Top-level build script
+include setup.py
+include dev.py
+include meson.build
+include pyproject.toml
+# Top-level text files
+include README.md CHANGELOG.txt LICENSE.md AUTHORS.md MANIFEST.in .pre-commit-config.yaml
+include .gitignore .gitattributes
+# All source files
+recursive-include cherab *.py *.pyx *.pxd *.csv *.json *.npy *.rsm *.STL *.txt meson.build
+include cherab/lhd/VERSION
+# Exclude what we don't want to include
+global-exclude *.c *.py[cod]
+prune *.egg-info
+prune local
+prune docs
