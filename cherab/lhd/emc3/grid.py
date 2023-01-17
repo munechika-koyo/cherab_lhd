@@ -1,7 +1,7 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
-import json
 from pathlib import Path
 
+import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -10,12 +10,9 @@ from numpy.typing import NDArray
 
 from cherab.lhd.tools.visualization import set_axis_properties
 
+from .repository.install import DEFAULT_HDF5_PATH
+
 __all__ = ["EMC3Grid"]
-
-
-BASE = Path(__file__).parent.resolve()
-GRID_BASE_PATH = BASE / "data" / "grid-360"
-CELLGEO_PATH = BASE / "data" / "CELL_GEO.pickle"
 
 ZONES = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
@@ -29,12 +26,12 @@ ZMAX = 1.6
 
 
 class EMC3Grid:
-    """Grid vertices and cell indices generation of EMC3-EIRENE. This class
-    offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)`
-    coordinates and cell indices representing a cubic-like mesh with 8
-    vertices. Using these data, procedure of generating a
-    :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instance is also
-    implemented.
+    """Grid vertices and cell indices generation of EMC3-EIRENE.
+
+    This class offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)` coordinates and
+    cell indices representing a cubic-like mesh with 8 vertices.
+    Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
+    instance is also implemented.
 
     Total number of grids coordinates is L x M x N:<br>
     L: Radial grid resolution<br>
@@ -46,10 +43,11 @@ class EMC3Grid:
     ----------
     zone
         name of grid zone. Users can select only one option of ``"zone0" - "zone21"``.
-        Note that corresponding ``zone#.npy`` grid data must be stored in the directory ``path``.
-    grid_directory
-        directory path where grid data (e.g. ``zone0.npy``) are stored, by default
-        ``../emc3/data/grid-360/``
+    grid_group
+        name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
+    hdf5_path
+        path to the HDF5 file storing grid dataset, by default ``~/.cherab/lhd/emc3.hdf5``.
+
 
     Examples
     --------
@@ -59,52 +57,46 @@ class EMC3Grid:
         >>> grid
     """
 
-    def __init__(self, zone: str, grid_directory: Path | str = GRID_BASE_PATH) -> None:
+    def __init__(
+        self, zone: str, grid_group: str = "grid-360", hdf5_path: Path | str = DEFAULT_HDF5_PATH
+    ) -> None:
         # === Parameters validation ================================================================
-        # set and validate grid stored directory
-        if isinstance(grid_directory, (Path, str)):
-            self._grid_directory = Path(grid_directory)
+        # set and validate hdf5_path
+        if isinstance(hdf5_path, (Path, str)):
+            self._hdf5_path = Path(hdf5_path)
         else:
-            raise TypeError("grid_directory must be a string or a pathlib.Path instance.")
-
-        if not self._grid_directory.exists():
-            raise FileNotFoundError(f"{self._grid_directory} does not exists")
-
-        # set and validate zone name
-        if not isinstance(zone, str):
-            raise TypeError("zone must be string")
-        grid_data_path = self._grid_directory / f"grid-{zone}.npy"
-        if not grid_data_path.exists():
-            raise FileNotFoundError(
-                f"grid-{zone}.npy file does not exits in {self._grid_directory}"
-            )
+            raise TypeError("hdf5_path must be a string or a pathlib.Path instance.")
+        if not self._hdf5_path.exists():
+            raise FileNotFoundError(f"{self._hdf5_path.name} file does not exist.")
         self._zone = zone
 
-        # === Load Grid Configuration ==============================================================
-        # check if grid_config.json file exists
-        grid_config_path = self._grid_directory / "grid_config.json"
-        if not grid_config_path.exists():
-            raise FileNotFoundError(f"{grid_config_path} does not exists.")
+        # === Load grid data from HDF5 file
+        with h5py.File(self._hdf5_path, mode="r") as h5_file:
+            # load grid dataset
+            dset = h5_file[grid_group][zone]["grids"]
 
-        # load grid config
-        with open(grid_config_path, "r") as file:
-            grid_config = json.load(file)
-        self._grid_config = grid_config[zone]
+            # Load grid configuration
+            self._grid_config = dict(
+                L=dset.attrs["L"],
+                M=dset.attrs["M"],
+                N=dset.attrs["N"],
+                num_cells=dset.attrs["num_cells"],
+            )
 
-        # === Load Grid data =======================================================================
-        self._grid_data = np.load(grid_data_path)
+            # Load grid coordinates data
+            self._grid_data = dset[:]
 
     def __repr__(self) -> str:
         L = self.grid_config["L"]
         M = self.grid_config["M"]
         N = self.grid_config["N"]
-        msg = f"EMC3-EIRENE Grid instance (L: {L}, M: {M}, N: {N})\n"
+        msg = f"EMC3-EIRENE Grid instance (zone: {self.zone}, L: {L}, M: {M}, N: {N})\n"
         return msg
 
     @property
-    def grid_directory(self) -> Path:
-        """directory path to store grid data."""
-        return self._grid_directory
+    def hdf5_path(self) -> Path:
+        """HDF5 dataset file path."""
+        return self._hdf5_path
 
     @property
     def zone(self) -> str:

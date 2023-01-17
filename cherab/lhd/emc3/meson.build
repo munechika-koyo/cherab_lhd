@@ -27,9 +27,7 @@ endforeach
 
 python_sources = [
     '__init__.py',
-    'dataio.py',
     'grid.py',
-    'io.py',
     'plasma.py'
 ]
 
@@ -41,3 +39,4 @@ py.install_sources(
 
 subdir('cython')
 subdir('raytransfer')
+subdir('repository')
