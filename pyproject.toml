@@ -40,6 +40,7 @@ dependencies = [
     "matplotlib",
     "plotly",
     "numpy-stl",
+    "h5py",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/imaging-inherit",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]

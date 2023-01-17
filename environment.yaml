@@ -16,6 +16,7 @@ dependencies:
 - matplotlib
 - plotly
 - numpy-stl
+- h5py
   # for developper tools
 - ipython
 - black
