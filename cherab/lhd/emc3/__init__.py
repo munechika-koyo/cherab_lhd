@@ -7,11 +7,11 @@ from .plasma import LHDSpecies, import_plasma
 __all__ = [
     "Discrete3DMesh",
     "EMC3Mapper",
+    "IndexMapper",
     "CellIndex",
     "PhysIndex",
     "TomographyZone",
     "EMC3Grid",
-    "IndexMapper",
     "LHDSpecies",
     "import_plasma",
 ]
