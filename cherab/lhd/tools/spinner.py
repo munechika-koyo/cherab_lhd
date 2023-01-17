@@ -277,26 +277,26 @@ class Spinner:
             sys.stdout.write(f"{text}\n")
             self._cur_line_len = 0
 
-    def ok(self, text: str = "OK") -> None:
+    def ok(self, text: str = "✅") -> None:
         """Set Ok (success) finalizer to a spinner.
 
         Parameters
         ----------
         text
-            Ok success text, by default "OK"
+            Ok success text, by default "✅"
         """
-        _text = text if text else "OK"
+        _text = text if text else "✅"
         self._freeze(_text)
 
-    def fail(self, text: str = "FAIL") -> None:
+    def fail(self, text: str = "💥") -> None:
         """Set fail finalizer to a spinner.
 
         Parameters
         ----------
         text
-            fail text, by default "FAIL"
+            fail text, by default "💥"
         """
-        _text = text if text else "FAIL"
+        _text = text if text else "💥"
         self._freeze(_text)
 
     def _freeze(self, final_text: str) -> None:
