@@ -7,10 +7,12 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy.typing import NDArray
+from raysect.primitive.mesh import TetraMesh
 
-from cherab.lhd.tools.visualization import set_axis_properties
-
-from .repository.install import DEFAULT_HDF5_PATH
+from ..tools.spinner import Spinner
+from ..tools.visualization import set_axis_properties
+from .cython import tetrahedralize
+from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
 __all__ = ["EMC3Grid"]
 
@@ -400,6 +402,68 @@ def plot_grids_rz(
     ax.set_ylabel("Z[m]")
 
     return (fig, ax)
+
+
+def install_tetra_meshes(
+    zones: list[str] = ZONES[0] + ZONES[1],
+    tetra_mesh_path: Path | str = DEFAULT_TETRA_MESH_PATH,
+    update=True,
+    **keywards,
+) -> None:
+    """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` .rsm files
+    and install them into a repository.
+
+    Default repository is set to ``~/.cherab/lhd/tetra/``, and automatically created if it does not
+    exist. The file name is determined by each zone name like ``zone0.rsm``.
+
+    .. note::
+
+        It takes a lot of time to calculate all TetraMesh instance because each zone has numerous
+        number of grids.
+
+    Parameters
+    ----------
+    zones, optional
+        list of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
+    tetra_mesh_path, optional
+        path to the directory to save TetraMesh .rsm files, by default DEFAULT_TETRA_MESH_PATH
+    update, optional
+        whether or not to update existing TetraMesh .rsm file, by default True
+    """
+    if isinstance(tetra_mesh_path, (Path, str)):
+        tetra_mesh_path = Path(tetra_mesh_path)
+    else:
+        raise TypeError("tetra_mesh_path must be a string or pathlib.Path instance.")
+
+    # make directory
+    tetra_mesh_path.mkdir(parents=True, exist_ok=True)
+
+    # populate each zone TetraMesh instance
+    for zone in zones:
+
+        # path to the tetra .rsm file
+        tetra_path = tetra_mesh_path / f"{zone}.rsm"
+
+        with Spinner(text=f"Constructing {zone} tetra mesh...", timer=True) as sp:
+            # skip if it exists and update is False
+            if tetra_path.exists() and not update:
+                sp.ok("⏩")
+                continue
+
+            # Load EMC3 grid
+            emc = EMC3Grid(zone, **keywards)
+
+            # prepare vertices and tetrahedral indices
+            vertices = emc.generate_vertices()
+            tetrahedra = tetrahedralize(emc.generate_cell_indices())
+
+            # create TetraMesh instance (heavy calculation)
+            tetra = TetraMesh(vertices, tetrahedra, tolerant=False)
+
+            # save
+            tetra.save(tetra_path)
+
+            sp.ok()
 
 
 if __name__ == "__main__":
