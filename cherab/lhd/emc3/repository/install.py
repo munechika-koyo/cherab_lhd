@@ -40,85 +40,81 @@ def install_grids(
     filename = path.stem
     magnetic_axis_r = float(filename.split("grid-")[1]) * 1.0e-2
 
-    # open HDF5 file
-    h5file = h5py.File(hdf5_path, mode="w")
+    # start spinner and open HDF5 and raw grid data file
+    with (
+        Spinner(text=f"install grid data from {path.name}...") as sp,
+        h5py.File(hdf5_path, mode="w") as h5file,
+        path.open(mode="r") as file,
+    ):
+        # create grid group
+        grid_group = h5file.create_group(f"{path.stem}")
 
-    # create grid group
-    grid_group = h5file.create_group(f"{path.stem}")
+        # Load each zone area
+        zones = [f"zone{i}" for i in range(0, 21 + 1)]
 
-    # start spinner
-    with Spinner(text=f"install grid data from {path.name}...") as sp:
+        # parse grid coords for each zone
+        for zone in zones:
 
-        # parse grid raw data from text file
-        with path.open(mode="r") as file:
+            # create zone group
+            zone_group = grid_group.create_group(zone)
 
-            # Load each zone area
-            zones = [f"zone{i}" for i in range(0, 21 + 1)]
-            for zone in zones:
+            # parse number of grid resolution
+            line = file.readline()
+            L, M, N = [int(x) for x in line.split()]
 
-                # create zone group
-                zone_group = grid_group.create_group(zone)
+            # number of table rows per r/z points
+            num_rows = ceil(L * M / 6)
 
-                # parse number of grid resolution
+            # radial grid resolution is increased by 1 because of adding magnetic axis point
+            if zone in {"zone0", "zone11"}:
+                L += 1
+
+            # define grid array
+            grid = np.zeros((L * M, 3, N), dtype=np.float64)
+
+            for n in range(N):
+                # parse toroidal angle
                 line = file.readline()
-                L, M, N = [int(x) for x in line.split()]
+                toroidal_angle = float(line)
 
-                # number of table rows per r/z points
-                num_rows = ceil(L * M / 6)
+                # define (r, z) coords list at a polidal plane
+                r_coords: list[float] = []
+                z_coords: list[float] = []
 
-                # radial grid resolution is increased by 1 because of adding magnetic axis point
-                if zone in {"zone0", "zone11"}:
-                    L += 1
-
-                # define grid array
-                grid = np.zeros((L * M, 3, N), dtype=np.float64)
-
-                for n in range(N):
-                    # parse toroidal angle
+                # parse r-z coords for each line
+                for _ in range(num_rows):
                     line = file.readline()
-                    toroidal_angle = float(line)
+                    r_coords += [float(x) * 1.0e-2 for x in line.split()]  # [cm] -> [m]
 
-                    # define (r, z) coords list at a polidal plane
-                    r_coords: list[float] = []
-                    z_coords: list[float] = []
+                for _ in range(num_rows):
+                    line = file.readline()
+                    z_coords += [float(x) * 1.0e-2 for x in line.split()]  # [cm] -> [m]
+                line = file.readline()  # skip one line
 
-                    # parse each coords
-                    for _ in range(num_rows):
-                        line = file.readline()
-                        r_coords += [float(x) * 1.0e-2 for x in line.split()]  # [cm] -> [m]
-                    for _ in range(num_rows):
-                        line = file.readline()
-                        z_coords += [float(x) * 1.0e-2 for x in line.split()]  # [cm] -> [m]
+                # add magnetic axis point coordinates
+                if zone in {"zone0", "zone11"}:
+                    index = 0
+                    for _ in range(M):
+                        r_coords.insert(index, magnetic_axis_r)
+                        z_coords.insert(index, 0.0)
+                        index += L
 
-                    line = file.readline()  # skip one line
+                # store coordinates into 3-D ndarray (r, z, phi)
+                grid[:, 0, n] = r_coords
+                grid[:, 1, n] = z_coords
+                grid[:, 2, n] = np.repeat(toroidal_angle, L * M)
 
-                    # add magnetic axis point coordinates
-                    if zone in {"zone0", "zone11"}:
-                        index = 0
-                        for _ in range(M):
-                            r_coords.insert(index, magnetic_axis_r)
-                            z_coords.insert(index, 0.0)
-                            index += L
+            # save grid data as dataset
+            dset = zone_group.create_dataset(name="grids", data=grid)
 
-                    # store coordinates into 3-D ndarray (r, z, phi)
-                    grid[:, 0, n] = r_coords
-                    grid[:, 1, n] = z_coords
-                    grid[:, 2, n] = np.repeat(toroidal_angle, L * M)
-
-                # save grid data as dataset
-                dset = zone_group.create_dataset(name="grids", data=grid)
-
-                # store grid config
-                dset.attrs["L"] = L
-                dset.attrs["M"] = M
-                dset.attrs["N"] = N
-                dset.attrs["num_cells"] = (L - 1) * (M - 1) * (N - 1)
+            # store grid config
+            dset.attrs["L"] = L
+            dset.attrs["M"] = M
+            dset.attrs["N"] = N
+            dset.attrs["num_cells"] = (L - 1) * (M - 1) * (N - 1)
 
         # add attribution
         grid_group.attrs["magnetic axis (R, Z) [m]"] = (magnetic_axis_r, 0)
-
-        # close HDF5 file
-        h5file.close()
 
         sp.ok()
 
@@ -148,19 +144,18 @@ def install_cell_index(
     path = exist_path_validate(path)
     hdf5_path = path_validate(hdf5_path)
 
-    # open HDF5 file
-    h5file = h5py.File(hdf5_path, mode="r+")
+    # start spinner and open HDF5 file
+    with (
+        Spinner(text=f"install cell index data from {path.stem}...") as sp,
+        h5py.File(hdf5_path, mode="r+") as h5file,
+    ):
+        # obtain grid group
+        grid_group = h5file.get(grid_group_name)
+        if grid_group is None:
+            raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
 
-    # obtain grid group
-    grid_group = h5file.get(grid_group_name)
-    if grid_group is None:
-        raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
-
-    # Load cell index from text file starting from zero for c language index format
-    indices = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
-
-    # start spinner
-    with Spinner(text=f"install cell index data from {path.stem}...") as sp:
+        # Load cell index from text file starting from zero for c language index format
+        indices = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
 
         start = 0
         for zone in grid_group.keys():
@@ -199,9 +194,6 @@ def install_cell_index(
         grid_group.attrs["num_plasma_vac"] = num_plasma_vac
 
         sp.ok()
-
-    # close HDF5 file
-    h5file.close()
 
 
 def install_data(
