@@ -1,6 +1,7 @@
 """Module to provide useful functions around Install EMC3-related data."""
 from __future__ import annotations
 
+import re
 from math import ceil
 from pathlib import Path
 
@@ -17,6 +18,7 @@ __all__ = ["install_grids", "install_cell_index"]
 def install_grids(
     path: Path | str,
     hdf5_path: Path | str = DEFAULT_HDF5_PATH,
+    update: bool = False,
 ) -> None:
     """Install EMC3-EIRENE grid data into a HDF5 file.
 
@@ -31,6 +33,8 @@ def install_grids(
         path to the original text file written about grid coordinates at each zone.
     hdf5_path, optional
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
+    update, optional
+        whether or not to update/override dataset, by default False
     """
     # validate paths
     path = exist_path_validate(path)
@@ -105,6 +109,8 @@ def install_grids(
                 grid[:, 2, n] = np.repeat(toroidal_angle, L * M)
 
             # save grid data as dataset
+            if update is True:
+                del zone_group["grids"]
             dset = zone_group.create_dataset(name="grids", data=grid)
 
             # store grid config
@@ -123,6 +129,7 @@ def install_cell_index(
     path: Path | str,
     hdf5_path: Path | str = DEFAULT_HDF5_PATH,
     grid_group_name: str = "grid-360",
+    update: bool = False,
 ) -> None:
     """Reconstruct physical cell indices and install it to a HDF5 file.
 
@@ -139,6 +146,8 @@ def install_cell_index(
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
     grid_group_name, optional
         name of grid group in the HDF5 file, by default ``grid-360``.
+    update, optional
+        whether or not to update/override dataset, by default False
     """
     # validate parameters
     path = exist_path_validate(path)
@@ -157,13 +166,18 @@ def install_cell_index(
         # Load cell index from text file starting from zero for c language index format
         indices = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
 
+        # extract and sort zone keys
+        zones = [key for key in grid_group.keys() if "zone" in key]
+        zones = sorted(zones, key=lambda s: int(re.search(r"\d+", s).group()))
+
         start = 0
-        for zone in grid_group.keys():
+        for zone in zones:
             zone_group = grid_group[zone]
             num_cells: int = zone_group["grids"].attrs["num_cells"]
             L: int = zone_group["grids"].attrs["L"]
             M: int = zone_group["grids"].attrs["M"]
             N: int = zone_group["grids"].attrs["N"]
+
             if zone in {"zone0", "zone11"}:
                 L -= 1
                 num_cells = (L - 1) * (M - 1) * (N - 1)
@@ -184,6 +198,8 @@ def install_cell_index(
                 index_array = indices[start : start + num_cells]
                 start += num_cells
 
+            if update is True:
+                del zone_group["index"]
             dset = zone_group.create_dataset(name="index", data=index_array)
 
         # save number of cells data
