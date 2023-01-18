@@ -31,15 +31,5 @@ inc_np = include_directories(incdir_numpy)
 # Numpy deprecated api (if errors is occurred, comment out in module section)
 numpy_nodepr_api = '-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION'
 
-# Create generator to transpile cython .pyx -> .c
-# cython_exe = find_program('cython')
-# cython_gen = generator(cython_exe,
-#   arguments : ['-3', '--fast-fail', '--output-file', '@OUTPUT@', '@INPUT@'],
-#   output : '@BASENAME@.c',
-# )
-
-# load filesystem module
-# fs = import('fs')
-
 # subdirectories
 subdir('cherab/lhd')
