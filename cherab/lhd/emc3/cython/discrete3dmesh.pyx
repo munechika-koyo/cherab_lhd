@@ -1,13 +1,11 @@
 """
 Module to offer Discrete3D interpolation for EMC3-EIRENE in LHD
 """
-from numpy cimport ndarray, uint32_t
-from libc.math cimport hypot, atan2, cos, sin, abs, M_PI
-from libc.limits cimport INT_MIN
-from raysect.core.math.point cimport new_point3d
-from cherab.lhd.emc3.cython cimport IntegerFunction3D
 cimport cython
-
+from libc.limits cimport INT_MIN
+from libc.math cimport M_PI, atan2, cos, hypot, sin
+from numpy cimport uint32_t
+from raysect.core.math.point cimport new_point3d
 
 __all__ = ["Discrete3DMesh"]
 
@@ -50,13 +48,18 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     If the specified point is ouside the defined tetrahedral mesh, this callble always returns -1.
 
     To optimise the lookup of tetrahedra, acceleration structure (a KD-Tree) is used from the
-    specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`. 
+    specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`.
 
-    :param :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` tetra: :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instances.
-    :param ndarray[uint32, ndim=1] indices1: 1-D EMC3-EIRENE's cell indices array which is used in [0, 18] degree in toroidal.
-    :param ndarray[uint32, ndim=1] indices2: 1-D EMC3-EIRENE's cell indices array which is used in [18, 36] degree in toroidal.
-    :param ndarray[uint32, ndim=1] indices3: 1-D EMC3-EIRENE's cell indices array which is used in [36, 54] degree in toroidal, if None, this is referred to `indices1`
-    :param ndarray[uint32, ndim=1] indices4: 1-D EMC3-EIRENE's cell indices array which is used in [54, 72] degree in toroidal, if None, this is referred to `indices2`
+    :param :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` tetra:
+        :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instances.
+    :param ndarray[uint32, ndim=1] indices1: 1-D EMC3-EIRENE's cell indices array
+        which is used in [0, 18] degree in toroidal.
+    :param ndarray[uint32, ndim=1] indices2: 1-D EMC3-EIRENE's cell indices array
+        which is used in [18, 36] degree in toroidal.
+    :param ndarray[uint32, ndim=1] indices3: 1-D EMC3-EIRENE's cell indices array
+        which is used in [36, 54] degree in toroidal, if None, this is referred to `indices1`
+    :param ndarray[uint32, ndim=1] indices4: 1-D EMC3-EIRENE's cell indices array
+        which is used in [54, 72] degree in toroidal, if None, this is referred to `indices2`
     """
     def __init__(
         self,
@@ -87,15 +90,20 @@ cdef class Discrete3DMesh(IntegerFunction3D):
             self._indices1_mv,
             self._indices2_mv,
             self._indices3_mv,
-            self.__indices4_mv
+            self._indices4_mv,
         )
 
     def __setstate__(self, state):
-        self._tetra_mesh, self._indices1_mv, self._indices2_mv, self._indices3_mv, self.__indices4_mv = state
+        (
+            self._tetra_mesh,
+            self._indices1_mv,
+            self._indices2_mv,
+            self._indices3_mv,
+            self._indices4_mv,
+        ) = state
 
     def __reduce__(self):
         return self.__new__, (self.__class__, ), self.__getstate__()
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -105,11 +113,11 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
         cdef:
             double _x, _y, _z, _r, _phi
-        
+
         # identify in which region the point exists
         _r = hypot(x, y)
         _phi = atan2(y, x)
-        
+
         # _phi must be in [0, PHI_72]
         if _phi < 0:
             _phi = (_phi + 2.0 * M_PI) % PHI_72
@@ -123,7 +131,7 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
             if self._tetra_mesh.is_contained(new_point3d(_x, _y, _z)):
                 return self._indices1_mv[<int>(self._tetra_mesh.tetrahedra_id // 6)]
-        
+
         elif PHI_18 < _phi <= PHI_36:
             _phi = PHI_36 - _phi
             _x = _r * cos(_phi)
@@ -150,6 +158,6 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
             if self._tetra_mesh.is_contained(new_point3d(_x, _y, _z)):
                 return self._indices4_mv[<int>(self._tetra_mesh.tetrahedra_id // 6)]
-        
+
         # If the point is ouside the mesh
         return -1

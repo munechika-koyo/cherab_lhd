@@ -1,30 +1,104 @@
 [build-system]
 requires = [
-    "setuptools >= 40.9.0",
     "wheel",
     "numpy",
-    "cython",
+    "meson-python >= 0.10.0",
+    "ninja >= 1.8.2",
+    "cython==3.0.0a11",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
-    "cherab @ git+https://github.com/cherab/core.git@raysect-0.8-compat",
+    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "mesonpy"
 
+[project]
+name = "cherab-lhd"
+description = "Cherab spectroscopy framework: LHD machine configuration"
+readme = "README.md"
+authors = [
+    { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
+]
+maintainers = [
+    { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "plotly",
+    "numpy-stl",
+    "h5py",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
+    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
+]
+dynamic = ["version"]
+license = { file = "LICENSE.md" }
 
-# for development
-[tool.flake8]
-max-line-length = 100
-select = "C,E,F,W,B,B950"
-ignore = "E203,E501"
+[project.optional-dependencies]
+docs = [
+    "docutils >= 0.19, < 0.20",
+    "ipykernel",
+    "ipywidgets",
+    "nbsphinx",
+    "pillow",
+    "pygments >= 2.11.0",
+    "sphinx >= 5, < 6",
+    "sphinx-prompt",
+    "sphinx-copybutton",
+    "pydata-sphinx-theme < 0.11",
+    "sphinx-design",
+    "pandoc",
+    "sphinx-codeautolink",
+]
+dev = [
+    "flake8",
+    "black",
+    "isort",
+    "mypy",
+    "rich-click",
+    "cython-lint",
+    "pre-commit",
+    "cython==3.0.0a11",
+    "setuptools",       # added untill meson-python comes to allow the editable install
+]
+
+[project.urls]
+Homepage = "https://cherab-lhd.netlify.app/"
+documentation = "https://cherab-lhd.netlify.app/"
+repository = "https://github.com/munechika-koyo/cherab_lhd"
 
 [tool.black]
 line-length = 100
+
+[tool.cython-lint]
+max-line-length = 100
+
+[tool.flake8]
+max-line-length = 100
+select = "C,E,F,W,B,B950"
+ignore = "E203,E501,W503"
 
 [tool.isort]
 profile = "black"
 line_length = 100
 
 [tool.mypy]
-ollow-imports = "silent"
+follow-imports = "silent"
 ignore-missing-imports = true
 show-column-numbers = true
 no-pretty = true
+
+[tool.setuptools.dynamic]
+version = { attr = "cherab.lhd.__version__" }

@@ -5,13 +5,12 @@ of a 3D functions with cylindrical coords.
 These functions use C calls when sampling Function3D
 objects and are therefore considerably faster than the equivalent Python code.
 """
-from numpy import empty, linspace, sin, cos
+from numpy import cos, empty, linspace, sin
 
-from libc.math cimport M_PI
-from numpy cimport ndarray, float64_t
-from raysect.core.math.function.float cimport Function3D, autowrap_function3d
 cimport cython
-
+from libc.math cimport M_PI
+from numpy cimport float64_t, ndarray
+from raysect.core.math.function.float cimport Function3D, autowrap_function3d
 
 __all__ = ["sample3d_rz"]
 
@@ -64,10 +63,14 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
         float64_t[:, ::1] v_view
 
     if len(r_range) != 3:
-        raise ValueError("R range must be a tuple containing: (min range, max range, no. of samples).")
+        raise ValueError(
+            "R range must be a tuple containing: (min range, max range, no. of samples)."
+        )
 
     if len(z_range) != 3:
-        raise ValueError("Z range must be a tuple containing: (min range, max range, no. of samples).")
+        raise ValueError(
+            "Z range must be a tuple containing: (min range, max range, no. of samples)."
+        )
 
     if r_range[0] > r_range[1]:
         raise ValueError("Minimum r range can not be greater than maximum r range.")

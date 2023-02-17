@@ -1,1 +1,1 @@
-from cherab.lhd.tools.samplers import *
+from .samplers import sample3d_rz

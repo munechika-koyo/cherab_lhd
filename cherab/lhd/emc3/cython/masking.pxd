@@ -1,5 +1,6 @@
-from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D
 from libc.limits cimport INT_MIN
+
+from .intfunction cimport IntegerFunction3D
 
 
 cdef class EMC3Mask(IntegerFunction3D):

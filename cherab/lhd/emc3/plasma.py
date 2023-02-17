@@ -1,12 +1,11 @@
-"""
-Module offers helper functions to generate :obj:`~cherab.core.Plasma` object
-"""
+"""Module offers helper functions to generate :obj:`~cherab.core.Plasma`
+object."""
 from __future__ import annotations
 
+import h5py
 from cherab.core import Line, Maxwellian, Plasma, Species, elements
 from cherab.core.math import Constant3D, ConstantVector3D
 from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
-from cherab.lhd.tools.visualization import show_profile_phi_degs
 from cherab.openadas import OpenADAS
 from matplotlib import pyplot as plt
 from raysect.core import Node, Vector3D, translate
@@ -16,9 +15,11 @@ from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
 from raysect.primitive import Cylinder, Subtract
 from scipy.constants import atomic_mass, electron_mass
 
+from ..tools import Spinner
+from ..tools.visualization import show_profile_phi_degs
 from .cython import EMC3Mapper
-from .dataio import DataLoader
 from .geometry import PhysIndex
+from .repository.utility import DEFAULT_HDF5_PATH
 
 __all__ = ["import_plasma", "LHDSpecies"]
 
@@ -30,10 +31,11 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 
+@Spinner(text="Loading Plasma Object...", timer=True)
 def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
-    """Helper function of generating LHD plasma
-    As emissions, H :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`,
-    H :math:`\\delta` are applied.
+    """Helper function of generating LHD plasma As emissions, H
+    :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`, H :math:`\\delta` are
+    applied.
 
     Parameters
     ----------
@@ -102,7 +104,7 @@ def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
 
 
 class LHDSpecies:
-    """Class representing LHD plasma species
+    """Class representing LHD plasma species.
 
     Attributes
     -----------
@@ -114,64 +116,60 @@ class LHDSpecies:
     """
 
     def __init__(self):
+        # Load dataset from HDF5 file
+        with h5py.File(DEFAULT_HDF5_PATH, mode="r") as h5file:
 
-        # load dataloader
-        data = DataLoader()
+            # load index function
+            func = PhysIndex()
 
-        func = PhysIndex()
+            # data group
+            data_group = h5file["grid-360/data/"]
 
-        # load data arrays
-        e_density = data.density_electron()
-        ion_densities = data.density_ions()
-        n_densities = data.density_neutrals()
-        temp_e_ion = data.temperature_electron_ion()
-        temp_n = data.temperature_neutrals()
+            bulk_velocity = ConstantVector3D(Vector3D(0, 0, 0))
 
-        bulk_velocity = ConstantVector3D(Vector3D(0, 0, 0))
-
-        # set electron distribution assuming Maxwellian
-        self.electron_distribution = Maxwellian(
-            EMC3Mapper(func, e_density),
-            EMC3Mapper(func, temp_e_ion[0]),
-            bulk_velocity,
-            electron_mass,
-        )
-
-        # initialize composition
-        self.composition = []
-
-        # append species to composition list
-        # H
-        self.set_species(
-            "hydrogen",
-            0,
-            density=EMC3Mapper(func, n_densities["H"]),
-            temperature=EMC3Mapper(func, temp_n["H"]),
-        )
-        # H+
-        self.set_species(
-            "hydrogen",
-            1,
-            density=EMC3Mapper(func, ion_densities["H+"]),
-            temperature=EMC3Mapper(func, temp_e_ion[1]),
-        )
-        # C1+ - C6+
-        for i in range(1, 7):
-            self.set_species(
-                "carbon",
-                i,
-                density=EMC3Mapper(func, ion_densities[f"C{i}+"]),
-                temperature=EMC3Mapper(func, temp_e_ion[1]),
+            # set electron distribution assuming Maxwellian
+            self.electron_distribution = Maxwellian(
+                EMC3Mapper(func, data_group["density/electron"][:]),
+                EMC3Mapper(func, data_group["temperature/electron"][:]),
+                bulk_velocity,
+                electron_mass,
             )
 
-        # Ne1+ - Ne10+
-        for i in range(1, 11):
+            # initialize composition
+            self.composition = []
+
+            # append species to composition list
+            # H
             self.set_species(
-                "neon",
-                i,
-                density=EMC3Mapper(func, ion_densities[f"Ne{i}+"]),
-                temperature=EMC3Mapper(func, temp_e_ion[1]),
+                "hydrogen",
+                0,
+                density=EMC3Mapper(func, data_group["density/H"]),
+                temperature=EMC3Mapper(func, data_group["temperature/H"]),
             )
+            # H+
+            self.set_species(
+                "hydrogen",
+                1,
+                density=EMC3Mapper(func, data_group["density/H+"]),
+                temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+            )
+            # C1+ - C6+
+            for i in range(1, 7):
+                self.set_species(
+                    "carbon",
+                    i,
+                    density=EMC3Mapper(func, data_group[f"density/C{i}+"]),
+                    temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+                )
+
+            # Ne1+ - Ne10+
+            for i in range(1, 11):
+                self.set_species(
+                    "neon",
+                    i,
+                    density=EMC3Mapper(func, data_group[f"density/Ne{i}+"]),
+                    temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+                )
 
     def __repr__(self):
         return f"{self.composition}"
@@ -184,7 +182,8 @@ class LHDSpecies:
         temperature: Function3D = Constant3D(1.0e2),
         bulk_velocity: VectorFunction3D = ConstantVector3D(Vector3D(0, 0, 0)),
     ) -> None:
-        """add species to composition which is assumed to be Maxwellian distribution.
+        """add species to composition which is assumed to be Maxwellian
+        distribution.
 
         Parameters
         ----------
@@ -218,7 +217,7 @@ class LHDSpecies:
         self.composition.append(Species(element_obj, charge, distribution))
 
     def plot_distribution(self, res: float = 5.0e-3):
-        """plot species density and temperature profile
+        """plot species density and temperature profile.
 
         Parameters
         ----------

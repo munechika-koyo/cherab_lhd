@@ -35,7 +35,7 @@ cdef class IntegerFunction3D:
         :rtype: int
         """
         return self.evaluate(x, y, z)
-    
+
     def __repr__(self):
         return 'IntegerFunction3D()'
 
@@ -96,7 +96,8 @@ cdef class PythonIntegerFunction3D(IntegerFunction3D):
 
 cdef IntegerFunction3D autowrap_intfunction3d(object obj):
     """
-    Automatically wraps the supplied python object in a PythonIntegerFunction3D or IntegerConstant3D object.
+    Automatically wraps the supplied python object in a PythonIntegerFunction3D
+    or IntegerConstant3D object.
 
     If this function is passed a valid IntegerFunction3D object, then the IntegerFunction3D
     object is simply returned without wrapping.

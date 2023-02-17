@@ -3,8 +3,9 @@ Module for tetrahedralization
 """
 import numpy as np
 
-from numpy cimport ndarray, uint32_t, import_array
 cimport cython
+from numpy cimport import_array, ndarray, uint32_t
+
 from cython.parallel import prange
 
 __all__ = ["tetrahedralize"]
@@ -17,14 +18,43 @@ import_array()
 @cython.wraparound(False)
 @cython.initializedcheck(False)
 cpdef ndarray[uint32_t, ndim=2] tetrahedralize(ndarray cells):
-    """
-    Generate Tetrahedral indices from cell indices array.
-    One cubic-like cell is divided to 6 tetrahedra.
+    """Generate tetrahedral indices from cell indices array.
+    One cubic-like cell having 8 vertices is divided to 6 tetrahedra.
 
-    :param ndarray cells: cell indices 2D array
+    Parameters
+    ----------
+    cells : :obj:`~numpy.ndarray`
+        cell indices 2D array, the shape of which is :math:`(N, 8)`.
 
-    :return: tetrahedra indices array
-    :rtype: ndarray
+    Return
+    ------
+    :obj:`~numpy.ndarray`
+        tetrahedra indices array, the shape of which is :math:`(6N, 4)`.
+
+    Example
+    -------
+    .. prompt:: python >>> auto
+
+        >>> import numpy as np
+        >>> from cherab.w7x.emitter.cython import tetrahedralize
+        >>>
+        >>> array = np.arange(16, dtype=np.uint32).reshape((2, -1))
+        >>> array
+        array([[ 0,  1,  2,  3,  4,  5,  6,  7],
+               [ 8,  9, 10, 11, 12, 13, 14, 15]], dtype=uint32)
+        >>> tetrahedralize(array)
+        array([[ 6,  2,  1,  0],
+               [ 7,  3,  2,  0],
+               [ 0,  7,  6,  2],
+               [ 1,  5,  6,  4],
+               [ 0,  4,  6,  7],
+               [ 6,  4,  0,  1],
+               [14, 10,  9,  8],
+               [15, 11, 10,  8],
+               [ 8, 15, 14, 10],
+               [ 9, 13, 14, 12],
+               [ 8, 12, 14, 15],
+               [14, 12,  8,  9]], dtype=uint32)
     """
     cdef:
         int i, j, k

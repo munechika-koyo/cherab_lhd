@@ -1,6 +1,4 @@
-"""
-Raytrasfer-related module
-"""
+"""Raytrasfer-related module."""
 from .emitters import Discrete3DMeshRayTransferEmitter, Discrete3DMeshRayTransferIntegrator
 from .raytransfer import load_rte_emc3
 

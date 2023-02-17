@@ -1,13 +1,15 @@
-"""
-This module offers the helper function to easily set raytransfer material
-"""
+"""This module offers the helper function to easily set raytransfer
+material."""
 from __future__ import annotations
 
-from cherab.lhd.emc3.geometry import TomographyZone
-from cherab.lhd.emc3.raytransfer import Discrete3DMeshRayTransferEmitter
 from raysect.core.math import translate
 from raysect.optical import World
 from raysect.primitive import Cylinder
+
+from cherab.lhd.tools import Spinner
+
+from ..geometry import TomographyZone
+from .raytransfer import Discrete3DMeshRayTransferEmitter
 
 __all__ = ["load_rte_emc3"]
 
@@ -17,9 +19,10 @@ RMIN, RMAX = 2.0, 5.5  # [m]
 ZMIN, ZMAX = -1.6, 1.6
 
 
+@Spinner(text="Loading RayTransfer Emitter...", timer=True)
 def load_rte_emc3(parent: World, bins: int | None = None) -> Cylinder:
-    """
-    Helper function of loding RayTransfer Emitter using :obj:`.Discrete3DMeshRayTransferEmitter`
+    """Helper function of loding RayTransfer Emitter using
+    :obj:`.Discrete3DMeshRayTransferEmitter`
 
     Parameters
     ----------

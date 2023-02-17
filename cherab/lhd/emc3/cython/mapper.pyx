@@ -11,7 +11,7 @@ cdef class EMC3Mapper(Function3D):
     """
     Mapping EMC3-EIRENE data to tetrahedra meshes.
     Several EMC3's data are stored in some EMC3's geometric cells.
-    This instance is callable function returning physical data corresponding in 
+    This instance is callable function returning physical data corresponding in
     3D space where EMC3's index function returns a physical index
 
     :param IntegerFunction3D index_func: EMC3's index_funcion returning a physical index.
@@ -37,12 +37,11 @@ cdef class EMC3Mapper(Function3D):
         self._index_func = index_func
         self._default_value = default_value
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cdef double evaluate(self, double x, double y, double z) except? -1e999:
-        
+
         cdef:
             int index
 
@@ -52,7 +51,7 @@ cdef class EMC3Mapper(Function3D):
             return self._default_value
         else:
             return self._data_mv[index]
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
@@ -92,12 +91,11 @@ cdef class IndexMapper(IntegerFunction3D):
         self._index_func = index_func
         self._default_value = default_value
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
-        
+
         cdef:
             int index
 
@@ -107,7 +105,7 @@ cdef class IndexMapper(IntegerFunction3D):
             return self._default_value
         else:
             return self._indices_mv[index]
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)

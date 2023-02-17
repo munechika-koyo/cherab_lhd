@@ -1,17 +1,22 @@
-"""
-Module defining the IRVB Camera class
-"""
+"""Module defining the IRVB Camera class."""
 from __future__ import annotations
+
+from typing import Any
+
 import numpy as np
+from cherab.tools.observers import BolometerFoil, BolometerSlit
 from numpy import ndarray
-
 from raysect.core import Node, Primitive
-from raysect.core.math import Point3D, Vector3D, AffineMatrix3D
+from raysect.core.math import AffineMatrix3D, Point3D, Vector3D
 from raysect.optical import Ray
+from raysect.optical.material import AbsorbingSurface, NullMaterial
 from raysect.optical.observer import TargettedCCDArray
-from raysect.optical.material import NullMaterial
+from raysect.primitive import Box
 
-from cherab.tools.observers import BolometerSlit, BolometerFoil
+try:
+    import plotly.graph_objects as go
+except ImportError:
+    print("Plotly is required if using IRVB model plotting functionality.")
 
 __all__ = ["IRVBCamera"]
 
@@ -74,14 +79,11 @@ class IRVBCamera(Node):
 
     @property
     def slit(self) -> BolometerSlit:
-        """
-        BolometerSlit instances.
-        """
+        """BolometerSlit instances."""
         return self._slit
 
     @slit.setter
     def slit(self, value: BolometerSlit):
-
         if not isinstance(value, BolometerSlit):
             raise TypeError("The slit attribute must be a BolometerSlit instance.")
 
@@ -92,14 +94,11 @@ class IRVBCamera(Node):
 
     @property
     def foil_detector(self) -> TargettedCCDArray:
-        """
-        A TargettedCCDArray instance.
-        """
+        """A TargettedCCDArray instance."""
         return self._foil_detector
 
     @foil_detector.setter
     def foil_detector(self, value: TargettedCCDArray):
-
         if not isinstance(value, TargettedCCDArray):
             raise TypeError("The foil_detector attribute must be a TargettedCCDArray instance.")
 
@@ -110,10 +109,8 @@ class IRVBCamera(Node):
 
     @property
     def pixels_as_foils(self) -> ndarray:
-        """
-        An array, the element which is a BolometerFoil's instance defined by
-        regarding each pixel as a bolometer foil.
-        """
+        """An array, the element which is a BolometerFoil's instance defined by
+        regarding each pixel as a bolometer foil."""
 
         nx, ny = self.foil_detector.pixels
         width = self.foil_detector.width
@@ -168,27 +165,37 @@ class IRVBCamera(Node):
         )
 
     def observe(self) -> None:
-        """
-        Take an observation with this camera.
+        """Take an observation with this camera.
+
         Call `observe()` on a foil detector:
         :obj:`~raysect.optical.observer.imaging.TargettedCCDArray.observe`
         """
 
         self.foil_detector.observe()
 
-    def plot_bolometer_geometry(self, fig=None, plot_pixel_rays=False, show_foil_xy_axes=True):
-        """3D plotting of bolometer geometry using plotly module
-        If you want to use this method, must install `Plotly <https://plotly.com/python/>`_ module.
+    def plot_bolometer_geometry(
+        self,
+        fig: go.Figure | None = None,
+        plot_pixel_rays: dict[str, Any] | None = None,
+        show_foil_xy_axes: bool = True,
+    ):
+        """3D plotting of bolometer geometry using plotly module If you want to
+        use this method, must install `Plotly <https://plotly.com/python/>`_
+        module.
 
         Parameters
         ----------
-        fig : :obj:`plotly.graph_objs.Figure`, optional
-            Figure object created by plotly, by default ``fig = go.Figure()`` if fig is None.
-        plot_pixel_rays : bool or dict, optional
-            properties of plotting rays, by default False.
-            If True, default option: {"pixels": (0, 0), "num_rays": 50} is applied.
-            Different values of this option are available.
-        show_foil_xy_axes : bool, optional
+        fig
+            Figure object created by plotly, by default :obj:`plotly.graph_objs.Figure`() if fig is None.
+        plot_pixel_rays
+            properties of plotting rays, by default None.
+            If the user want to use it, set any key and value, by default
+            ``{"pixel": (0, 0), "num_rays": 50, "terminate": 30e-2}`` is applied.
+            ``"pixel"`` is the specific pixel where rays are triggered, ``"num_rays"`` is the number
+            of rays triggered, and ``"terminate"`` is the distance between foil and the board which
+            terminates triggered rays in units of meter. If ``"terminate`` is 0, no terminating board
+            is set.
+        show_foil_xy_axes
             whether or not to show the local foil x, y axis, by default True
 
         Returns
@@ -203,7 +210,7 @@ class IRVBCamera(Node):
             print("must install plotly module.")
             return
 
-        if fig:
+        if fig is not None:
             if not isinstance(fig, go.Figure):
                 raise TypeError("The fig argument must be of type plotly.graph_objs.Figure")
         else:
@@ -222,7 +229,7 @@ class IRVBCamera(Node):
         ]
         corners = np.array([[*point] for point in corners])
         fig.add_trace(
-            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="target")
+            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="slit")
         )
 
         # foil screen
@@ -241,7 +248,7 @@ class IRVBCamera(Node):
         ]
         corners = np.array([[*point] for point in corners])
         fig.add_trace(
-            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="screen")
+            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="foil")
         )
 
         # camera box
@@ -284,13 +291,14 @@ class IRVBCamera(Node):
         # plot rays
         if plot_pixel_rays:
             # set default properties
-            plot_pixel_rays.setdefault("pixels", (0, 0))  # select pixel number
-            plot_pixel_rays.setdefault("num_rays", 50)  # number of rays plotted
+            plot_pixel_rays.setdefault("pixel", (0, 0))  # select specific pixel number
+            plot_pixel_rays.setdefault("num_rays", 50)  # number of rays triggered
+            plot_pixel_rays.setdefault("terminate", 30e-2)  # terminating board in front of the foil
 
-            # set corners' points of one pixel
-            pixels = plot_pixel_rays["pixels"]
+            # color a specified pixel plane
+            pixel = plot_pixel_rays["pixel"]
             UpperRight = Point3D(
-                width * 0.5 - pixels[0] * pixel_pitch, height * 0.5 - pixels[1] * pixel_pitch, 0
+                width * 0.5 - pixel[0] * pixel_pitch, height * 0.5 - pixel[1] * pixel_pitch, 0
             )
             points = [
                 Point3D(*UpperRight).transform(self.foil_detector.to_root()),
@@ -317,9 +325,21 @@ class IRVBCamera(Node):
                 )
             )
 
+            # set ray terminated board
+            if plot_pixel_rays["terminate"] > 0:
+                terminate_board = Box(
+                    lower=Point3D(-1e9, -1e9, plot_pixel_rays["terminate"]),
+                    upper=Point3D(1e9, 1e9, plot_pixel_rays["terminate"] + 1.0),
+                    parent=self.parent,
+                    name="terminating_board",
+                )
+                terminate_board.material = AbsorbingSurface()
+                terminate_board.transform = self.foil_detector.to_root()
+
+            # ray tracing
             ray_temp = Ray()
             rays = self.foil_detector._generate_rays(
-                pixels[0], pixels[1], ray_temp, plot_pixel_rays["num_rays"]
+                pixel[0], pixel[1], ray_temp, plot_pixel_rays["num_rays"]
             )
             for ray in rays:
 
@@ -348,6 +368,9 @@ class IRVBCamera(Node):
                         )
                         break
 
+                # TODO: remove teminating board
+                # self.parent.children.pop(-1)
+
                 line = np.array([[*origin_0], [*hit_point]])
 
                 fig.add_trace(
@@ -364,22 +387,21 @@ class IRVBCamera(Node):
 
         # axis vector
         if show_foil_xy_axes:
-            slit_sensor_separation = abs(
-                foil_centre_point.vector_to(self.slit.centre_point).dot(zaxis)
-            )
-            centre = Point3D(0, 0, -slit_sensor_separation).transform(self.to_root())
+            # slit_sensor_separation = abs(
+            #     foil_centre_point.vector_to(self.slit.centre_point).dot(zaxis)
+            # )
             xaxis_vector = go.Scatter3d(
-                x=[centre.x, centre.x + width * self.slit.basis_x.x],
-                y=[centre.y, centre.y + width * self.slit.basis_x.y],
-                z=[centre.z, centre.z + width * self.slit.basis_x.z],
+                x=[foil_centre_point.x, foil_centre_point.x + width * basis_x.x],
+                y=[foil_centre_point.y, foil_centre_point.y + width * basis_x.y],
+                z=[foil_centre_point.z, foil_centre_point.z + width * basis_x.z],
                 marker=dict(color="rgb(256, 0, 0)", size=2),
                 line=dict(color="rgb(256, 0, 0)"),
                 showlegend=False,
             )
             yaxis_vector = go.Scatter3d(
-                x=[centre.x, centre.x + height * self.slit.basis_y.x],
-                y=[centre.y, centre.y + height * self.slit.basis_y.y],
-                z=[centre.z, centre.z + height * self.slit.basis_y.z],
+                x=[foil_centre_point.x, foil_centre_point.x + height * basis_y.x],
+                y=[foil_centre_point.y, foil_centre_point.y + height * basis_y.y],
+                z=[foil_centre_point.z, foil_centre_point.z + height * basis_y.z],
                 marker=dict(color="rgb(0, 256, 0)", size=2),
                 line=dict(color="rgb(0, 256, 0)"),
                 showlegend=False,
@@ -387,4 +409,12 @@ class IRVBCamera(Node):
             fig.add_trace(xaxis_vector)
             fig.add_trace(yaxis_vector)
 
+        # figure update
+        fig.update_layout(
+            width=500,
+            height=500,
+            scene_aspectmode="data",
+            margin=dict(r=10, l=10, b=10, t=10),
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+        )
         return fig

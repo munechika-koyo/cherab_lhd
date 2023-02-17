@@ -1,22 +1,20 @@
-"""
-Module to deal with EMC3-EIRENE-defined grids
-"""
-import json
-import os
+"""Module to deal with EMC3-EIRENE-defined grids."""
+from pathlib import Path
 
+import h5py
 import numpy as np
-from cherab.lhd.tools.visualization import set_axis_properties
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy.typing import NDArray
+from raysect.primitive.mesh import TetraMesh
+
+from ..tools.spinner import Spinner
+from ..tools.visualization import set_axis_properties
+from .cython import tetrahedralize
+from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
 __all__ = ["EMC3Grid"]
-
-
-BASE = os.path.dirname(__file__)
-GRID_BASE_PATH = os.path.join(BASE, "data", "grid-360")
-CELLGEO_PATH = os.path.join(BASE, "data", "CELL_GEO.pickle")
 
 ZONES = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
@@ -30,10 +28,10 @@ ZMAX = 1.6
 
 
 class EMC3Grid:
-    """
-    Grid vertices and cell indices generation of EMC3-EIRENE.
-    This class offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)` coordinates
-    and cell indices representing a cubic-like mesh with 8 vertices.
+    """Grid vertices and cell indices generation of EMC3-EIRENE.
+
+    This class offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)` coordinates and
+    cell indices representing a cubic-like mesh with 8 vertices.
     Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
     instance is also implemented.
 
@@ -47,10 +45,11 @@ class EMC3Grid:
     ----------
     zone
         name of grid zone. Users can select only one option of ``"zone0" - "zone21"``.
-        Note that corresponding ``zone#.npy`` grid data must be stored in the directory ``path``.
-    grid_directory
-        directory path where grid data (e.g. ``zone0.npy``) are stored, by default
-        ``../emc3/data/grid-360/``
+    grid_group
+        name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
+    hdf5_path
+        path to the HDF5 file storing grid dataset, by default ``~/.cherab/lhd/emc3.hdf5``.
+
 
     Examples
     --------
@@ -58,60 +57,58 @@ class EMC3Grid:
 
         >>> grid = EMC3Grid("zone0")
         >>> grid
-
     """
 
-    def __init__(self, zone: str, grid_directory: str = GRID_BASE_PATH) -> None:
+    def __init__(
+        self, zone: str, grid_group: str = "grid-360", hdf5_path: Path | str = DEFAULT_HDF5_PATH
+    ) -> None:
         # === Parameters validation ================================================================
-        # set and validate grid stored directory
-        if not isinstance(grid_directory, str):
-            raise TypeError("grid_directory must be string")
-        if not os.path.exists(grid_directory):
-            raise FileNotFoundError(f"{grid_directory} does not exists")
-        self._grid_directory = grid_directory
-
-        # set and validate zone name
-        if not isinstance(zone, str):
-            raise TypeError("zone must be string")
-        grid_data_path = os.path.join(grid_directory, f"grid-{zone}.npy")
-        if not os.path.exists(grid_data_path):
-            raise FileNotFoundError(f"grid-{zone}.npy file does not exits in {self.grid_directory}")
+        # set and validate hdf5_path
+        if isinstance(hdf5_path, (Path, str)):
+            self._hdf5_path = Path(hdf5_path)
+        else:
+            raise TypeError("hdf5_path must be a string or a pathlib.Path instance.")
+        if not self._hdf5_path.exists():
+            raise FileNotFoundError(f"{self._hdf5_path.name} file does not exist.")
         self._zone = zone
 
-        # === Load Grid Configuration ==============================================================
-        # check if grid_config.json file exists
-        grid_config_path = os.path.join(grid_directory, "grid_config.json")
-        if not os.path.exists(grid_config_path):
-            raise FileNotFoundError(f"{grid_config_path} does not exists.")
+        # === Load grid data from HDF5 file
+        with h5py.File(self._hdf5_path, mode="r") as h5_file:
+            # load grid dataset
+            dset = h5_file[grid_group][zone]["grids"]
 
-        # load grid config
-        with open(grid_config_path, "r") as file:
-            grid_config = json.load(file)
-        self._grid_config = grid_config[zone]
+            # Load grid configuration
+            self._grid_config = dict(
+                L=dset.attrs["L"],
+                M=dset.attrs["M"],
+                N=dset.attrs["N"],
+                num_cells=dset.attrs["num_cells"],
+            )
 
-        # === Load Grid data =======================================================================
-        self._grid_data = np.load(grid_data_path)
+            # Load grid coordinates data
+            self._grid_data = dset[:]
 
     def __repr__(self) -> str:
         L = self.grid_config["L"]
         M = self.grid_config["M"]
         N = self.grid_config["N"]
-        msg = f"EMC3-EIRENE Grid instance (L: {L}, M: {M}, N: {N})\n"
+        msg = f"EMC3-EIRENE Grid instance (zone: {self.zone}, L: {L}, M: {M}, N: {N})\n"
         return msg
 
     @property
-    def grid_directory(self) -> str:
-        """directory name to store grid data"""
-        return self._grid_directory
+    def hdf5_path(self) -> Path:
+        """HDF5 dataset file path."""
+        return self._hdf5_path
 
     @property
     def zone(self) -> str:
-        """name of zone"""
+        """name of zone."""
         return self._zone
 
     @property
     def grid_config(self) -> dict[str, int]:
-        """configuration dictionary containing grid resolutions and number of cells
+        """configuration dictionary containing grid resolutions and number of
+        cells.
 
         .. prompt:: python >>> auto
 
@@ -123,9 +120,9 @@ class EMC3Grid:
 
     @property
     def grid_data(self) -> NDArray[np.float64]:
-        """
-        Raw Grid array data.
-        This array is directly loaded from ``.npy`` file.
+        """Raw Grid array data. This array is directly loaded from ``.npy``
+        file.
+
         The dimension of array is 3D, shaping ``(L * M, 3, N)``.
         The coordinate is :math:`(R, Z, \\phi)`.
 
@@ -152,9 +149,8 @@ class EMC3Grid:
         return self._grid_data
 
     def generate_vertices(self) -> NDArray[np.float64]:
-        """Generate grid vertices array.
-        A `grid_data` array is converted to 2D array which represents a vertex in :math:`(X, Y, Z)`
-        coordinates.
+        """Generate grid vertices array. A `grid_data` array is converted to 2D
+        array which represents a vertex in :math:`(X, Y, Z)` coordinates.
 
         Returns
         -------
@@ -240,6 +236,7 @@ class EMC3Grid:
     def plot(
         self,
         fig: Figure | None = None,
+        ax: Axes | None = None,
         n_phi: int = 0,
         rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
     ):
@@ -247,9 +244,11 @@ class EMC3Grid:
 
         Parameters
         ----------
-        fig, optional
-            matplotlib figure object, by default ``plt.subplots(dpi=200)``
-        n_phi, optional
+        fig
+            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
+        ax
+            matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        n_phi
             index of toroidal grid, by default 0
         rz_range
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
@@ -264,9 +263,10 @@ class EMC3Grid:
             raise ValueError("Invalid rz_range")
 
         if not isinstance(fig, Figure):
-            fig, ax = plt.subplots(dpi=200)
-        else:
-            ax = fig.add_axes()
+            fig = plt.figure(dpi=200)
+
+        if not isinstance(ax, Axes):
+            ax = fig.add_subplot()
 
         ax.set_aspect("equal")
 
@@ -315,6 +315,7 @@ class EMC3Grid:
 
 def plot_grids_rz(
     fig: Figure | None = None,
+    ax: Axes | None = None,
     zone_type: int = 1,
     n_phi: int = 0,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
@@ -323,13 +324,15 @@ def plot_grids_rz(
 
     Parameters
     ----------
-    fig, optional
-        matplotlib figure object, by default ``plt.subplots(dpi=200)``
-    zone_type, optional
+    fig
+        matplotlib figure object, by default ``plt.figure(dpi=200)``
+    ax
+        matplotlib axes object, by default ``ax = fig.add_subplot()``.
+    zone_type
         type of zones collections, by default 1
         type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
         type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
-    n_phi, optional
+    n_phi
         index of toroidal grid, by default 0
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
@@ -344,9 +347,10 @@ def plot_grids_rz(
         raise ValueError("Invalid rz_range")
 
     if not isinstance(fig, Figure):
-        fig, ax = plt.subplots(dpi=200)
-    else:
-        ax = fig.add_axes()
+        fig = plt.figure(dpi=200)
+
+    if not isinstance(ax, Axes):
+        ax = fig.add_subplot()
 
     ax.set_aspect("equal")
 
@@ -398,6 +402,68 @@ def plot_grids_rz(
     ax.set_ylabel("Z[m]")
 
     return (fig, ax)
+
+
+def install_tetra_meshes(
+    zones: list[str] = ZONES[0] + ZONES[1],
+    tetra_mesh_path: Path | str = DEFAULT_TETRA_MESH_PATH,
+    update=True,
+    **keywards,
+) -> None:
+    """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` .rsm files
+    and install them into a repository.
+
+    Default repository is set to ``~/.cherab/lhd/tetra/``, and automatically created if it does not
+    exist. The file name is determined by each zone name like ``zone0.rsm``.
+
+    .. note::
+
+        It takes a lot of time to calculate all TetraMesh instance because each zone has numerous
+        number of grids.
+
+    Parameters
+    ----------
+    zones, optional
+        list of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
+    tetra_mesh_path, optional
+        path to the directory to save TetraMesh .rsm files, by default DEFAULT_TETRA_MESH_PATH
+    update, optional
+        whether or not to update existing TetraMesh .rsm file, by default True
+    """
+    if isinstance(tetra_mesh_path, (Path, str)):
+        tetra_mesh_path = Path(tetra_mesh_path)
+    else:
+        raise TypeError("tetra_mesh_path must be a string or pathlib.Path instance.")
+
+    # make directory
+    tetra_mesh_path.mkdir(parents=True, exist_ok=True)
+
+    # populate each zone TetraMesh instance
+    for zone in zones:
+
+        # path to the tetra .rsm file
+        tetra_path = tetra_mesh_path / f"{zone}.rsm"
+
+        with Spinner(text=f"Constructing {zone} tetra mesh...", timer=True) as sp:
+            # skip if it exists and update is False
+            if tetra_path.exists() and not update:
+                sp.ok("⏩")
+                continue
+
+            # Load EMC3 grid
+            emc = EMC3Grid(zone, **keywards)
+
+            # prepare vertices and tetrahedral indices
+            vertices = emc.generate_vertices()
+            tetrahedra = tetrahedralize(emc.generate_cell_indices())
+
+            # create TetraMesh instance (heavy calculation)
+            tetra = TetraMesh(vertices, tetrahedra, tolerant=False)
+
+            # save
+            tetra.save(tetra_path)
+
+            sp.ok()
 
 
 if __name__ == "__main__":

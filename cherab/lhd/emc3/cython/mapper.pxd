@@ -1,7 +1,8 @@
 from libc.limits cimport INT_MIN
 from numpy cimport ndarray
 from raysect.core.math.function.float cimport Function3D
-from cherab.lhd.emc3.cython.intfunction cimport IntegerFunction3D
+
+from .intfunction cimport IntegerFunction3D
 
 
 cdef class EMC3Mapper(Function3D):

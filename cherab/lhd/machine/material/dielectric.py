@@ -1,8 +1,7 @@
-"""
-Module defining dielectric material classes
-"""
-from os import path
+"""Module defining dielectric material classes."""
 import json
+from pathlib import Path
+
 from numpy import array
 from raysect.optical import InterpolatedSF
 from raysect.optical.material import Dielectric
@@ -12,8 +11,7 @@ __all__ = ["PCTFE"]
 
 class _DataLoader(Dielectric):
     def __init__(self, filename):
-
-        with open(path.join(path.dirname(__file__), "data", filename + ".json")) as f:
+        with open(Path(__file__).parent.resolve() / "data" / f"{filename}.json", "r") as f:
             data = json.load(f)
 
         wavelength = array(data["wavelength"])
