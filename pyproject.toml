@@ -5,7 +5,7 @@ requires = [
     "meson-python >= 0.10.0",
     "ninja >= 1.8.2",
     "cython==3.0.0a11",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/imaging-inherit",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
 build-backend = "mesonpy"
@@ -40,7 +40,7 @@ dependencies = [
     "plotly",
     "numpy-stl",
     "h5py",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/imaging-inherit",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
 dynamic = ["version"]

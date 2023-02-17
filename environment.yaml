@@ -8,11 +8,12 @@ channels:
 - default
 dependencies:
 - python >= 3.10
-- meson>=0.64.0
+- meson >= 0.64.0
 - meson-python >= 0.10.0
 - ninja >= 1.8.2
 # - cython == 3.0.0a11 installed by pip temporarily
 - numpy
+- scipy
 - matplotlib
 - plotly
 - numpy-stl
@@ -43,6 +44,6 @@ dependencies:
 - pip
 - pip:
   - cython == 3.0.0a11
-  - raysect @ git+https://github.com/munechika-koyo/source.git@feature/imaging-inherit
+  - raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh
   - cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat
   - cython-lint
