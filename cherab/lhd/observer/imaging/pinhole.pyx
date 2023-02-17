@@ -1,10 +1,9 @@
 """
 Module to define :obj:`.PinholeCamera` class
 """
-from raysect.optical.observer.pipeline import RGBPipeline2D
-
 from raysect.optical cimport AffineMatrix3D, Point3D, Ray, Vector3D, new_point3d, translate
-from raysect.optical.observer.imaging cimport CCDArray
+from raysect.optical.observer.imaging.ccd cimport CCDArray
+from raysect.optical.observer.pipeline cimport RGBPipeline2D
 
 __all__ = ["PinholeCamera"]
 
