@@ -9,7 +9,7 @@ from raysect.primitive import Cylinder
 from cherab.lhd.tools import Spinner
 
 from ..geometry import TomographyZone
-from .raytransfer import Discrete3DMeshRayTransferEmitter
+from .emitters import Discrete3DMeshRayTransferEmitter
 
 __all__ = ["load_rte_emc3"]
 
