@@ -30,6 +30,11 @@ RMAX = 5.5
 ZMIN = -1.6
 ZMAX = 1.6
 
+# Default Distribution Function
+DENSITY = Constant3D(1.0e19)  # [1/m^3]
+TEMPERATURE = Constant3D(1.0e2)  # [eV]
+BULK_V = ConstantVector3D(Vector3D(0, 0, 0))
+
 
 @Spinner(text="Loading Plasma Object...", timer=True)
 def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
@@ -178,9 +183,9 @@ class LHDSpecies:
         self,
         element: str,
         charge: int,
-        density: Function3D = Constant3D(1.0e19),
-        temperature: Function3D = Constant3D(1.0e2),
-        bulk_velocity: VectorFunction3D = ConstantVector3D(Vector3D(0, 0, 0)),
+        density: Function3D = DENSITY,
+        temperature: Function3D = TEMPERATURE,
+        bulk_velocity: VectorFunction3D = BULK_V,
     ) -> None:
         """add species to composition which is assumed to be Maxwellian
         distribution.
@@ -252,6 +257,7 @@ class LHDSpecies:
                     f"{species.element.symbol}{species.charge}+ temperature",
                 ],
                 ["density [1/m$^3$]", "temperature [eV]"],
+                strict=True,
             ):
                 fig, _ = show_profile_phi_degs(func, masked="wall", clabel=clabel)
                 fig.suptitle(title, y=0.92)

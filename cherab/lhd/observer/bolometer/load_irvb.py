@@ -52,8 +52,8 @@ def load_irvb(
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][flange]
-    except KeyError:
-        raise KeyError(f"spcified parameters: {port}-{flange} are not defined.")
+    except KeyError as err:
+        raise KeyError(f"spcified parameters: {port}-{flange} are not defined.") from err
 
     # Construct Foil and Slit from port local coordinates
     if raw_data.get("basis_x"):
@@ -167,8 +167,8 @@ def load_irvb_as_pinhole_camera(
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][flange]
-    except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.")
+    except KeyError as err:
+        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.") from err
 
     # transform slit and foil corners to Point3D data
     slit_corners = np.asarray_chkfinite(raw_data["slit"])
@@ -264,8 +264,8 @@ def calcam_virtual_calibration(
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][flange]
-    except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.")
+    except KeyError as err:
+        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.") from err
 
     # transform slit and foil corners to Point3D data
     slit_corners = np.asarray_chkfinite(raw_data["slit"])

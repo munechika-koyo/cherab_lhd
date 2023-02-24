@@ -200,7 +200,7 @@ def install_cell_index(
 
             if update is True:
                 del zone_group["index"]
-            dset = zone_group.create_dataset(name="index", data=index_array)
+            zone_group.create_dataset(name="index", data=index_array)
 
         # save number of cells data
         with path.open(mode="r") as file:
@@ -244,7 +244,7 @@ def install_data(
             try:
                 if source == "total":
                     data_group.create_dataset(
-                        name=f"radiation/{source}", data=getattr(parser, f"radiation")()
+                        name=f"radiation/{source}", data=parser.radiation()
                     )
                 else:
                     data_group.create_dataset(
@@ -274,9 +274,9 @@ def install_data(
         # temerature
         try:
             te, ti = parser.temperature_electron_ion()
-            data_group.create_dataset(name=f"temperature/electron", data=te)
-            data_group.create_dataset(name=f"temperature/ion", data=ti)
-            sp.write(f"✅ electron and ion temperature was installed.")
+            data_group.create_dataset(name="temperature/electron", data=te)
+            data_group.create_dataset(name="temperature/ion", data=ti)
+            sp.write("✅ electron and ion temperature was installed.")
         except Exception:
             sp.write("💥 Failed to install electron and ion temperature")
 

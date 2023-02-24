@@ -391,5 +391,5 @@ if __name__ == "__main__":
     test()
 
     with Spinner("Loading with context manager..."):
-        for i in range(10):
+        for _ in range(10):
             time.sleep(0.25)

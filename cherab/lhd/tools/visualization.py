@@ -25,11 +25,14 @@ RMAX = 5.5
 ZMIN = -1.6
 ZMAX = 1.6
 
+# Default phi values
+PHIS = np.linspace(0, 17.99, 6)
+
 
 def show_profile_phi_degs(
     func: Callable[[float, float, float], Real],
     fig: Figure | None = None,
-    phi_degs: Collection[float] = np.linspace(0, 17.99, 6),
+    phi_degs: Collection[float] = PHIS,
     nrows_ncols: tuple[int, int] | None = None,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
     resolution: float = 5.0e-3,
@@ -224,7 +227,7 @@ def show_profiles_rz_plane(
     phi_deg: float = 0.0,
     mask: str | None = "<=0",
     nrows_ncols: tuple[int, int] | None = None,
-    labels: list[str] = [],
+    labels: list[str] | None = None,
     vmax: float | None = None,
     vmin: float = 0.0,
     resolution: float = 5.0e-3,
@@ -256,7 +259,7 @@ def show_profiles_rz_plane(
         ``"<=0"`` - profile is masked bellow zero values.
         Otherwise (including None) profile is not masked, by default ``"<=0"``
     labels
-        each profile title is renderered in each axis.
+        each profile title is renderered in each axis, by default None.
     vmax
         maximum value of colorbar limits, by default None.
         If None, maximum value is chosen of all sampled values
@@ -374,7 +377,7 @@ def show_profiles_rz_plane(
         )
 
         # annotation of toroidal angle
-        if len(labels) > i:
+        if isinstance(labels, Collection) and len(labels) >= len(profiles):
             grids[i].text(
                 rmin + (rmax - rmin) * 0.02,
                 zmin - (zmax - zmin) * 0.02,
@@ -472,8 +475,8 @@ def _sampler(
         mask_arr = np.logical_not(mask_arr)
 
     elif mask == "grid":
-        if hasattr(func, "inside_grids"):
-            _, _, mask_arr = sample3d_rz(getattr(func, "inside_grids"), r_range, z_range, phi_deg)
+        if inside_grids := getattr(func, "inside_grids", None):
+            _, _, mask_arr = sample3d_rz(inside_grids, r_range, z_range, phi_deg)
             mask_arr = np.logical_not(mask_arr)
         else:
             mask_arr = sampled < 0
@@ -485,7 +488,7 @@ def _sampler(
         mask_arr = sampled <= 0
 
     else:
-        mask_arr = np.zeros_like(sampled, dtype=np.bool8)
+        mask_arr = np.zeros_like(sampled, dtype=bool)
 
     # generate masked sampled array
     profile: np.ndarray = np.transpose(np.ma.masked_array(sampled, mask=mask_arr))
@@ -517,17 +520,17 @@ def set_axis_properties(axes: Axes) -> Axes:
 
 
 if __name__ == "__main__":
-    from cherab.lhd.emc3 import EMC3Mapper, PhysIndex
-    from cherab.lhd.emc3.dataio import DataLoader
+    # from cherab.lhd.emc3 import EMC3Mapper, PhysIndex
+    # from cherab.lhd.emc3.dataio import DataLoader
 
-    print("Instantiating PhysIndex...")
-    index_func = PhysIndex()
-    print("Loading radiation data...")
-    loader = DataLoader()
-    radiation = EMC3Mapper(index_func, loader.radiation())
-    print("Plotting radiation profile...")
-    fig, grids = show_profiles_rz_plane(
-        [radiation], mask=None, phi_deg=0.0, clabel=r"$P_{rad}$ [W/m$^3$]"
-    )
-    fig.show()
+    # print("Instantiating PhysIndex...")
+    # index_func = PhysIndex()
+    # print("Loading radiation data...")
+    # loader = DataLoader()
+    # radiation = EMC3Mapper(index_func, loader.radiation())
+    # print("Plotting radiation profile...")
+    # fig, grids = show_profiles_rz_plane(
+    #     [radiation], mask=None, phi_deg=0.0, clabel=r"$P_{rad}$ [W/m$^3$]"
+    # )
+    # fig.show()
     pass

@@ -7,8 +7,6 @@ from importlib import resources
 from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
 from raysect.core import World
 from raysect.core.math import Point3D
-from raysect.optical.material import AbsorbingSurface
-from raysect.primitive import Box, Subtract
 
 from .load_irvb import _centre_basis_and_dimensions
 
@@ -44,8 +42,8 @@ def load_resistive(
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][model_variant]
-    except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
+    except KeyError as err:
+        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.") from err
 
     # ----------------------------------------------------------------------- #
     #  Build Bolometer Camera

@@ -201,7 +201,7 @@ class DataParser:
         densities = re.split(self.pattern_index, densities)
 
         # mapping density values into each state lavel
-        for ion, density in zip(state_list, densities[1:]):
+        for ion, density in zip(state_list, densities[1:], strict=True):
             density_ions[ion] = (
                 np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64)
                 * 1.0e6
@@ -228,7 +228,7 @@ class DataParser:
         filenames = ["DENSITY_A", "DENSITY_M", "IMPURITY_NEUTRAL_2", "IMPURITY_NEUTRAL_3"]
         density_neutral = {}
 
-        for filename, atom in zip(filenames, atoms):
+        for filename, atom in zip(filenames, atoms, strict=True):
 
             with open(self.directory_path / filename, "r") as f:
                 density = f.read()
@@ -293,7 +293,7 @@ class DataParser:
         filenames = ["TEMPERATURE_A", "TEMPERATURE_M"]
         temperature_neutral = {}
 
-        for filename, atom in zip(filenames, atoms):
+        for filename, atom in zip(filenames, atoms, strict=True):
 
             with open(self.directory_path / filename, "r") as f:
                 temperature = f.read()
