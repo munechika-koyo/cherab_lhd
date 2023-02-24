@@ -16,7 +16,7 @@ except ImportError:
 BASE_DIR = Path(__file__).parent.absolute()
 BUILD_DIR = BASE_DIR / "build"
 SRC_PATH = BASE_DIR / "cherab"
-DOC_SRC = BASE_DIR / "docs"
+DOC_ROOT = BASE_DIR / "docs"
 ENVS = dict(os.environ)
 N_CPUs = os.cpu_count()
 
@@ -157,8 +157,8 @@ def install_emc3_data(data_dir: str, grid_filename: str, cell_filename: str):
             install_data,
             install_grids,
         )
-    except Exception:
-        raise ImportError("cherab.lhd must be installed in advance.")
+    except Exception as err:
+        raise ImportError("cherab.lhd must be installed in advance.") from err
 
     # install grids
     install_grids(Path(data_dir) / grid_filename)
@@ -185,19 +185,20 @@ def doc(parallel: int, targets: str):
     # move to docs/ and run command
     os.chdir("docs")
 
-    builddir = DOC_SRC / "build"
+    builddir = DOC_ROOT / "build"
+    srcdir = DOC_ROOT / "source"
     SPHINXBUILD = "sphinx-build"
     if targets == "html":
-        cmd = [SPHINXBUILD, "-b", targets, f"-j{parallel}", str(DOC_SRC), str(builddir / "html")]
+        cmd = [SPHINXBUILD, "-b", targets, f"-j{parallel}", str(srcdir), str(builddir / "html")]
 
     elif targets == "clean":
-        cmd = ["rm", "-rf", str(builddir), "&&", "rm", "-rf", str(DOC_SRC / "_api")]
+        cmd = ["rm", "-rf", str(builddir), "&&", "rm", "-rf", str(srcdir / "_api")]
 
     elif targets == "help":
-        cmd = [SPHINXBUILD, "-M", targets, str(DOC_SRC), str(builddir)]
+        cmd = [SPHINXBUILD, "-M", targets, str(srcdir), str(builddir)]
 
     else:
-        cmd = [SPHINXBUILD, "-M", targets, f"-j{parallel}", str(DOC_SRC), str(builddir)]
+        cmd = [SPHINXBUILD, "-M", targets, f"-j{parallel}", str(srcdir), str(builddir)]
 
     click.echo(" ".join([str(p) for p in cmd]))
     ret = subprocess.call(cmd)
@@ -214,27 +215,17 @@ def doc(parallel: int, targets: str):
 
 @cli.command()
 def format():
-    """:art: Run black & isort formatting
+    """:art: Run ruff linting & formatting
     The default options are defined in pyproject.toml
     """
-    cmd = ["black", str(SRC_PATH)]
+    cmd = ["ruff", "check", "--fix", str(SRC_PATH)]
     click.echo(" ".join([str(p) for p in cmd]))
     ret = subprocess.call(cmd)
 
     if ret == 0:
-        print("black formated")
+        print("ruff formated")
     else:
-        print("black formatting errors!")
-        sys.exit(1)
-
-    cmd = ["isort", str(SRC_PATH)]
-    click.echo(" ".join([str(p) for p in cmd]))
-    ret = subprocess.call(cmd)
-
-    if ret == 0:
-        print("isort formated")
-    else:
-        print("isort formatting errors!")
+        print("ruff formatting errors!")
         sys.exit(1)
 
 
