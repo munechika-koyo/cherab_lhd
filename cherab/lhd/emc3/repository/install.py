@@ -31,9 +31,9 @@ def install_grids(
     ----------
     path
         path to the original text file written about grid coordinates at each zone.
-    hdf5_path, optional
+    hdf5_path
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    update, optional
+    update
         whether or not to update/override dataset, by default False
     """
     # validate paths
@@ -142,11 +142,11 @@ def install_cell_index(
     ----------
     path
         path to the raw text file: e.g. ``CELL_GEO``.
-    hdf5_path, optional
+    hdf5_path
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name, optional
+    grid_group_name
         name of grid group in the HDF5 file, by default ``grid-360``.
-    update, optional
+    update
         whether or not to update/override dataset, by default False
     """
     # validate parameters
@@ -223,9 +223,9 @@ def install_data(
     ----------
     directory_path
         path to the directory storing EMC3-calculated data.
-    hdf5_path, optional
+    hdf5_path
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name, optional
+    grid_group_name
         name of grid group in the HDF5 file, by default ``grid-360``.
     """
     # populate DataParser instance

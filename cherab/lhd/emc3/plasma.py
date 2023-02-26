@@ -38,9 +38,9 @@ BULK_V = ConstantVector3D(Vector3D(0, 0, 0))
 
 @Spinner(text="Loading Plasma Object...", timer=True)
 def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
-    """Helper function of generating LHD plasma As emissions, H
-    :math:`\\alpha`, H :math:`\\beta`, H :math:`\\gamma`, H :math:`\\delta` are
-    applied.
+    """Helper function of generating LHD plasma As emissions,
+    :math:`\\mathrm{H}_\\alpha, \\mathrm{H}_\\beta, \\mathrm{H}_\\gamma, \\mathrm{H}_\\delta`
+    are applied.
 
     Parameters
     ----------

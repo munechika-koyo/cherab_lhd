@@ -82,7 +82,7 @@ class Spinner:
 
     Here is the result when the above script is excuted.
 
-    .. image:: ../../_static/images/spinner_example.gif
+    .. image:: ../_static/images/spinner_example.gif
     """
 
     def __init__(

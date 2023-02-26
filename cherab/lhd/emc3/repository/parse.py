@@ -22,9 +22,9 @@ class DataParser:
     ----------
     directory_path
         path to the directory storing EMC3-calculated data.
-    hdf5_path, optional
+    hdf5_path
         path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name, optional
+    grid_group_name
         name of grid group in the HDF5 file, by default ``grid-360``.
 
     Example

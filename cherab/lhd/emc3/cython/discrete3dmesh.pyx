@@ -19,8 +19,8 @@ PHI_72 = 72.0 * M_PI / 180.0
 
 
 cdef class Discrete3DMesh(IntegerFunction3D):
-    """
-    Discrete interpolator for indices on a 3-D EMC3-EIRENE cell.
+    """Discrete interpolator for indices on a 3-D EMC3-EIRENE cell.
+
     This class offers the callable taking :math:`(X, Y ,Z)` positional arguments and returning
     the corresponding cell index.
 
@@ -31,15 +31,15 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     The region between [0, 72] degree has periodicity in LHD's equilibrium configuration.
     Moreover, there are 4 regions: [0, 18], [18, 36], [36, 54], [54, 72] degree in toroidal.
 
-    Toroidal angle :math:`\\phi` is converted like :math:`\\phi_r \\equive \\phi % 72`.
+    Toroidal angle :math:`\\phi` is converted like :math:`\\phi_r \\equiv \\phi \\% 72^\\circ`.
     The returned cell index depends on which region includes the point.
     The relationship between cell indices and :math:`(R, Z, \\phi_r)` in each toroidal regions
     is represented as follows:
 
-    * [0, 18] -  `indices1` at :math:`(R, Z, \\phi_r)`
-    * [18, 36] - `indices2` at :math:`(R, -Z, 36 - \\phi_r)`
-    * [36, 54] - `indices3` at :math:`(R, Z, \\phi_r - 36)`
-    * [54, 72] - `indices4` at :math:`(R, -Z, 72 - \\phi_r)`
+    * :math:`\\phi_r \\in [0, 18]`:  `indices1` at :math:`(R, Z, \\phi_r)`
+    * :math:`\\phi_r \\in (18, 36]`: `indices2` at :math:`(R, -Z, 36^\\circ - \\phi_r)`
+    * :math:`\\phi_r \\in (36, 54]`: `indices3` at :math:`(R, Z, \\phi_r - 36^\\circ)`
+    * :math:`\\phi_r \\in (54, 72]`: `indices4` at :math:`(R, -Z, 72^\\circ - \\phi_r)`
 
     `indices1` & `indices2` must be specified as 1-D numpy array, the others are optional.
     If they are None, `indices3` & `indices4` are referred to `indices1` & `indices2`,
@@ -50,16 +50,20 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     To optimise the lookup of tetrahedra, acceleration structure (a KD-Tree) is used from the
     specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`.
 
-    :param :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` tetra:
+    Parameters
+    ----------
+    tetra : :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
         :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instances.
-    :param ndarray[uint32, ndim=1] indices1: 1-D EMC3-EIRENE's cell indices array
-        which is used in [0, 18] degree in toroidal.
-    :param ndarray[uint32, ndim=1] indices2: 1-D EMC3-EIRENE's cell indices array
-        which is used in [18, 36] degree in toroidal.
-    :param ndarray[uint32, ndim=1] indices3: 1-D EMC3-EIRENE's cell indices array
-        which is used in [36, 54] degree in toroidal, if None, this is referred to `indices1`
-    :param ndarray[uint32, ndim=1] indices4: 1-D EMC3-EIRENE's cell indices array
-        which is used in [54, 72] degree in toroidal, if None, this is referred to `indices2`
+    indices1 : ndarray[uint32, ndim=1]
+        1-D EMC3-EIRENE's cell indices array which is used in [0, 18] degree in toroidal.
+    indices2 : ndarray[uint32, ndim=1]
+        1-D EMC3-EIRENE's cell indices array which is used in (18, 36] degree in toroidal.
+    indices3 : ndarray[uint32, ndim=1]
+        1-D EMC3-EIRENE's cell indices array which is used in (36, 54] degree in toroidal,
+        if None, this is referred to `indices1`
+    indices4 : ndarray[uint32, ndim=1]
+        1-D EMC3-EIRENE's cell indices array which is used in (54, 72] degree in toroidal,
+        if None, this is referred to `indices2`
     """
     def __init__(
         self,
@@ -104,6 +108,12 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
     def __reduce__(self):
         return self.__new__, (self.__class__, ), self.__getstate__()
+
+    @property
+    def tetra_mesh(self):
+        """:obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`: Tetrahedral mesh instance
+        """
+        return self._tetra_mesh
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

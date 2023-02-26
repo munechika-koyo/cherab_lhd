@@ -45,7 +45,7 @@ cdef class _IndexBase(IntegerFunction3D):
     tetra_path : str
         path to the directory containing TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
     hdf5_path : str
-        path to the data repository formated as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``
+        path to the data repository formatted as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``
     populate : bool
         whether or not to populate instances of Discrete3DMesh, by default True
     """

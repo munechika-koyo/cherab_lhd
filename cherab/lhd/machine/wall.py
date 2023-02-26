@@ -185,7 +185,7 @@ def plot_lhd_wall_outline(phi: float) -> None:
         >>> from cherab.lhd.machine import plot_lhd_wall_outline
         >>> plot_lhd_wall_outline(15.0)
 
-    .. image:: ../../_static/images/plotting/plot_lhd_wall_outline.png
+    .. image:: ../_static/images/plotting/plot_lhd_wall_outline.png
     """
     rz = wall_outline(phi, basis="rz")
     plt.plot(rz[:, 0], rz[:, 1])

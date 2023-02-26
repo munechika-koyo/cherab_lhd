@@ -14,7 +14,7 @@ from ..tools.visualization import set_axis_properties
 from .cython import tetrahedralize
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
-__all__ = ["EMC3Grid"]
+__all__ = ["EMC3Grid", "plot_grids_rz", "install_tetra_meshes"]
 
 ZONES = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
@@ -35,10 +35,10 @@ class EMC3Grid:
     Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
     instance is also implemented.
 
-    Total number of grids coordinates is L x M x N:<br>
-    L: Radial grid resolution<br>
-    M: Poloidal grid resolution<br>
-    N: Toroidal grid resolution
+    | Total number of grids coordinates is L x M x N, each letter of which means:
+    | L: Radial grid resolution
+    | M: Poloidal grid resolution
+    | N: Toroidal grid resolution.
 
 
     Parameters
@@ -57,6 +57,7 @@ class EMC3Grid:
 
         >>> grid = EMC3Grid("zone0")
         >>> grid
+        EMC3-EIRENE Grid instance (zone: zone0, L: 82, M: 601, N: 37)
     """
 
     def __init__(
@@ -257,6 +258,14 @@ class EMC3Grid:
         Returns
         -------
             tuple of matplotlib figure and axes object
+
+
+        .. prompt:: python >>> auto
+
+            >>> grid = EMC3Grid("zone0")
+            >>> grid.plot()
+
+        .. image:: ../_static/images/plotting/grid_zone0.png
         """
         rmin, rmax, zmin, zmax = rz_range
         if rmin >= rmax or zmin >= zmax:
@@ -330,8 +339,9 @@ def plot_grids_rz(
         matplotlib axes object, by default ``ax = fig.add_subplot()``.
     zone_type
         type of zones collections, by default 1
-        type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
-        type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
+
+        | type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
+        | type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
     n_phi
         index of toroidal grid, by default 0
     rz_range
@@ -341,6 +351,14 @@ def plot_grids_rz(
     Returns
     -------
         tuple of matplotlib figure and axes objects
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> plot_grids_rz(zone_type=1, n_phi=10)
+
+    .. image:: ../_static/images/plotting/plot_grids_rz.png
     """
     rmin, rmax, zmin, zmax = rz_range
     if rmin >= rmax or zmin >= zmax:
@@ -408,7 +426,7 @@ def install_tetra_meshes(
     zones: list[str] = ZONES[0] + ZONES[1],
     tetra_mesh_path: Path | str = DEFAULT_TETRA_MESH_PATH,
     update=True,
-    **keywards,
+    **kwargs,
 ) -> None:
     """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` .rsm files
     and install them into a repository.
@@ -423,12 +441,14 @@ def install_tetra_meshes(
 
     Parameters
     ----------
-    zones, optional
+    zones
         list of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
-    tetra_mesh_path, optional
-        path to the directory to save TetraMesh .rsm files, by default DEFAULT_TETRA_MESH_PATH
-    update, optional
+    tetra_mesh_path
+        path to the directory to save TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
+    update
         whether or not to update existing TetraMesh .rsm file, by default True
+    **kwargs : :obj:`.EMC3Grid` properties, optional
+        *kwargs* are used to specify :obj:`.EMC3Grid` properties except for ``zone`` argument.
     """
     if isinstance(tetra_mesh_path, (Path, str)):
         tetra_mesh_path = Path(tetra_mesh_path)
@@ -451,7 +471,7 @@ def install_tetra_meshes(
                 continue
 
             # Load EMC3 grid
-            emc = EMC3Grid(zone, **keywards)
+            emc = EMC3Grid(zone, **kwargs)
 
             # prepare vertices and tetrahedral indices
             vertices = emc.generate_vertices()
