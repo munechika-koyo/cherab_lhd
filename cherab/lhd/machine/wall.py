@@ -19,6 +19,7 @@ DIR_WALL = Path(__file__).parent.resolve() / "geometry" / "data" / "wall_outline
 
 def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     """Return toroidal angle & z coordinate under periodic boundary condition.
+
     The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree. For
     example, the poloidal grid plane in 27 degree corresponds to fliped one in
     9 degree.
@@ -49,8 +50,8 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
 
 
 def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
-    """
-    Generate adjacent toroidal angles.
+    """Generate adjacent toroidal angles.
+
     if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
     then (left, right) adjacent toroidal angle are (0.5, 1.0), each index of which is (1, 2), respectively.
 
@@ -86,6 +87,7 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
 def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     """
     :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
+
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
     then one point of wall outline :math:`xyz` is interpolated linearly according to the following equation:
 
