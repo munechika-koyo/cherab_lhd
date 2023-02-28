@@ -8,9 +8,9 @@ from pathlib import Path
 import rich_click as click
 
 try:
-    import tomlib
+    import tomllib
 except ImportError:
-    import tomli as tomlib
+    import tomli as tomllib
 
 
 BASE_DIR = Path(__file__).parent.absolute()
@@ -130,7 +130,7 @@ def install_deps():
         raise FileNotFoundError("pyproject.toml must be placed at the root directory.")
 
     with open(pyproject, "rb") as file:
-        conf = tomlib.load(file)
+        conf = tomllib.load(file)
     requires = conf["build-system"].get("requires")
     subprocess.run([sys.executable, "-m", "pip", "install"] + requires)
 
@@ -258,7 +258,7 @@ def config(tool: str):
         raise FileNotFoundError("pyproject.toml must be placed at the root directory.")
 
     with open(pyproject, "rb") as file:
-        conf = tomlib.load(file)
+        conf = tomllib.load(file)
 
     if not conf["tool"].get(tool):
         raise ValueError(f"{tool} config data does not exist.")
