@@ -310,7 +310,7 @@ class EMC3Grid:
         ax.text(
             rmin + (rmax - rmin) * 0.02,
             zmax - (zmax - zmin) * 0.02,
-            f"$\\phi=${self.grid_data[0, 2, n_phi]:.1f}$^\\circ$",
+            f"$\\phi=${self.grid_data[0, 2, n_phi]:.2f}$^\\circ$",
             fontsize=10,
             va="top",
             bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
@@ -410,7 +410,7 @@ def plot_grids_rz(
     ax.text(
         rmin + (rmax - rmin) * 0.02,
         zmax - (zmax - zmin) * 0.02,
-        f"$\\phi=${emc.grid_data[0, 2, n_phi]:.1f}$^\\circ$",
+        f"$\\phi=${emc.grid_data[0, 2, n_phi]:.2f}$^\\circ$",
         fontsize=10,
         va="top",
         bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
