@@ -189,13 +189,13 @@ cdef class _IndexBase(IntegerFunction3D):
 cdef class CellIndex(_IndexBase):
     """EMC3-EIRENE cell index function defined in zone0-4 & zone11-15.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding cell index
     when :math:`(X, Y, Z)` arguments are given.
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, *args, **keywards):
@@ -275,14 +275,14 @@ cdef class CellIndex(_IndexBase):
 cdef class PhysIndex(_IndexBase):
     """EMC3-EIRENE-defined Physical Cell Index function.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding physical cell index
     when :math:`(X, Y, Z)` arguments are given.
-    Physical cell indices must be stored in HDF5 dataset file which is specified by `hdf5_path'.
+    Physical cell indices must be stored in HDF5 dataset file which is specified by `hdf5_path`.
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, **keywards):
@@ -314,14 +314,14 @@ cdef class PhysIndex(_IndexBase):
 cdef class TomographyZone(_IndexBase):
     """EMC3-EIRENE-based Tmography Zone function.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding tomography zone index
     when :math:`(X, Y, Z)` arguments are given.
     Total zone size is 252 = 14 (poloidal) x 18 (0-18 deg in toroidal).
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, **keywards):
