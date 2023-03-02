@@ -1,14 +1,15 @@
 from libc.limits cimport INT_MIN
-from numpy cimport ndarray
+from numpy cimport ndarray, import_array
 from raysect.core.math.function.float cimport Function3D
 
 from .intfunction cimport IntegerFunction3D
+
+import_array()
 
 
 cdef class EMC3Mapper(Function3D):
 
     cdef:
-        ndarray _data
         double[::1] _data_mv
         double _default_value
         IntegerFunction3D _index_func

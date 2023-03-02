@@ -2,7 +2,8 @@
 Module to offer mapping classes
 """
 cimport cython
-from numpy import array, float64, int32
+from .intfunction cimport is_callable
+from numpy import array, int32
 
 __all__ = ["EMC3Mapper", "IndexMapper"]
 
@@ -22,17 +23,16 @@ cdef class EMC3Mapper(Function3D):
     def __init__(self, object index_func not None, object data not None, double default_value=0.0):
 
         # use numpy arrays to store data internally
-        data = array(data, dtype=float64)
+        data = array(data, dtype=float)
 
         # validate arguments
         if data.ndim != 1:
             raise ValueError("data array must be 1D.")
 
-        if not callable(index_func):
+        if not is_callable(index_func):
             raise TypeError("This function is not callable.")
 
         # populate internal attributes
-        self._data = data
         self._data_mv = data
         self._index_func = index_func
         self._default_value = default_value
@@ -45,9 +45,9 @@ cdef class EMC3Mapper(Function3D):
         cdef:
             int index
 
-        index = <int>self._index_func(x, y, z)
+        index = self._index_func(x, y, z)
 
-        if index < 0 or self._data.size - 1 < index:
+        if index < 0 or self._data_mv.size - 1 < index:
             return self._default_value
         else:
             return self._data_mv[index]
