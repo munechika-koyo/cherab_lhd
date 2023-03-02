@@ -3,10 +3,6 @@ object."""
 from __future__ import annotations
 
 import h5py
-from cherab.core import Line, Maxwellian, Plasma, Species, elements
-from cherab.core.math import Constant3D, ConstantVector3D
-from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
-from cherab.openadas import OpenADAS
 from matplotlib import pyplot as plt
 from raysect.core import Node, Vector3D, translate
 from raysect.core.math.function.float.function3d.base import Function3D
@@ -15,9 +11,14 @@ from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
 from raysect.primitive import Cylinder, Subtract
 from scipy.constants import atomic_mass, electron_mass
 
+from cherab.core import Line, Maxwellian, Plasma, Species, elements
+from cherab.core.math import Constant3D, ConstantVector3D
+from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
+from cherab.openadas import OpenADAS
+
 from ..tools import Spinner
 from ..tools.visualization import show_profile_phi_degs
-from .cython import EMC3Mapper
+from .cython import Mapper
 from .geometry import PhysIndex
 from .repository.utility import DEFAULT_HDF5_PATH
 
@@ -134,8 +135,8 @@ class LHDSpecies:
 
             # set electron distribution assuming Maxwellian
             self.electron_distribution = Maxwellian(
-                EMC3Mapper(func, data_group["density/electron"][:]),
-                EMC3Mapper(func, data_group["temperature/electron"][:]),
+                Mapper(func, data_group["density/electron"][:]),
+                Mapper(func, data_group["temperature/electron"][:]),
                 bulk_velocity,
                 electron_mass,
             )
@@ -148,23 +149,23 @@ class LHDSpecies:
             self.set_species(
                 "hydrogen",
                 0,
-                density=EMC3Mapper(func, data_group["density/H"]),
-                temperature=EMC3Mapper(func, data_group["temperature/H"]),
+                density=Mapper(func, data_group["density/H"]),
+                temperature=Mapper(func, data_group["temperature/H"]),
             )
             # H+
             self.set_species(
                 "hydrogen",
                 1,
-                density=EMC3Mapper(func, data_group["density/H+"]),
-                temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+                density=Mapper(func, data_group["density/H+"]),
+                temperature=Mapper(func, data_group["temperature/ion"]),
             )
             # C1+ - C6+
             for i in range(1, 7):
                 self.set_species(
                     "carbon",
                     i,
-                    density=EMC3Mapper(func, data_group[f"density/C{i}+"]),
-                    temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+                    density=Mapper(func, data_group[f"density/C{i}+"]),
+                    temperature=Mapper(func, data_group["temperature/ion"]),
                 )
 
             # Ne1+ - Ne10+
@@ -172,8 +173,8 @@ class LHDSpecies:
                 self.set_species(
                     "neon",
                     i,
-                    density=EMC3Mapper(func, data_group[f"density/Ne{i}+"]),
-                    temperature=EMC3Mapper(func, data_group["temperature/ion"]),
+                    density=Mapper(func, data_group[f"density/Ne{i}+"]),
+                    temperature=Mapper(func, data_group["temperature/ion"]),
                 )
 
     def __repr__(self):
