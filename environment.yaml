@@ -19,10 +19,12 @@ dependencies:
 - h5py
   # for developper tools
 - ipython
+- black
 - ruff
 - mypy
 - rich-click
 - pre-commit
+- pycodestyle  # dependency for cython-lint
   # for documentation
 - docutils >= 0.19, < 0.20
 - ipykernel
