@@ -1,5 +1,4 @@
-"""
-Module to offer mapping classes
+"""Module to offer mapping classes
 """
 cimport cython
 from .intfunction cimport is_callable
@@ -9,8 +8,8 @@ __all__ = ["EMC3Mapper", "IndexMapper"]
 
 
 cdef class EMC3Mapper(Function3D):
-    """
-    Mapping EMC3-EIRENE data to tetrahedra meshes.
+    """Mapping EMC3-EIRENE data to tetrahedra meshes.
+
     Several EMC3's data are stored in some EMC3's geometric cells.
     This instance is callable function returning physical data corresponding in
     3D space where EMC3's index function returns a physical index
@@ -56,16 +55,14 @@ cdef class EMC3Mapper(Function3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef int inside_grids(self, double x, double y, double z):
-        """
-        mask function returning True if Point (x, y, z) in any grids,
-        otherwise False.
+        """mask function returning True if Point (x, y, z) in any grids, otherwise False.
         """
         return self._index_func(x, y, z) > -1
 
 
 cdef class IndexMapper(IntegerFunction3D):
-    """
-    Mapping new EMC3-EIRENE indices to original cell indices.
+    """Mapping new EMC3-EIRENE indices to original cell indices.
+
     This instance is callable function returning an integer index value.
 
     :param IntegerFunction3D index_func: EMC3's index_funcion returning an index value.
@@ -86,7 +83,6 @@ cdef class IndexMapper(IntegerFunction3D):
             raise TypeError("This function is not callable.")
 
         # populate internal attributes
-        self._indices = indices
         self._indices_mv = indices
         self._index_func = index_func
         self._default_value = default_value
@@ -99,9 +95,9 @@ cdef class IndexMapper(IntegerFunction3D):
         cdef:
             int index
 
-        index = <int>self._index_func(x, y, z)
+        index = self._index_func(x, y, z)
 
-        if index < 0 or self._indices.size - 1 < index:
+        if index < 0 or self._indices_mv.size - 1 < index:
             return self._default_value
         else:
             return self._indices_mv[index]
@@ -110,8 +106,5 @@ cdef class IndexMapper(IntegerFunction3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef int inside_grids(self, double x, double y, double z):
-        """
-        mask function returning True if Point (x, y, z) in any grids,
-        otherwise False.
-        """
+        """mask function returning True if Point (x, y, z) in any grids, otherwise False."""
         return self._index_func(x, y, z) > -1

@@ -23,7 +23,6 @@ cdef class EMC3Mapper(Function3D):
 cdef class IndexMapper(IntegerFunction3D):
 
     cdef:
-        ndarray _indices
         int[::1] _indices_mv
         int _default_value
         IntegerFunction3D _index_func
