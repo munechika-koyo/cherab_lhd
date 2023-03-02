@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from cherab.tools.observers import BolometerFoil, BolometerSlit
 from numpy import ndarray
 from raysect.core import Node, Primitive
 from raysect.core.math import AffineMatrix3D, Point3D, Vector3D
@@ -12,6 +11,8 @@ from raysect.optical import Ray
 from raysect.optical.material import AbsorbingSurface, NullMaterial
 from raysect.optical.observer import TargettedCCDArray
 from raysect.primitive import Box
+
+from cherab.tools.observers import BolometerFoil, BolometerSlit
 
 try:
     import plotly.graph_objects as go

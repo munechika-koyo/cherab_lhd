@@ -6,12 +6,13 @@ from multiprocessing import Manager, Process, Queue, cpu_count
 from numbers import Real
 
 import numpy as np
-from cherab.core.math import PolygonMask2D, sample2d
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator, MultipleLocator, ScalarFormatter
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
+
+from cherab.core.math import PolygonMask2D, sample2d
 
 from ..machine import wall_outline
 from .samplers import sample3d_rz
@@ -127,7 +128,6 @@ def show_profile_phi_degs(
 
     # === parallelized sampling ====================================================================
     manager = Manager()
-    profiles: dict
     profiles = manager.dict()
     job_queue = manager.Queue()
 
@@ -153,8 +153,8 @@ def show_profile_phi_degs(
     # ==============================================================================================
 
     # maximum value of all profiles
-    temp_max = np.max([profile.max() for profile in profiles.values()])
-    min_value = np.min([profile.min() for profile in profiles.values()])
+    temp_max = np.amax([profile.max() for profile in profiles.values()])
+    min_value = np.amin([profile.min() for profile in profiles.values()])
 
     if vmax is None:
         vmax = temp_max
@@ -315,7 +315,6 @@ def show_profiles_rz_plane(
 
     # === parallelized sampling ====================================================================
     manager = Manager()
-    profiles: dict
     profiles = manager.dict()
     job_queue = manager.Queue()
 
@@ -520,17 +519,4 @@ def set_axis_properties(axes: Axes) -> Axes:
 
 
 if __name__ == "__main__":
-    # from cherab.lhd.emc3 import EMC3Mapper, PhysIndex
-    # from cherab.lhd.emc3.dataio import DataLoader
-
-    # print("Instantiating PhysIndex...")
-    # index_func = PhysIndex()
-    # print("Loading radiation data...")
-    # loader = DataLoader()
-    # radiation = EMC3Mapper(index_func, loader.radiation())
-    # print("Plotting radiation profile...")
-    # fig, grids = show_profiles_rz_plane(
-    #     [radiation], mask=None, phi_deg=0.0, clabel=r"$P_{rad}$ [W/m$^3$]"
-    # )
-    # fig.show()
     pass

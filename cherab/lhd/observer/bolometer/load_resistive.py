@@ -4,9 +4,10 @@ from __future__ import annotations
 import json
 from importlib import resources
 
-from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
 from raysect.core import World
 from raysect.core.math import Point3D
+
+from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
 
 from .load_irvb import _centre_basis_and_dimensions
 

@@ -5,11 +5,12 @@ import json
 from importlib import resources
 
 import numpy as np
-from cherab.tools.observers import BolometerSlit
 from raysect.core.math import Point3D, Vector3D, rotate_basis, rotate_vector, rotate_z, translate
 from raysect.optical.material import AbsorbingSurface
 from raysect.optical.observer import TargettedCCDArray
 from raysect.primitive import Box, Subtract
+
+from cherab.tools.observers import BolometerSlit
 
 from ..imaging.pinhole import PinholeCamera
 from .irvb import IRVBCamera
