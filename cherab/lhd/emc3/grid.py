@@ -1,5 +1,6 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
 from pathlib import Path
+from typing import Any
 
 import h5py
 import numpy as np
@@ -25,6 +26,9 @@ RMIN = 2.0  # [m]
 RMAX = 5.5
 ZMIN = -1.6
 ZMAX = 1.6
+
+# Plotting config.
+LINE_STYLE = {"color": "#7d7d7d", "linewidth": 0.5}
 
 
 class EMC3Grid:
@@ -121,11 +125,10 @@ class EMC3Grid:
 
     @property
     def grid_data(self) -> NDArray[np.float64]:
-        """Raw Grid array data. This array is directly loaded from ``.npy``
-        file.
+        """Raw Grid coordinates data array.
 
         The dimension of array is 3D, shaping ``(L * M, 3, N)``.
-        The coordinate is :math:`(R, Z, \\phi)`.
+        The coordinate is :math:`(R, Z, \\phi)`. :math:`\\phi` is in [degree].
 
         .. prompt:: python >>> auto
 
@@ -148,6 +151,35 @@ class EMC3Grid:
                       8.500000e+00,  8.750000e+00,  9.000000e+00]]])
         """
         return self._grid_data
+
+    def index(self, l: int, m: int, n: int) -> NDArray[np.float64]:
+        """Return grid coordinates indexed by (l, m, n).
+
+        Parameters
+        ----------
+        l
+            index of radial direction
+        m
+            index of poloidal direction
+        n
+            index of toroidal direction
+
+        Returns
+        -------
+        :obj:`~numpy.ndarray`
+            grid coordinates (3, ) array in :math:`(R, Z, \\phi)`.
+        """
+        L = self.grid_config["L"]
+        M = self.grid_config["M"]
+        N = self.grid_config["N"]
+
+        if not (0 <= l < L and 0 <= m < M and 0 <= n < N):
+            raise ValueError(
+                f"Invalid grid index (l, m, n) = ({l}, {m}, {n}). "
+                f"Each index must be in [0, {L}), [0, {M}), [0, {N})."
+            )
+
+        return self.grid_data[L * m + l, :, n]
 
     def generate_vertices(self) -> NDArray[np.float64]:
         """Generate grid vertices array. A `grid_data` array is converted to 2D
@@ -240,6 +272,7 @@ class EMC3Grid:
         ax: Axes | None = None,
         n_phi: int = 0,
         rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
+        line: dict[str, Any] = LINE_STYLE,
     ):
         """Plotting EMC3-EIRENE-defined grids in :math:`r - z` plane.
 
@@ -254,6 +287,8 @@ class EMC3Grid:
         rz_range
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
             by default ``(2.0, 5.5, -1.6, 1.6)``
+        line
+            line style, by default ``{"color": "#7d7d7d", "linewidth": 0.5}``
 
         Returns
         -------
@@ -271,11 +306,18 @@ class EMC3Grid:
         if rmin >= rmax or zmin >= zmax:
             raise ValueError("Invalid rz_range")
 
-        if not isinstance(fig, Figure):
-            fig = plt.figure(dpi=200)
+        # set default line style
+        if not isinstance(line, dict):
+            raise TypeError("line must be a dict")
+
+        line.setdefault("color", "#7d7d7d")
+        line.setdefault("width", 0.5)
 
         if not isinstance(ax, Axes):
-            ax = fig.add_subplot()
+            if not isinstance(fig, Figure):
+                fig, ax = plt.subplots(dpi=200)
+            else:
+                ax = fig.add_subplot()
 
         ax.set_aspect("equal")
 
@@ -292,16 +334,16 @@ class EMC3Grid:
             ax.plot(
                 self.grid_data[start : start + L, 0, n_phi],
                 self.grid_data[start : start + L, 1, n_phi],
-                linewidth=0.08,
-                color="#7d7d7d",
+                linewidth=line["width"],
+                color=line["color"],
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
                 self.grid_data[l : L * M : L, 0, n_phi],
                 self.grid_data[l : L * M : L, 1, n_phi],
-                linewidth=0.08,
-                color="#7d7d7d",
+                linewidth=line["width"],
+                color=line["color"],
             )
 
         ax.set_xlim(rmin, rmax)
@@ -328,6 +370,7 @@ def plot_grids_rz(
     zone_type: int = 1,
     n_phi: int = 0,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
+    line: dict[str, Any] = LINE_STYLE,
 ) -> tuple[Figure, Axes]:
     """Plotting EMC-EIRENE-defined grids in :math:`r - z` plane.
 
@@ -347,6 +390,8 @@ def plot_grids_rz(
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
+    line
+        line style, by default ``{"color": "#7d7d7d", "linewidth": 0.5}``
 
     Returns
     -------
@@ -364,11 +409,18 @@ def plot_grids_rz(
     if rmin >= rmax or zmin >= zmax:
         raise ValueError("Invalid rz_range")
 
-    if not isinstance(fig, Figure):
-        fig = plt.figure(dpi=200)
+    # set default line style
+    if not isinstance(line, dict):
+        raise TypeError("line must be a dict")
+
+    line.setdefault("color", "#7d7d7d")
+    line.setdefault("width", 0.5)
 
     if not isinstance(ax, Axes):
-        ax = fig.add_subplot()
+        if not isinstance(fig, Figure):
+            fig, ax = plt.subplots(dpi=200)
+        else:
+            ax = fig.add_subplot()
 
     ax.set_aspect("equal")
 
@@ -392,16 +444,16 @@ def plot_grids_rz(
             ax.plot(
                 emc.grid_data[start : start + L, 0, n_phi],
                 emc.grid_data[start : start + L, 1, n_phi],
-                linewidth=0.08,
-                color="#7d7d7d",
+                linewidth=line["width"],
+                color=line["color"],
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
                 emc.grid_data[l : L * M : L, 0, n_phi],
                 emc.grid_data[l : L * M : L, 1, n_phi],
-                linewidth=0.08,
-                color="#7d7d7d",
+                linewidth=line["width"],
+                color=line["color"],
             )
 
     ax.set_xlim(rmin, rmax)
