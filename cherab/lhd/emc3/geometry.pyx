@@ -136,13 +136,7 @@ cdef class _IndexBase(IntegerFunction3D):
         tuple[dict, dict, dict, dict]
             containing indices dictionaries.
         """
-        cdef:
-            dict indices1_dict = {}
-            dict indices2_dict = {}
-            dict indices3_dict = {}
-            dict indices4_dict = {}
-
-        return (indices1_dict, indices2_dict, indices3_dict, indices4_dict)
+        raise NotImplementedError("To be defined in subclass.")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
