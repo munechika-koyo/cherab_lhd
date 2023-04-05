@@ -39,7 +39,7 @@ def show_profile_phi_degs(
     resolution: float = 5.0e-3,
     mask: str | None = "<=0",
     vmax: float | None = None,
-    vmin: float = 0.0,
+    vmin: float | None = 0.0,
     clabel: str | None = None,
     cmap: str = "plasma",
     **kwargs,
@@ -76,6 +76,7 @@ def show_profile_phi_degs(
         If None, maximum value is chosen of all sampled values
     vmin
         minimum value of colorbar limits, by default 0.0.
+        If None, minimum value is chosen of all sampled values
     clabel
         colorbar label, by default None
     cmap
@@ -154,28 +155,30 @@ def show_profile_phi_degs(
 
     # maximum value of all profiles
     temp_max = np.amax([profile.max() for profile in profiles.values()])
-    min_value = np.amin([profile.min() for profile in profiles.values()])
+    temp_min = np.amin([profile.min() for profile in profiles.values()])
 
+    # validate vmax
     if vmax is None:
         vmax = temp_max
         extend = "neither"
     elif vmax < temp_max:
         extend = "max"
-    elif vmax < 0.0:
-        raise ValueError("vmax must be greater than 0.0")
+    elif vmax < temp_min:
+        raise ValueError(f"vmax must be greater than {temp_min}")
     else:
         extend = "neither"
 
     # validate vmin
-    if not isinstance(vmin, Real):
-        raise TypeError("vmin must be a float.")
-    if vmin >= vmax:
-        raise ValueError(f"vmin: {vmin:d} must be less than vmax: {vmax:d}.")
-    if vmin > min_value:
+    if vmin is None:
+        vmin = temp_min
+        extend = "neither"
+    elif vmin > temp_min:
         if extend == "max":
             extend = "both"
         else:
             extend = "min"
+    elif vmin >= vmax:
+        raise ValueError(f"vmin: {vmin} must be less than vmax: {vmax}.")
 
     # r, z grids
     r_pts = np.linspace(rmin, rmax, nr)
@@ -229,7 +232,7 @@ def show_profiles_rz_plane(
     nrows_ncols: tuple[int, int] | None = None,
     labels: list[str] | None = None,
     vmax: float | None = None,
-    vmin: float = 0.0,
+    vmin: float | None = 0.0,
     resolution: float = 5.0e-3,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
     clabel: str | None = None,
@@ -265,6 +268,7 @@ def show_profiles_rz_plane(
         If None, maximum value is chosen of all sampled values
     vmin
         minimum value of colorbar limits, by default 0.0.
+        If None, minimum value is chosen of all sampled values
     resolution
         sampling resolution, by default 5.0e-3
     rz_range
@@ -341,28 +345,30 @@ def show_profiles_rz_plane(
 
     # maximum value of all profiles
     temp_max = np.max([profile.max() for profile in profiles.values()])
-    min_value = np.min([profile.min() for profile in profiles.values()])
+    temp_min = np.min([profile.min() for profile in profiles.values()])
 
+    # validate vmax
     if vmax is None:
         vmax = temp_max
         extend = "neither"
     elif vmax < temp_max:
         extend = "max"
-    elif vmax < 0.0:
-        raise ValueError("vmax must be greater than 0.0")
+    elif vmax < temp_min:
+        raise ValueError(f"vmax must be greater than {temp_min}")
     else:
         extend = "neither"
 
     # validate vmin
-    if not isinstance(vmin, Real):
-        raise TypeError("vmin must be a float.")
-    if vmin >= vmax:
-        raise ValueError(f"vmin: {vmin:d} must be less than vmax: {vmax:d}.")
-    if vmin > min_value:
+    if vmin is None:
+        vmin = temp_min
+        extend = "neither"
+    elif vmin > temp_min:
         if extend == "max":
             extend = "both"
         else:
             extend = "min"
+    elif vmin >= vmax:
+        raise ValueError(f"vmin: {vmin} must be less than vmax: {vmax}.")
 
     # r, z grids
     r_pts = np.linspace(rmin, rmax, nr)
