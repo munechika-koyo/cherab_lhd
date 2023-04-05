@@ -14,10 +14,8 @@ from cherab.lhd.tools import Spinner
 
 __all__ = ["load_pfc_mesh"]
 
-
+# Path to directory containing .rsm files
 DEFAULT_RSM_PATH = Path(__file__).parent.resolve() / "geometry" / "data" / "RSMfiles"
-STL_DIR = Path(__file__).parent.resolve() / "geometry" / "data" / "STLfiles"
-
 
 # List of Plasma Facing Components (same as filename "**.rsm")
 PFC_LIST = ["vessel", "plates", "divertor"]  # ,"port_65u", "port_65l"]
@@ -29,7 +27,7 @@ NCOPY["divertor"] = 10
 # NCOPY["port_65u"] = 10
 # NCOPY["port_65l"] = 10
 
-# Defulat roughness
+# Default roughness
 ROUGHNESS = {"W": 0.29, "SUS": 0.0125}
 
 
@@ -39,7 +37,7 @@ def load_pfc_mesh(
     reflection: bool = True,
     roughness: dict[str, float] = ROUGHNESS,
 ) -> dict[str, list[Mesh]]:
-    """Loads LHD Plasma Facing Components mesh and connects it to Raysect
+    """Load LHD Plasma Facing Components mesh and connect it to Raysect
     :obj:`~raysect.core.scenegraph.world.World` instance.
 
     Parameters
