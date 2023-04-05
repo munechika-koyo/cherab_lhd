@@ -4,7 +4,7 @@ requires = [
     "numpy",
     "meson-python >= 0.10.0",
     "ninja >= 1.8.2",
-    "cython==3.0.0b1",
+    "cython==3.0.0b2",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
@@ -70,7 +70,7 @@ dev = [
     "rich-click",
     "cython-lint",
     "pre-commit",
-    "cython==3.0.0b1",
+    "cython==3.0.0b2",
     "setuptools",  # added untill meson-python comes to allow the editable install
 ]
 
