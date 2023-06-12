@@ -71,7 +71,7 @@ dev = [
     "cython-lint",
     "pre-commit",
     "cython==3.0.0b2",
-    "setuptools",  # added untill meson-python comes to allow the editable install
+    "setuptools",      # added untill meson-python comes to allow the editable install
 ]
 
 [project.urls]
@@ -105,7 +105,11 @@ target-version = "py310"
 # namespace package setting
 namespace-packages = ["cherab/lhd"]
 
-per-file-ignores = {"cherab/lhd/emc3/grid.py" = ["E741"]}
+per-file-ignores = { "cherab/lhd/emc3/grid.py" = [
+    "E741",
+], "cherab/lhd/emc3/barycenters.py" = [
+    "E741",
+] }
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.

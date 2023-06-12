@@ -27,6 +27,7 @@ endforeach
 
 python_sources = [
     '__init__.py',
+    'barycenters.py',
     'grid.py',
     'plasma.py'
 ]
