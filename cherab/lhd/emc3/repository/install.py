@@ -243,9 +243,7 @@ def install_data(
         for source in ["plasma", "impurity", "total"]:
             try:
                 if source == "total":
-                    data_group.create_dataset(
-                        name=f"radiation/{source}", data=parser.radiation()
-                    )
+                    data_group.create_dataset(name=f"radiation/{source}", data=parser.radiation())
                 else:
                     data_group.create_dataset(
                         name=f"radiation/{source}", data=getattr(parser, f"{source}_radiation")()
