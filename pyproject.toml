@@ -109,6 +109,8 @@ per-file-ignores = { "cherab/lhd/emc3/grid.py" = [
     "E741",
 ], "cherab/lhd/emc3/barycenters.py" = [
     "E741",
+], "cherab/lhd/emc3/derivative.py" = [
+    "E741",
 ] }
 
 [tool.ruff.mccabe]
