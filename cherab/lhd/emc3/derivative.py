@@ -132,6 +132,15 @@ def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.f
         x_\\rho \\approx \\frac{x_{l+1, m, n} - x_{l-1, m, n}}{2}.
 
 
+    At the boundary, the partial derivative is computed with the forward or backward difference
+    method like:
+
+    .. math::
+
+        x_\\rho \\approx \\frac{-3 x_{l, m, n} + 4 x_{l+1, m, n} - x_{l+2, m, n}}{2}.
+        x_\\rho \\approx \\frac{x_{l-2, m, n} - 4 x_{l-1, m, n} + 3 x_{l, m, n}}{2}.
+
+
     Parameters
     ----------
     l
@@ -148,22 +157,80 @@ def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.f
     NDArray[np.float64]
         The jacobian matrix :math:`J` of the cell ``(l, m, n)``.
     """
-    # TODO: Consider the boundary condition (l=m=n=0 and l, m and n is the last index).
     # load the EMC3-EIRENE barycenters
     barycenters = EMC3CenterGrids(zone)
+    L, M, N = (
+        barycenters.grid_config["L"],
+        barycenters.grid_config["M"],
+        barycenters.grid_config["N"],
+    )
 
     # define the jacobian matrix
     jacobian = np.zeros((3, 3), dtype=float)
 
     # compute the jacobian matrix
     # x_rho, y_rho, z_rho
-    jacobian[:, 0] = 0.5 * (barycenters.index(l + 1, m, n) - barycenters.index(l - 1, m, n))
+    # TODO: Consider zone-dependent boundary condition.
+    # TODO: Consider the connnection to the next zone.
+    if zone in {"zone0", "zone11"}:
+        if l == 0:
+            jacobian[:, 0] = 0.5 * (
+                -3.0 * barycenters.index(l, m, n)
+                + 4.0 * barycenters.index(l + 1, m, n)
+                - barycenters.index(l + 2, m, n)
+            )
+        elif l == L - 1:
+            jacobian[:, 0] = 0.5 * (
+                barycenters.index(l - 2, m, n)
+                - 4.0 * barycenters.index(l - 1, m, n)
+                + 3.0 * barycenters.index(l, m, n)
+            )
+        else:
+            jacobian[:, 0] = 0.5 * (barycenters.index(l + 1, m, n) - barycenters.index(l - 1, m, n))
+    else:
+        raise NotImplementedError("Not implemented yet.")
 
     # x_theta, y_theta, z_theta
-    jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, m - 1, n))
+    if zone in {"zone0", "zone11"}:
+        if m == 0:
+            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, M - 1, n))
+        elif m == M - 1:
+            jacobian[:, 1] = 0.5 * (barycenters.index(l, 0, n) - barycenters.index(l, m - 1, n))
+        else:
+            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, m - 1, n))
+    else:
+        if m == 0:
+            jacobian[:, 1] = 0.5 * (
+                -3.0 * barycenters.index(l, m, n)
+                + 4.0 * barycenters.index(l, m + 1, n)
+                - barycenters.index(l, m + 2, n)
+            )
+        elif m == M - 1:
+            jacobian[:, 1] = 0.5 * (
+                barycenters.index(l, m - 2, n)
+                - 4.0 * barycenters.index(l, m - 1, n)
+                + 3.0 * barycenters.index(l, m, n)
+            )
+        else:
+            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, m - 1, n))
 
     # x_zeta, y_zeta, z_zeta
-    jacobian[:, 2] = 0.5 * (barycenters.index(l, m, n + 1) - barycenters.index(l, m, n - 1))
+    # TODO: Consider interface between zone0 and zone11.
+    # TODO: Consider helical symmetry at 0 and 18 degree.
+    if n == 0:
+        jacobian[:, 2] = 0.5 * (
+            -3.0 * barycenters.index(l, m, n)
+            + 4.0 * barycenters.index(l, m, n + 1)
+            - barycenters.index(l, m, n + 2)
+        )
+    elif n == N - 1:
+        jacobian[:, 2] = 0.5 * (
+            barycenters.index(l, m, n - 2)
+            - 4.0 * barycenters.index(l, m, n - 1)
+            + 3.0 * barycenters.index(l, m, n)
+        )
+    else:
+        jacobian[:, 2] = 0.5 * (barycenters.index(l, m, n + 1) - barycenters.index(l, m, n - 1))
 
     return jacobian
 
