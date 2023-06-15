@@ -5,10 +5,66 @@ EMC3-EIRENE one. (2023-06-13)
 """
 import numpy as np
 from numpy.typing import NDArray
+from scipy.sparse import lil_matrix
 
 from .barycenters import EMC3CenterGrids
 
 __all__ = ["partial_derivatives", "jacobian_matrix"]
+
+
+def compute_derivative_matrix(direction: str = "x", zone: str = "zone0") -> NDArray[np.float64]:
+    """Compute the derivative matrix of the EMC3-EIRENE barycenters.
+
+    The derivative matrix is computed with the central difference method.
+    The partial derivatives of the EMC3-EIRENE barycenters are computed with
+    :func:`partial_derivatives`.
+
+    Parameters
+    ----------
+    direction
+        Name of the direction to compute the derivative matrix.
+        It can be ``"x"``, ``"y"`` or ``"z"``, by default ``"x"``.
+    zone
+        Name of the EMC3-EIRENE zone, by default ``"zone0"``.
+
+    Returns
+    -------
+    NDArray[np.float64]
+        The derivative matrix of the EMC3-EIRENE barycenters.
+    """
+    grids = EMC3CenterGrids(zone)
+    L, M, N = grids.shape
+
+    # initialize the derivative matrix
+    dmat = lil_matrix([L * M * N] * 2)
+
+    # TODO: Consider the boundary condition (l=m=n=0 and l, m and n is the last index).
+    for n in range(N):
+        for m in range(M):
+            for l in range(L):
+                # compute partial derivatives
+                p_rho, p_theta, p_zeta = partial_derivatives(l, m, n, direction, zone)
+                index = l + m * L + n * L * M
+
+                # partial derivatives of rho
+                index_f = l + 1 + m * L + n * L * M
+                index_b = l - 1 + m * L + n * L * M
+                dmat[index, index_f] = 0.5 * p_rho
+                dmat[index, index_b] = -0.5 * p_rho
+
+                # partial derivatives of theta
+                index_f = l + (m + 1) * L + n * L * M
+                index_b = l + (m - 1) * L + n * L * M
+                dmat[index, index_f] = 0.5 * p_theta
+                dmat[index, index_b] = -0.5 * p_theta
+
+                # partial derivatives of zeta
+                index_f = l + m * L + (n + 1) * L * M
+                index_b = l + m * L + (n - 1) * L * M
+                dmat[index, index_f] = 0.5 * p_zeta
+                dmat[index, index_b] = -0.5 * p_zeta
+
+    return dmat
 
 
 def partial_derivatives(
