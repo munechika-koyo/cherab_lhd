@@ -137,7 +137,12 @@ def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.f
 
     .. math::
 
-        x_\\rho \\approx \\frac{-3 x_{l, m, n} + 4 x_{l+1, m, n} - x_{l+2, m, n}}{2}.
+        x_\\rho \\approx \\frac{-3 x_{l, m, n} + 4 x_{l+1, m, n} - x_{l+2, m, n}}{2},
+
+    or
+
+    .. math::
+
         x_\\rho \\approx \\frac{x_{l-2, m, n} - 4 x_{l-1, m, n} + 3 x_{l, m, n}}{2}.
 
 
