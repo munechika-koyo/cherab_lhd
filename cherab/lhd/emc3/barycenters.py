@@ -77,6 +77,11 @@ class EMC3CenterGrids:
         """Array of center coordinates of each cell."""
         return self._centers
 
+    @property
+    def shape(self) -> tuple[int, int, int]:
+        """Shape of grid (L, M, N)."""
+        return self.grid_config["L"], self.grid_config["M"], self.grid_config["N"]
+
     def index(self, l: int, m: int, n: int) -> NDArray[np.float64]:
         """Return the center coordinates of a cell for a given index.
 
