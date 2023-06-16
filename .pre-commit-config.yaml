@@ -1,5 +1,5 @@
 ci:
-  autofix_prs: false
+  autofix_prs: true
   autoupdate_schedule: quarterly
 
 default_language_version:
@@ -24,23 +24,23 @@ repos:
 
 # validate pyproject.toml
 - repo: https://github.com/abravalheri/validate-pyproject
-  rev: v0.12.1
+  rev: v0.13
   hooks:
   - id: validate-pyproject
 
 - repo: https://github.com/psf/black
-  rev: 22.12.0
+  rev: 23.3.0
   hooks:
   - id: black
 
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.252
+  rev: v0.0.272
   hooks:
   - id: ruff
     args: [--fix, --exit-non-zero-on-fix]
 
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.6.0
+  rev: 1.7.0
   hooks:
   - id: nbqa-black
     additional_dependencies:
@@ -50,20 +50,21 @@ repos:
     - isort==5.11.3
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.10.1
+  rev: v0.15.0
   hooks:
   - id: cython-lint
     args: [--max-line-length, '140']
 
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.6.0
+  rev: v2.9.0
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent, '2']
 
 # for docstrings in python codes
 - repo: https://github.com/myint/docformatter
-  rev: v1.5.1
+  rev: v1.7.2
   hooks:
   - id: docformatter
-    args: [--in-place]
+    additional_dependencies: [tomli]
+    args: [--in-place --config ./pyproject.toml]
