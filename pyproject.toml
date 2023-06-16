@@ -131,4 +131,4 @@ version = { attr = "cherab.lhd.__version__" }
 recursive = true
 wrap-summaries = 100
 wrap-descriptions = 100
-blank = true
+blank = false
