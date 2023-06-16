@@ -10,7 +10,16 @@ from .repository.utility import DEFAULT_HDF5_PATH
 
 
 class EMC3CenterGrids:
-    """Class for dealing with barycenters of EMC3 cells.
+    """Class for dealing with barycenters of EMC3-EIRENE cells.
+
+    One EMC3 cell is divided to six tetrahedra and the center point of each cell is defined
+    as the avarage of the six tetrahedra's barycenters. Each center point is ordered by
+    the radial, poloidal and toroidal-like coordinates.
+
+    | Total number of grids is L x M x N, each letter of which means:
+    | L: Radial grid resolution
+    | M: Poloidal grid resolution
+    | N: Toroidal grid resolution.
 
     Parameters
     ----------
@@ -100,9 +109,7 @@ class EMC3CenterGrids:
             The center coordinates of a cell for the given index.
             coordinates is :math:`(X, Y, Z)`.
         """
-        L = self.grid_config["L"]
-        M = self.grid_config["M"]
-        N = self.grid_config["N"]
+        L, M, N = self.shape
 
         if not (0 <= l < L and 0 <= m < M and 0 <= n < N):
             raise ValueError(
