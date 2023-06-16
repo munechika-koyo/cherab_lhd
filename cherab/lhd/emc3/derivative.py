@@ -1,7 +1,6 @@
 """Contains functions for derivative matrix computation.
 
-Here we assume that the mesh configuration is based on a original
-EMC3-EIRENE one. (2023-06-13)
+Here we assume that the mesh configuration is based on a original EMC3-EIRENE one. (2023-06-13)
 """
 import numpy as np
 from numpy.typing import NDArray
@@ -9,69 +8,120 @@ from scipy.sparse import lil_matrix
 
 from .barycenters import EMC3CenterGrids
 
-__all__ = ["partial_derivatives", "jacobian_matrix"]
+__all__ = ["compute_derivative_matrix", "partial_derivatives", "jacobian_matrix"]
 
 
-def compute_derivative_matrix(direction: str = "x", zone: str = "zone0") -> NDArray[np.float64]:
-    """Compute the derivative matrix of the EMC3-EIRENE barycenters.
+def compute_derivative_matrix(grids: EMC3CenterGrids, direction: str = "x") -> NDArray[np.float64]:
+    """Compute the derivative matrix of the EMC3-EIRENE barycenter grids.
 
     The derivative matrix is computed with the central difference method.
-    The partial derivatives of the EMC3-EIRENE barycenters are computed with
+    The partial derivatives of the EMC3-EIRENE barycenter grids are computed with
     :func:`partial_derivatives`.
+
+    .. todo::
+
+        Consider the procedure of the total zone connections.
+        For now only one zone can be handled.
 
     Parameters
     ----------
+    grids
+        The EMC3-EIRENE Barycenter grids.
     direction
         Name of the direction to compute the derivative matrix.
         It can be ``"x"``, ``"y"`` or ``"z"``, by default ``"x"``.
-    zone
-        Name of the EMC3-EIRENE zone, by default ``"zone0"``.
 
     Returns
     -------
     NDArray[np.float64]
-        The derivative matrix of the EMC3-EIRENE barycenters.
+        The derivative matrix of the EMC3-EIRENE grids.
     """
-    grids = EMC3CenterGrids(zone)
+    # get the shape of the grids
     L, M, N = grids.shape
 
     # initialize the derivative matrix
-    dmat = lil_matrix([L * M * N] * 2)
+    dmat = lil_matrix((L * M * N, L * M * N))
 
-    # TODO: Consider the boundary condition (l=m=n=0 and l, m and n is the last index).
     for n in range(N):
         for m in range(M):
             for l in range(L):
+                # compute the jacobian matrix
+                jmat = jacobian_matrix(l, m, n, grids)
+
                 # compute partial derivatives
-                p_rho, p_theta, p_zeta = partial_derivatives(l, m, n, direction, zone)
+                p_rho, p_theta, p_zeta = partial_derivatives(l, m, n, jmat, var=direction)
                 index = l + m * L + n * L * M
 
                 # partial derivatives of rho
-                index_f = l + 1 + m * L + n * L * M
-                index_b = l - 1 + m * L + n * L * M
-                dmat[index, index_f] = 0.5 * p_rho
-                dmat[index, index_b] = -0.5 * p_rho
+                if l == 0:
+                    index0 = index
+                    index1 = index0 + 1
+                    index2 = index0 + 2
+                    dmat[index, index0] = -1.5 * p_rho
+                    dmat[index, index1] = 2.0 * p_rho
+                    dmat[index, index2] = -0.5 * p_rho
+
+                elif l == L - 1:
+                    # assuming zero outside the boundary
+                    index_b = index - 1
+                    dmat[index, index_b] = -0.5 * p_rho
+
+                else:
+                    index_f = index + 1
+                    index_b = index - 1
+                    dmat[index, index_f] = 0.5 * p_rho
+                    dmat[index, index_b] = -0.5 * p_rho
 
                 # partial derivatives of theta
-                index_f = l + (m + 1) * L + n * L * M
-                index_b = l + (m - 1) * L + n * L * M
-                dmat[index, index_f] = 0.5 * p_theta
-                dmat[index, index_b] = -0.5 * p_theta
+                # NOTE: Considering the periodic boundary condition for zone0, zone11
+                if m == 0:
+                    index_f = l + (m + 1) * L + n * L * M
+                    index_b = l + (M - 1) * L + n * L * M
+                    dmat[index, index_f] = 0.5 * p_theta
+                    dmat[index, index_b] = -0.5 * p_theta
+
+                elif m == M - 1:
+                    index_f = l + 0 * L + n * L * M
+                    index_b = l + (m - 1) * L + n * L * M
+                    dmat[index, index_f] = 0.5 * p_theta
+                    dmat[index, index_b] = -0.5 * p_theta
+
+                else:
+                    index_f = l + (m + 1) * L + n * L * M
+                    index_b = l + (m - 1) * L + n * L * M
+                    dmat[index, index_f] = 0.5 * p_theta
+                    dmat[index, index_b] = -0.5 * p_theta
 
                 # partial derivatives of zeta
-                index_f = l + m * L + (n + 1) * L * M
-                index_b = l + m * L + (n - 1) * L * M
-                dmat[index, index_f] = 0.5 * p_zeta
-                dmat[index, index_b] = -0.5 * p_zeta
+                if n == 0:
+                    index0 = index
+                    index1 = l + m * L + (n + 1) * L * M
+                    index2 = l + m * L + (n + 2) * L * M
+                    dmat[index, index0] = -1.5 * p_zeta
+                    dmat[index, index1] = 2.0 * p_zeta
+                    dmat[index, index2] = -0.5 * p_zeta
+
+                elif n == N - 1:
+                    index0 = index
+                    index1 = l + m * L + (n - 1) * L * M
+                    index2 = l + m * L + (n - 2) * L * M
+                    dmat[index, index0] = 1.5 * p_zeta
+                    dmat[index, index1] = -2.0 * p_zeta
+                    dmat[index, index2] = 0.5 * p_zeta
+
+                else:
+                    index_f = l + m * L + (n + 1) * L * M
+                    index_b = l + m * L + (n - 1) * L * M
+                    dmat[index, index_f] = 0.5 * p_zeta
+                    dmat[index, index_b] = -0.5 * p_zeta
 
     return dmat
 
 
 def partial_derivatives(
-    l: int, m: int, n: int, var: str = "x", zone: str = "zone0"
+    l: int, m: int, n: int, jacobian_mat: NDArray[np.float64], var: str = "x"
 ) -> tuple[float, float, float]:
-    """Compute the partial derivatives of the EMC3-EIRENE barycenters
-    :math:`\\rho, \\theta, \\zeta`.
+    """Compute the partial derivatives of the EMC3-EIRENE grids :math:`\\rho, \\theta, \\zeta`.
 
     Each barycenter is located at the center of the cell and indexed by ``(l, m, n)``.
     ``l``, ``m`` and ``n`` are the indices of the cell in the radial :math:`\\rho`,
@@ -85,7 +135,7 @@ def partial_derivatives(
 
         \\rho_x = \\frac{1}{\\mathrm{det} J} \\left(y_\\theta z_\\zeta - y_\\zeta z_\\theta\\right).
 
-    :math:`J` is the jacobian matrix of the EMC3-EIRENE barycenters, and :math:`\\mathrm{det} J`
+    :math:`J` is the jacobian matrix of the EMC3-EIRENE grids, and :math:`\\mathrm{det} J`
     is its determinant.
 
     Each partial derivative at :math:`(x, y, z)` indexed by ``(l, m, n)`` is computed with the
@@ -104,19 +154,17 @@ def partial_derivatives(
         Index of the cell in the poloidal direction :math:`\\theta`.
     n
         Index of the cell in the toroidal-like direction :math:`\\zeta`.
+    jacobian_mat
+        The 3x3 jacobian matrix of the EMC3-EIRENE grids.
     var
         Name of the variable to compute the partial derivatives.
         It can be ``"x"``, ``"y"`` or ``"z"``, by default ``"x"``.
-    zone
-        Name of the EMC3-EIRENE zone, by default ``"zone0"``.
 
     Returns
     -------
     tuple[float, float, float]
         The partial derivatives like (:math:`\\rho_x, \\theta_x, \\zeta_x`) of the EMC3-EIRENE barycenters.
     """
-    # TODO: Consider the boundary condition (l=m=n=0 and l, m and n is the last index).
-    jacobian_mat = jacobian_matrix(l, m, n, zone)
     jacobian = np.linalg.det(jacobian_mat)
 
     if var == "x":
@@ -158,8 +206,8 @@ def partial_derivatives(
     return (p_rho, p_theta, p_zeta)
 
 
-def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.float64]:
-    """Compute the jacobian matrix of the EMC3-EIRENE barycenters.
+def jacobian_matrix(l: int, m: int, n: int, grids: EMC3CenterGrids) -> NDArray[np.float64]:
+    """Compute the jacobian matrix of the EMC3-EIRENE grids.
 
     Each barycenter is located at the center of the cell and indexed by ``(l, m, n)``.
     ``l``, ``m`` and ``n`` are the indices of the cell in the radial :math:`\\rho`,
@@ -210,21 +258,16 @@ def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.f
         Index of the cell in the poloidal direction :math:`\\theta`.
     n
         Index of the cell in the toroidal-like direction :math:`\\zeta`.
-    zone
-        Name of the EMC3-EIRENE zone, by default ``"zone0"``.
+    grids
+        The barycenters of the EMC3-EIRENE cell.
 
     Returns
     -------
     NDArray[np.float64]
         The jacobian matrix :math:`J` of the cell ``(l, m, n)``.
     """
-    # load the EMC3-EIRENE barycenters
-    barycenters = EMC3CenterGrids(zone)
-    L, M, N = (
-        barycenters.grid_config["L"],
-        barycenters.grid_config["M"],
-        barycenters.grid_config["N"],
-    )
+    # get the shape of the grids
+    L, M, N = grids.shape
 
     # define the jacobian matrix
     jacobian = np.zeros((3, 3), dtype=float)
@@ -233,68 +276,65 @@ def jacobian_matrix(l: int, m: int, n: int, zone: str = "zone0") -> NDArray[np.f
     # x_rho, y_rho, z_rho
     # TODO: Consider zone-dependent boundary condition.
     # TODO: Consider the connnection to the next zone.
-    if zone in {"zone0", "zone11"}:
+    if grids.zone in {"zone0", "zone11"}:
         if l == 0:
             jacobian[:, 0] = 0.5 * (
-                -3.0 * barycenters.index(l, m, n)
-                + 4.0 * barycenters.index(l + 1, m, n)
-                - barycenters.index(l + 2, m, n)
+                -3.0 * grids.index(l, m, n)
+                + 4.0 * grids.index(l + 1, m, n)
+                - grids.index(l + 2, m, n)
             )
         elif l == L - 1:
             jacobian[:, 0] = 0.5 * (
-                barycenters.index(l - 2, m, n)
-                - 4.0 * barycenters.index(l - 1, m, n)
-                + 3.0 * barycenters.index(l, m, n)
+                grids.index(l - 2, m, n)
+                - 4.0 * grids.index(l - 1, m, n)
+                + 3.0 * grids.index(l, m, n)
             )
         else:
-            jacobian[:, 0] = 0.5 * (barycenters.index(l + 1, m, n) - barycenters.index(l - 1, m, n))
+            jacobian[:, 0] = 0.5 * (grids.index(l + 1, m, n) - grids.index(l - 1, m, n))
     else:
         raise NotImplementedError("Not implemented yet.")
 
     # x_theta, y_theta, z_theta
-    if zone in {"zone0", "zone11"}:
+    if grids.zone in {"zone0", "zone11"}:
         if m == 0:
-            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, M - 1, n))
+            jacobian[:, 1] = 0.5 * (grids.index(l, m + 1, n) - grids.index(l, M - 1, n))
         elif m == M - 1:
-            jacobian[:, 1] = 0.5 * (barycenters.index(l, 0, n) - barycenters.index(l, m - 1, n))
+            jacobian[:, 1] = 0.5 * (grids.index(l, 0, n) - grids.index(l, m - 1, n))
         else:
-            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, m - 1, n))
+            jacobian[:, 1] = 0.5 * (grids.index(l, m + 1, n) - grids.index(l, m - 1, n))
     else:
         if m == 0:
             jacobian[:, 1] = 0.5 * (
-                -3.0 * barycenters.index(l, m, n)
-                + 4.0 * barycenters.index(l, m + 1, n)
-                - barycenters.index(l, m + 2, n)
+                -3.0 * grids.index(l, m, n)
+                + 4.0 * grids.index(l, m + 1, n)
+                - grids.index(l, m + 2, n)
             )
         elif m == M - 1:
             jacobian[:, 1] = 0.5 * (
-                barycenters.index(l, m - 2, n)
-                - 4.0 * barycenters.index(l, m - 1, n)
-                + 3.0 * barycenters.index(l, m, n)
+                grids.index(l, m - 2, n)
+                - 4.0 * grids.index(l, m - 1, n)
+                + 3.0 * grids.index(l, m, n)
             )
         else:
-            jacobian[:, 1] = 0.5 * (barycenters.index(l, m + 1, n) - barycenters.index(l, m - 1, n))
+            jacobian[:, 1] = 0.5 * (grids.index(l, m + 1, n) - grids.index(l, m - 1, n))
 
     # x_zeta, y_zeta, z_zeta
     # TODO: Consider interface between zone0 and zone11.
     # TODO: Consider helical symmetry at 0 and 18 degree.
     if n == 0:
         jacobian[:, 2] = 0.5 * (
-            -3.0 * barycenters.index(l, m, n)
-            + 4.0 * barycenters.index(l, m, n + 1)
-            - barycenters.index(l, m, n + 2)
+            -3.0 * grids.index(l, m, n) + 4.0 * grids.index(l, m, n + 1) - grids.index(l, m, n + 2)
         )
     elif n == N - 1:
         jacobian[:, 2] = 0.5 * (
-            barycenters.index(l, m, n - 2)
-            - 4.0 * barycenters.index(l, m, n - 1)
-            + 3.0 * barycenters.index(l, m, n)
+            grids.index(l, m, n - 2) - 4.0 * grids.index(l, m, n - 1) + 3.0 * grids.index(l, m, n)
         )
     else:
-        jacobian[:, 2] = 0.5 * (barycenters.index(l, m, n + 1) - barycenters.index(l, m, n - 1))
+        jacobian[:, 2] = 0.5 * (grids.index(l, m, n + 1) - grids.index(l, m, n - 1))
 
     return jacobian
 
 
 if __name__ == "__main__":
-    print(jacobian_matrix(1, 1, 1))
+    grids = EMC3CenterGrids("zone0")
+    print(jacobian_matrix(1, 1, 1, grids))
