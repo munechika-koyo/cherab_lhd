@@ -61,7 +61,9 @@ class EMC3Grid:
 
         >>> grid = EMC3Grid("zone0")
         >>> grid
-        EMC3-EIRENE Grid instance (zone: zone0, L: 82, M: 601, N: 37)
+        EMC3Grid(zone='zone0', grid_group='grid-360')
+        >>> str(grid)
+        'EMC3Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(
@@ -75,7 +77,10 @@ class EMC3Grid:
             raise TypeError("hdf5_path must be a string or a pathlib.Path instance.")
         if not self._hdf5_path.exists():
             raise FileNotFoundError(f"{self._hdf5_path.name} file does not exist.")
+
+        # set properties
         self._zone = zone
+        self._grid_group = grid_group
 
         # === Load grid data from HDF5 file
         with h5py.File(self._hdf5_path, mode="r") as h5_file:
@@ -94,11 +99,11 @@ class EMC3Grid:
             self._grid_data = dset[:]
 
     def __repr__(self) -> str:
-        L = self.grid_config["L"]
-        M = self.grid_config["M"]
-        N = self.grid_config["N"]
-        msg = f"EMC3-EIRENE Grid instance (zone: {self.zone}, L: {L}, M: {M}, N: {N})\n"
-        return msg
+        return f"{self.__class__.__name__}(zone={self.zone!r}, grid_group={self.grid_group!r})"
+
+    def __str__(self) -> str:
+        L, M, N, num_cells = self._grid_config.values()
+        return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
 
     @property
     def hdf5_path(self) -> Path:
@@ -107,13 +112,22 @@ class EMC3Grid:
 
     @property
     def zone(self) -> str:
-        """name of zone."""
+        """Name of zone."""
         return self._zone
 
     @property
+    def grid_group(self) -> str:
+        """Name of grid group."""
+        return self._grid_group
+
+    @property
+    def shape(self) -> tuple[int, int, int]:
+        """Shape of grid (L, M, N)."""
+        return self.grid_config["L"], self.grid_config["M"], self.grid_config["N"]
+
+    @property
     def grid_config(self) -> dict[str, int]:
-        """configuration dictionary containing grid resolutions and number of
-        cells.
+        """Configuration dictionary containing grid resolutions and number of cells.
 
         .. prompt:: python >>> auto
 
@@ -169,9 +183,7 @@ class EMC3Grid:
         :obj:`~numpy.ndarray`
             grid coordinates (3, ) array in :math:`(R, Z, \\phi)`.
         """
-        L = self.grid_config["L"]
-        M = self.grid_config["M"]
-        N = self.grid_config["N"]
+        L, M, N = self.shape
 
         if not (0 <= l < L and 0 <= m < M and 0 <= n < N):
             raise ValueError(
@@ -184,6 +196,8 @@ class EMC3Grid:
     def generate_vertices(self) -> NDArray[np.float64]:
         """Generate grid vertices array. A `grid_data` array is converted to 2D
         array which represents a vertex in :math:`(X, Y, Z)` coordinates.
+
+        The vertices array is stacked in the order of `(L, M, N)`.
 
         Returns
         -------
@@ -206,7 +220,7 @@ class EMC3Grid:
                    [ 3.04083165,  0.48162042, -0.065452  ],
                    [ 3.04060646,  0.48158475, -0.065439  ]])
         """
-        L, M, N = self.grid_config["L"], self.grid_config["M"], self.grid_config["N"]
+        L, M, N = self.shape
         vertices = np.zeros((L * M * N, 3), dtype=np.float64)
         grid = self._grid_data.view()
         for n in range(N):
@@ -224,6 +238,7 @@ class EMC3Grid:
         """Generate cell indices array.
 
         One row of cell indices array represents one cubic-like mesh with 8 vertices.
+        Cells are indexed in the order of `(L, M, N)` direction.
 
         Returns
         -------
@@ -247,7 +262,7 @@ class EMC3Grid:
                    [1752433, 1752434, 1752515, ..., 1801115, 1801196, 1801195]],
                   dtype=uint32)
         """
-        L, M, N = self.grid_config["L"], self.grid_config["M"], self.grid_config["N"]
+        L, M, N = self.shape
         cells = np.zeros(((L - 1) * (M - 1) * (N - 1), 8), dtype=np.uint32)
         i = 0
         for n in range(0, N - 1):
@@ -512,7 +527,6 @@ def install_tetra_meshes(
 
     # populate each zone TetraMesh instance
     for zone in zones:
-
         # path to the tetra .rsm file
         tetra_path = tetra_mesh_path / f"{zone}.rsm"
 
