@@ -28,7 +28,7 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 # Plotting config.
-LINE_STYLE = {"color": "#7d7d7d", "linewidth": 0.5}
+LINE_STYLE = {"color": "black", "linewidth": 0.5}
 
 
 class EMC3Grid:
@@ -303,7 +303,7 @@ class EMC3Grid:
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
             by default ``(2.0, 5.5, -1.6, 1.6)``
         line
-            line style, by default ``{"color": "#7d7d7d", "linewidth": 0.5}``
+            line style, by default ``{"color": "black", "linewidth": 0.5}``
 
         Returns
         -------
@@ -325,8 +325,8 @@ class EMC3Grid:
         if not isinstance(line, dict):
             raise TypeError("line must be a dict")
 
-        line.setdefault("color", "#7d7d7d")
-        line.setdefault("width", 0.5)
+        line.setdefault("color", "black")
+        line.setdefault("linewidth", 0.5)
 
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
@@ -349,7 +349,7 @@ class EMC3Grid:
             ax.plot(
                 self.grid_data[start : start + L, 0, n_phi],
                 self.grid_data[start : start + L, 1, n_phi],
-                linewidth=line["width"],
+                linewidth=line["linewidth"],
                 color=line["color"],
             )
         # plot poloidal line
@@ -357,7 +357,7 @@ class EMC3Grid:
             ax.plot(
                 self.grid_data[l : L * M : L, 0, n_phi],
                 self.grid_data[l : L * M : L, 1, n_phi],
-                linewidth=line["width"],
+                linewidth=line["linewidth"],
                 color=line["color"],
             )
 
@@ -406,7 +406,7 @@ def plot_grids_rz(
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
     line
-        line style, by default ``{"color": "#7d7d7d", "linewidth": 0.5}``
+        line style, by default ``{"color": "black", "linewidth": 0.5}``
 
     Returns
     -------
@@ -428,8 +428,8 @@ def plot_grids_rz(
     if not isinstance(line, dict):
         raise TypeError("line must be a dict")
 
-    line.setdefault("color", "#7d7d7d")
-    line.setdefault("width", 0.5)
+    line.setdefault("color", "black")
+    line.setdefault("linewidth", 0.5)
 
     if not isinstance(ax, Axes):
         if not isinstance(fig, Figure):
@@ -459,7 +459,7 @@ def plot_grids_rz(
             ax.plot(
                 emc.grid_data[start : start + L, 0, n_phi],
                 emc.grid_data[start : start + L, 1, n_phi],
-                linewidth=line["width"],
+                linewidth=line["linewidth"],
                 color=line["color"],
             )
         # plot poloidal line
@@ -467,7 +467,7 @@ def plot_grids_rz(
             ax.plot(
                 emc.grid_data[l : L * M : L, 0, n_phi],
                 emc.grid_data[l : L * M : L, 1, n_phi],
-                linewidth=line["width"],
+                linewidth=line["linewidth"],
                 color=line["color"],
             )
 
