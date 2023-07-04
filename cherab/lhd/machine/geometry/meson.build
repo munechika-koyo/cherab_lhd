@@ -7,10 +7,4 @@ py.install_sources(
   subdir: 'cherab/lhd/machine/geometry',
 )
 
-
-install_subdir(
-  'data',
-  exclude_directories: ['data/STLfiles'],
-  install_dir: 'cherab/lhd/machine/geometry',
-  strip_directory: false
-)
+subdir('data')

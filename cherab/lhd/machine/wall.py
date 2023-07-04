@@ -1,6 +1,7 @@
 """Module to offer wall contour fetures."""
-from pathlib import Path
+from importlib.resources import files
 
+import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import float64, intp
@@ -12,9 +13,6 @@ __all__ = [
     "periodic_toroidal_angle",
     "adjacent_toroidal_angles",
 ]
-
-
-DIR_WALL = Path(__file__).parent.resolve() / "geometry" / "data" / "wall_outline"
 
 
 def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
@@ -129,9 +127,16 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     if basis not in {"rz", "xyz"}:
         raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
-    # extract toroidal angles from file name
-    filenames = sorted(DIR_WALL.glob("*.txt"))
-    phis = np.array([float(file.stem) for file in filenames])
+    # Load wall ouline data from "wall_outline.hdf5"
+    with (
+        files("cherab.lhd.machine.geometry.data").joinpath("wall_outline.hdf5").open("rb") as file,
+        h5py.File(file, "r") as h5file,
+    ):
+        # load toroidal angles
+        phis = h5file["toroidal_angles"][:]
+
+        # load wall ouline array
+        outlines = h5file["outlines"][:]
 
     # phi -> phi in 0 - 18 deg
     phi_t, fliped = periodic_toroidal_angle(phi)
@@ -140,8 +145,8 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     phi_left, phi_right = adjacent_toroidal_angles(phi_t, phis)
 
     # load rz wall outline
-    rz_left = np.loadtxt(DIR_WALL / filenames[phi_left]) * 1.0e-2  # [cm] -> [m]
-    rz_right = np.loadtxt(DIR_WALL / filenames[phi_right]) * 1.0e-2
+    rz_left = outlines[phi_left, :, :]
+    rz_right = outlines[phi_right, :, :]
 
     # fliped value for z axis
     flip = -1 if fliped else 1
