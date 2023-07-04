@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from importlib import resources
+from importlib.resources import files
 
 import numpy as np
 from raysect.core.math import Point3D, Vector3D, rotate_basis, rotate_vector, rotate_z, translate
@@ -47,7 +47,7 @@ def load_irvb(
     """
 
     # import IRVB configs as a resource
-    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+    with files("cherab.lhd.observer.bolometer.data").joinpath("IRVB.json").open("r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
@@ -162,7 +162,7 @@ def load_irvb_as_pinhole_camera(
         populated :obj:`.PinholeCamera` instance
     """
     # import IRVB configs as a resource
-    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+    with files("cherab.lhd.observer.bolometer.data").joinpath("IRVB.json").open("r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
@@ -236,9 +236,8 @@ def load_irvb_as_pinhole_camera(
 def calcam_virtual_calibration(
     port: str = "6.5U", flange: str = "BC02"
 ) -> dict[str, float | tuple[int, int] | tuple[float, float, float]]:
-    """generate virtual calibration parameters used in calcam for IRVB. This
-    function calculate virtual pixel pitch, camera position, and camera
-    orientation (target and roll)
+    """Generate virtual calibration parameters used in calcam for IRVB. This function calculate
+    virtual pixel pitch, camera position, and camera orientation (target and roll)
 
     Parameters
     ----------
@@ -259,7 +258,7 @@ def calcam_virtual_calibration(
         "roll": float
     """
     # import IRVB configs as a resource
-    with resources.open_text("cherab.lhd.observer.bolometer.data", "IRVB.json") as file:
+    with files("cherab.lhd.observer.bolometer.data").joinpath("IRVB.json").open("r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
@@ -328,8 +327,7 @@ def calcam_virtual_calibration(
 def _centre_basis_and_dimensions(
     corners: Point3D,
 ) -> tuple[Point3D, Vector3D, Vector3D, float, float]:
-    """Calculate the centre point, basis vectors, width and height given 4
-    corners."""
+    """Calculate the centre point, basis vectors, width and height given 4 corners."""
     centre = Point3D(
         np.mean([corner.x for corner in corners]),
         np.mean([corner.y for corner in corners]),

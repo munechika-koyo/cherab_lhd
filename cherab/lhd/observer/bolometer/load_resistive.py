@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from importlib import resources
+from importlib.resources import files
 
 from raysect.core import World
 from raysect.core.math import Point3D
@@ -37,7 +37,7 @@ def load_resistive(
         populated :obj:`~cherab.tools.observers.bolometry.BolometerCamera.BolometerCamera` instance
     """
     # import configs as a resource
-    with resources.open_text("cherab.lhd.observer.bolometer.data", "RB.json") as file:
+    with files("cherab.lhd.observer.bolometer.data").joinpath("RB.json").open("r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
