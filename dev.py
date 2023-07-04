@@ -121,8 +121,8 @@ def install():
 def install_deps():
     """Install build dependencies using pip.
 
-    Only pip install cannot compile cython files appropriately, so we
-    excute this command before installing this package.
+    Only pip install cannot compile cython files appropriately, so we excute this command before
+    installing this package.
     """
     # Load requires from pyproject.toml
     pyproject = BASE_DIR / "pyproject.toml"
@@ -144,12 +144,10 @@ def install_deps():
     "--cell-filename", default="CELL_GEO", help="Cell index data text file name", show_default=True
 )
 def install_emc3_data(data_dir: str, grid_filename: str, cell_filename: str):
-    """Install EMC3-EIRENE-related data including grids, indices, calculated
-    data, etc.
+    """Install EMC3-EIRENE-related data including grids, indices, calculated data, etc.
 
-    This command should be excuted before using EMC3-related features if
-    EMC3's HDF5 dataset does not been constructed. Note that it is only
-    available after installing cherab-lhd.
+    This command should be excuted before using EMC3-related features if EMC3's HDF5 dataset does
+    not been constructed. Note that it is only available after installing cherab-lhd.
     """
     try:
         from cherab.lhd.emc3.repository.install import (
@@ -234,13 +232,10 @@ def cython_lint():
     """:art: Cython linter. Checking all .pyx files in the source directory.
     The default options are defined at the cython-lint table in pyproject.toml
     """
-    # line length option
-    max_line_length = config("cython-lint")["max-line-length"]
-
     # list of .pyx files
     pyx_files = [str(pyx_path) for pyx_path in SRC_PATH.glob("**/*.pyx")]
 
-    cmd = ["cython-lint", "--max-line-length", str(max_line_length)] + pyx_files
+    cmd = ["cython-lint"] + pyx_files
     ret = subprocess.call(cmd)
 
     if ret == 0:

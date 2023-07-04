@@ -8,9 +8,7 @@ channels:
 - default
 dependencies:
 - python >= 3.10
-- meson >= 0.64.0
-- meson-python >= 0.10.0
-- ninja >= 1.8.2
+- meson-python >= 0.13.0
 # - cython >= 3.0.0 installed by pip temporarily
 - numpy
 - scipy
@@ -18,26 +16,25 @@ dependencies:
 - plotly
 - h5py
   # for developper tools
-- ipython
-- black
 - ruff
 - mypy
 - rich-click
 - pre-commit
 - pycodestyle  # dependency for cython-lint
   # for documentation
-- docutils >= 0.19, < 0.20
+- docutils
 - ipykernel
 - ipywidgets
+- nbconvert > 7.3
 - nbsphinx
 - pillow
 - pygments >= 2.11.0
-- sphinx >= 5, < 6
+- sphinx
 - sphinx-prompt
 - sphinx-copybutton
-- pydata-sphinx-theme < 0.11
+- pydata-sphinx-theme = 0.13 # for custom css dependency
 - sphinx-design
-- pandoc < 3.0
+- pandoc
 - sphinx-codeautolink
 # pip-install dependencies
 - pip

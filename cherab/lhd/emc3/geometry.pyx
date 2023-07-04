@@ -98,7 +98,6 @@ cdef class _IndexBase(IntegerFunction3D):
         else:
             raise FileExistsError(f"{tetra_path} does not exist.")
 
-
     @property
     def hdf5_path(self):
         """:obj:`~pathlib.Path`: path to the data repository formated as HDF5
@@ -252,17 +251,9 @@ cdef class CellIndex(_IndexBase):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef ndarray[uint32_t, ndim=1] _cell_index2mapping_array(
-        self,
-        uint32_t[::1] cell_indices,
-        int L,
-        int M,
-        int N,
-    ):return np.ravel(
-            np.flip(
-                np.reshape(cell_indices, (N - 1, M - 1, L - 1)),
-                axis=1,
-            )
+    cdef ndarray[uint32_t, ndim=1] _cell_index2mapping_array(self, uint32_t[::1] cell_indices, int L, int M, int N):
+        return np.ravel(
+            np.flip(np.reshape(cell_indices, (N - 1, M - 1, L - 1)), axis=1)
         )
 
 

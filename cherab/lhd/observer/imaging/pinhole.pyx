@@ -78,7 +78,6 @@ cdef class PinholeCamera(CCDArray):
             raise ValueError(
                 "pinhole_point must be a 2 element tuple defining the x and y position."
             )
-        x, y = pinhole_point
 
         self._pinhole_point = pinhole_point
 
