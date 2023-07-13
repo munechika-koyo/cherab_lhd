@@ -28,7 +28,7 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 # Plotting config.
-LINE_STYLE = {"color": "black", "linewidth": 0.5}
+LINE_STYLE = {"color": "black", "linewidth": 0.25}
 
 
 class EMC3Grid:
@@ -105,6 +105,26 @@ class EMC3Grid:
         L, M, N, num_cells = self._grid_config.values()
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
 
+    def __getitem__(self, item) -> NDArray[np.float64] | float:
+        """Return grid coordinates indexed by (l, m, n, rzphi).
+
+        Examples
+        --------
+        .. prompt:: python >>> auto
+
+            >>> grid = EMC3Grid("zone0")
+            >>> grid[0, 0, 0, :]  # (l=0, m=0, n=0)
+            array([3.593351e+00, 0.000000e+00, 0.000000e+00])  # (R, Z, phi) coordinates
+
+            >>> grid[:, -10, 0, :]  # (radial coords at m=-10, n=0)
+            array([[3.600000e+00, 0.000000e+00, 0.000000e+00],
+                   [3.593494e+00, 3.076000e-03, 0.000000e+00],
+                   [3.560321e+00, 1.875900e-02, 0.000000e+00],
+                   ...,
+                   [3.267114e+00, 1.573770e-01, 0.000000e+00]])
+        """
+        return self.grid_data[item]
+
     @property
     def hdf5_path(self) -> Path:
         """HDF5 dataset file path."""
@@ -141,7 +161,7 @@ class EMC3Grid:
     def grid_data(self) -> NDArray[np.float64]:
         """Raw Grid coordinates data array.
 
-        The dimension of array is 3D, shaping ``(L * M, 3, N)``.
+        The dimension of array is 4 dimension, shaping ``(L, M, N, 3)``.
         The coordinate is :math:`(R, Z, \\phi)`. :math:`\\phi` is in [degree].
 
         .. prompt:: python >>> auto
@@ -165,33 +185,6 @@ class EMC3Grid:
                       8.500000e+00,  8.750000e+00,  9.000000e+00]]])
         """
         return self._grid_data
-
-    def index(self, l: int, m: int, n: int) -> NDArray[np.float64]:
-        """Return grid coordinates indexed by (l, m, n).
-
-        Parameters
-        ----------
-        l
-            index of radial direction
-        m
-            index of poloidal direction
-        n
-            index of toroidal direction
-
-        Returns
-        -------
-        :obj:`~numpy.ndarray`
-            grid coordinates (3, ) array in :math:`(R, Z, \\phi)`.
-        """
-        L, M, N = self.shape
-
-        if not (0 <= l < L and 0 <= m < M and 0 <= n < N):
-            raise ValueError(
-                f"Invalid grid index (l, m, n) = ({l}, {m}, {n}). "
-                f"Each index must be in [0, {L}), [0, {M}), [0, {N})."
-            )
-
-        return self.grid_data[L * m + l, :, n]
 
     def generate_vertices(self) -> NDArray[np.float64]:
         """Generate grid vertices array. A `grid_data` array is converted to 2D
@@ -224,13 +217,13 @@ class EMC3Grid:
         vertices = np.zeros((L * M * N, 3), dtype=np.float64)
         grid = self._grid_data.view()
         for n in range(N):
-            phi = np.deg2rad(grid[0, 2, n])
             for m in range(M):
                 for l in range(L):
+                    phi = np.deg2rad(grid[l, m, n, 2])
                     row = M * L * n + L * m + l
-                    vertices[row, 0] = grid[L * m + l, 0, n] * np.cos(phi)
-                    vertices[row, 1] = grid[L * m + l, 0, n] * np.sin(phi)
-                    vertices[row, 2] = grid[L * m + l, 1, n]
+                    vertices[row, 0] = grid[l, m, n, 0] * np.cos(phi)
+                    vertices[row, 1] = grid[l, m, n, 0] * np.sin(phi)
+                    vertices[row, 2] = grid[l, m, n, 1]
 
         return vertices
 
@@ -336,8 +329,7 @@ class EMC3Grid:
 
         ax.set_aspect("equal")
 
-        L = self.grid_config["L"]
-        M = self.grid_config["M"]
+        L, M, _ = self.shape
 
         # plot radial line
         if self.zone in {"zone0", "zone11"}:
@@ -345,18 +337,17 @@ class EMC3Grid:
         else:
             num_pol = M
         for m in range(num_pol):
-            start = m * L
             ax.plot(
-                self.grid_data[start : start + L, 0, n_phi],
-                self.grid_data[start : start + L, 1, n_phi],
+                self.grid_data[:, m, n_phi, 0],
+                self.grid_data[:, m, n_phi, 1],
                 linewidth=line["linewidth"],
                 color=line["color"],
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
-                self.grid_data[l : L * M : L, 0, n_phi],
-                self.grid_data[l : L * M : L, 1, n_phi],
+                self.grid_data[l, :, n_phi, 0],
+                self.grid_data[l, :, n_phi, 1],
                 linewidth=line["linewidth"],
                 color=line["color"],
             )
@@ -367,7 +358,7 @@ class EMC3Grid:
         ax.text(
             rmin + (rmax - rmin) * 0.02,
             zmax - (zmax - zmin) * 0.02,
-            f"$\\phi=${self.grid_data[0, 2, n_phi]:.2f}$^\\circ$",
+            f"$\\phi=${self.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
             fontsize=10,
             va="top",
             bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
@@ -446,8 +437,7 @@ def plot_grids_rz(
 
     for zone in ZONES[zone_type]:
         emc = EMC3Grid(zone=zone)
-        L = emc.grid_config["L"]
-        M = emc.grid_config["M"]
+        L, M, _ = emc.shape
 
         # plot radial line
         if zone in {"zone0", "zone11"}:
@@ -455,18 +445,17 @@ def plot_grids_rz(
         else:
             num_pol = M
         for m in range(num_pol):
-            start = m * L
             ax.plot(
-                emc.grid_data[start : start + L, 0, n_phi],
-                emc.grid_data[start : start + L, 1, n_phi],
+                emc.grid_data[:, m, n_phi, 0],
+                emc.grid_data[:, m, n_phi, 1],
                 linewidth=line["linewidth"],
                 color=line["color"],
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
-                emc.grid_data[l : L * M : L, 0, n_phi],
-                emc.grid_data[l : L * M : L, 1, n_phi],
+                emc.grid_data[l, :, n_phi, 0],
+                emc.grid_data[l, :, n_phi, 1],
                 linewidth=line["linewidth"],
                 color=line["color"],
             )
@@ -477,7 +466,7 @@ def plot_grids_rz(
     ax.text(
         rmin + (rmax - rmin) * 0.02,
         zmax - (zmax - zmin) * 0.02,
-        f"$\\phi=${emc.grid_data[0, 2, n_phi]:.2f}$^\\circ$",
+        f"$\\phi=${emc.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
         fontsize=10,
         va="top",
         bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),

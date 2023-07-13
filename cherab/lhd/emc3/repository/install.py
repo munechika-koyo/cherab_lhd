@@ -58,23 +58,22 @@ def install_grids(
 
         # parse grid coords for each zone
         for zone in zones:
-
             # create zone group
             zone_group = grid_group.create_group(zone)
 
-            # parse number of grid resolution
+            # parse grid resolution
             line = file.readline()
-            L, M, N = [int(x) for x in line.split()]
+            L, M, N = [int(x) for x in line.split()]  # L: radial, M: poloidal, N: toroidal
 
             # number of table rows per r/z points
             num_rows = ceil(L * M / 6)
 
-            # radial grid resolution is increased by 1 because of adding magnetic axis point
+            # radial grid resolution is increased by 1 because of adding the magnetic axis point
             if zone in {"zone0", "zone11"}:
                 L += 1
 
-            # define grid array
-            grid = np.zeros((L * M, 3, N), dtype=np.float64)
+            # define grid array (4 dimension array)
+            grid = np.zeros((L, M, N, 3), dtype=np.float64)
 
             for n in range(N):
                 # parse toroidal angle
@@ -103,13 +102,14 @@ def install_grids(
                         z_coords.insert(index, 0.0)
                         index += L
 
-                # store coordinates into 3-D ndarray (r, z, phi)
-                grid[:, 0, n] = r_coords
-                grid[:, 1, n] = z_coords
-                grid[:, 2, n] = np.repeat(toroidal_angle, L * M)
+                # store coordinates into 4-D ndarray)
+                grid[:, :, n, 0] = np.reshape(r_coords, (L, M), order="F")
+                grid[:, :, n, 1] = np.reshape(z_coords, (L, M), order="F")
+                grid[:, :, n, 2] = np.full((L, M), toroidal_angle)
 
             # save grid data as dataset
             if update is True:
+                sp.write(f"update {zone_group.name}/grids")
                 del zone_group["grids"]
             dset = zone_group.create_dataset(name="grids", data=grid)
 
@@ -118,6 +118,9 @@ def install_grids(
             dset.attrs["M"] = M
             dset.attrs["N"] = N
             dset.attrs["num_cells"] = (L - 1) * (M - 1) * (N - 1)
+            dset.attrs[
+                "shape description"
+            ] = "radial index, poloidal index, toroidal index, (r, z, phi) coordinates"
 
         # add attribution
         grid_group.attrs["magnetic axis (R, Z) [m]"] = (magnetic_axis_r, 0)
