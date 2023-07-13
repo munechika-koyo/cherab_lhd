@@ -51,8 +51,8 @@ so this documentation is gradually updated, and welcome your contribution.
         User Guide
         ^^^^^^^^^^
 
-        key concepts of CHERAB-LHD with useful tutorials.
         The user guide provides in-depth information on the
+        key concepts of CHERAB-LHD with useful tutorials.
 
         +++
 

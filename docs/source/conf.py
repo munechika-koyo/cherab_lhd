@@ -11,6 +11,9 @@
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
+
+from cherab.lhd import __file__ as lhd_file
 from cherab.lhd import __version__
 
 sys.path.insert(0, os.path.abspath("."))
@@ -40,6 +43,8 @@ extensions = [
     "sphinx_copybutton",
     "nbsphinx",
     "sphinx_design",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_codeautolink",
 ]
 
 default_role = "obj"
@@ -115,7 +120,7 @@ html_theme_options = {
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "cherab-lhd Documentation"
+html_title = "Cherab-LHD Documentation"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -123,7 +128,6 @@ html_title = "cherab-lhd Documentation"
 html_static_path = ["_static"]
 html_css_files = [
     "custom.css",
-    "gallery.css",
 ]
 
 # === Intersphinx configuration ===============================================
@@ -142,11 +146,6 @@ intersphinx_timeout = 10
 # === NB Sphinx configuration ============================================
 nbsphinx_allow_errors = True
 nbsphinx_prolog = """
-.. raw:: html
-
-    <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
-    <script>require=requirejs;</script>
-
 {% set docname = env.doc2path(env.docname, base=None) %}
 .. only:: html
 
@@ -155,8 +154,80 @@ nbsphinx_prolog = """
 
     .. note::
         This page was generated from `{{ docname }}`__.
-    __ https://github.com/munechika-koyo/cherab_lhd/docs/{{ docname }}
+    __ https://github.com/munechika-koyo/cherab_lhd/blob/main/docs/{{ docname }}
 """
 nbsphinx_thumbnails = {
-    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png"
+    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png",
+    "notebooks/observer/bolos_config": "_static/images/plotting/bolos_config.png",
 }
+
+# -----------------------------------------------------------------------------
+# Source code links
+# -----------------------------------------------------------------------------
+link_github = True
+# You can add build old with link_github = False
+
+if link_github:
+    import inspect
+
+    from packaging.version import parse
+
+    extensions.append("sphinx.ext.linkcode")
+
+    def linkcode_resolve(domain, info):
+        """Determine the URL corresponding to Python object."""
+        if domain != "py":
+            return None
+
+        modname = info["module"]
+        fullname = info["fullname"]
+
+        submod = sys.modules.get(modname)
+        if submod is None:
+            return None
+
+        obj = submod
+        for part in fullname.split("."):
+            try:
+                obj = getattr(obj, part)
+            except AttributeError:
+                return None
+
+        if inspect.isfunction(obj):
+            obj = inspect.unwrap(obj)
+        try:
+            fn = inspect.getsourcefile(obj)
+        except TypeError:
+            fn = None
+        if not fn or fn.endswith("__init__.py"):
+            try:
+                fn = inspect.getsourcefile(sys.modules[obj.__module__])
+            except (TypeError, AttributeError, KeyError):
+                fn = None
+        if not fn:
+            return None
+
+        try:
+            source, lineno = inspect.getsourcelines(obj)
+        except (OSError, TypeError):
+            lineno = None
+
+        linespec = f"#L{lineno:d}-L{lineno + len(source) - 1:d}" if lineno else ""
+
+        startdir = Path(lhd_file).parent.parent.parent
+        try:
+            fn = os.path.relpath(fn, start=startdir).replace(os.path.sep, "/")
+        except ValueError:
+            return None
+
+        if not fn.startswith(("cherab")):
+            return None
+
+        parse(__version__)
+        # tag is temporarily tied to main
+        tag = "main"
+        # tag = "main" if version.is_devrelease else f"v{version.public}"
+        return f"https://github.com/munechika-koyo/cherab_lhd/blob/{tag}/{fn}{linespec}"
+
+else:
+    extensions.append("sphinx.ext.viewcode")

@@ -5,6 +5,7 @@
 .. autoclass:: {{ objname }}
    :members:
    :show-inheritance:
+   :special-members: __call__, __getitem__
 
    {% block all_methods %}
 
@@ -13,7 +14,7 @@
 
    .. autosummary::
    {% for item in all_methods %}
-   {%- if not item.startswith('_') or item in ['__call__'] %}
+   {%- if not item.startswith('_') or item in ['__call__', '__getitem__'] %}
       ~{{ name }}.{{ item }}
    {% endif %}
    {%- endfor %}

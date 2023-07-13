@@ -25,14 +25,14 @@
    {% endif %}
    {% endblock %}
 
-   {% block classes %}
-   {% if classes %}
+   {% block all_classes %}
+   {% if all_classes %}
    .. rubric:: Classes
 
    .. autosummary::
       :toctree:
       :template: class.rst
-   {% for item in classes %}
+   {% for item in all_classes %}
       {{ item }}
    {%- endfor %}
    {% endif %}
