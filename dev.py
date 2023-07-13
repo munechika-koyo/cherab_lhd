@@ -143,8 +143,18 @@ def install_deps():
 @click.option(
     "--cell-filename", default="CELL_GEO", help="Cell index data text file name", show_default=True
 )
-def install_emc3_data(data_dir: str, grid_filename: str, cell_filename: str):
-    """Install EMC3-EIRENE-related data including grids, indices, calculated data, etc.
+@click.option(
+    "--store-dir",
+    default="~/.cherab/lhd/",
+    help="Relative directory path to store the data",
+    show_default=True,
+)
+@click.option("--overwrite", is_flag=True, help="Overwrite the existing data", show_default=True)
+def install_emc3_data(
+    data_dir: str, grid_filename: str, cell_filename: str, store_dir: str, overwrite: bool
+):
+    """Install EMC3-EIRENE-related data including grids, indices, calculated data, etc. as a
+    `emc3.hdf5` HDF5 file.
 
     This command should be excuted before using EMC3-related features if EMC3's HDF5 dataset does
     not been constructed. Note that it is only available after installing cherab-lhd.
@@ -159,9 +169,13 @@ def install_emc3_data(data_dir: str, grid_filename: str, cell_filename: str):
         raise ImportError("cherab.lhd must be installed in advance.") from err
 
     # install grids
-    install_grids(Path(data_dir) / grid_filename)
-    install_cell_index(Path(data_dir) / cell_filename)
-    install_data(Path(data_dir))
+    install_grids(
+        Path(data_dir) / grid_filename, Path(store_dir).expanduser() / "emc3.hdf5", update=overwrite
+    )
+    install_cell_index(
+        Path(data_dir) / cell_filename, Path(store_dir).expanduser() / "emc3.hdf5", update=overwrite
+    )
+    install_data(Path(data_dir), Path(store_dir).expanduser() / "emc3.hdf5")
 
 
 ############
