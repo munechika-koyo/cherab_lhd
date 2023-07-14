@@ -201,7 +201,7 @@ def install_cell_index(
                 indices = np.concatenate(
                     (indices_temp[0, ...][np.newaxis, :, :], indices_temp), axis=0
                 )
-
+                L += 1
                 start += num_cells
             else:
                 # extract indices for each zone and reshape it to 3-D array
