@@ -108,7 +108,7 @@ def install_grids(
                 grid[:, :, n, 2] = np.full((L, M), toroidal_angle)
 
             # save grid data as dataset
-            if update is True:
+            if update is True and "grids" in zone_group:
                 sp.write(f"update {zone_group.name}/grids")
                 del zone_group["grids"]
             dset = zone_group.create_dataset(name="grids", data=grid)
@@ -167,7 +167,7 @@ def install_cell_index(
             raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
 
         # Load cell index from text file starting from zero for c language index format
-        indices = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
+        indices_raw = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
 
         # extract and sort zone keys
         zones = [key for key in grid_group.keys() if "zone" in key]
@@ -175,35 +175,52 @@ def install_cell_index(
 
         start = 0
         for zone in zones:
-            zone_group = grid_group[zone]
+            zone_group = grid_group.get(zone)
             num_cells: int = zone_group["grids"].attrs["num_cells"]
             L: int = zone_group["grids"].attrs["L"]
             M: int = zone_group["grids"].attrs["M"]
             N: int = zone_group["grids"].attrs["N"]
 
+            # create index group
+            if "index" not in zone_group:
+                index_group = zone_group.create_group("index")
+            else:
+                index_group = zone_group.get("index")
+
             if zone in {"zone0", "zone11"}:
                 L -= 1
                 num_cells = (L - 1) * (M - 1) * (N - 1)
-                index_array = indices[start : start + num_cells]
-                values = np.zeros((N - 1) * (M - 1))
-                insert_indices = np.zeros((N - 1) * (M - 1), dtype=int)
-                j = 0
-                for n in range(N - 1):
-                    for m in range(M - 1):
-                        i = n * (M - 1) * (L - 1) + m * (L - 1)
-                        insert_indices[j] = i
-                        values[j] = index_array[i]
-                        j += 1
 
-                index_array = np.insert(index_array, insert_indices, values)
+                # extract indices for each zone and reshape it to 3-D array
+                indices_temp = indices_raw[start : start + num_cells].reshape(
+                    (L - 1, M - 1, N - 1), order="F"
+                )
+
+                # insert dummy indices for around magnetic axis region.
+                # inserted indeces are duplicated from the first index of radial direction.
+                indices = np.concatenate(
+                    (indices_temp[0, ...][np.newaxis, :, :], indices_temp), axis=0
+                )
+
                 start += num_cells
             else:
-                index_array = indices[start : start + num_cells]
+                # extract indices for each zone and reshape it to 3-D array
+                indices = indices_raw[start : start + num_cells].reshape(
+                    (L - 1, M - 1, N - 1), order="F"
+                )
                 start += num_cells
 
-            if update is True:
-                del zone_group["index"]
-            zone_group.create_dataset(name="index", data=index_array)
+            if update is True and "physics" in index_group:
+                sp.write(f"update {index_group.name}/physics")
+                del index_group["physics"]
+            ds = index_group.create_dataset(name="physics", data=indices)
+
+            # save attribution information
+            ds.attrs["description"] = "used to plot EMC3-calculated data"
+            ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
+            ds.attrs["L"] = L - 1
+            ds.attrs["M"] = M - 1
+            ds.attrs["N"] = N - 1
 
         # save number of cells data
         with path.open(mode="r") as file:
