@@ -161,21 +161,30 @@ def install_emc3_data(
     """
     try:
         from cherab.lhd.emc3.repository.install import (
-            install_cell_index,
+            install_cell_indices,
             install_data,
             install_grids,
+            install_physical_cell_indices,
         )
     except Exception as err:
         raise ImportError("cherab.lhd must be installed in advance.") from err
 
     # install grids
     install_grids(
-        Path(data_dir) / grid_filename, Path(store_dir).expanduser() / "emc3.hdf5", update=overwrite
+        Path(data_dir) / grid_filename,
+        hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
     )
-    install_cell_index(
-        Path(data_dir) / cell_filename, Path(store_dir).expanduser() / "emc3.hdf5", update=overwrite
+    install_physical_cell_indices(
+        Path(data_dir) / cell_filename,
+        hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
     )
-    install_data(Path(data_dir), Path(store_dir).expanduser() / "emc3.hdf5")
+    install_cell_indices(
+        hdf5_path= Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
+    )
+    install_data(Path(data_dir), hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5")
 
 
 ############

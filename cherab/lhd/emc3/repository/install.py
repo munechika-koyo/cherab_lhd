@@ -12,7 +12,7 @@ from ...tools.spinner import Spinner
 from .parse import DataParser
 from .utility import DEFAULT_HDF5_PATH, exist_path_validate, path_validate
 
-__all__ = ["install_grids", "install_cell_index"]
+__all__ = ["install_grids", "install_cell_indices", "install_physical_cell_indices", "install_data"]
 
 
 def install_grids(
@@ -128,7 +128,7 @@ def install_grids(
         sp.ok()
 
 
-def install_cell_index(
+def install_physical_cell_indices(
     path: Path | str,
     hdf5_path: Path | str = DEFAULT_HDF5_PATH,
     grid_group_name: str = "grid-360",
@@ -137,8 +137,8 @@ def install_cell_index(
     """Reconstruct physical cell indices and install it to a HDF5 file.
 
     EMC3-EIRENE has numerous geometric cells, each of which forms a cubic-like shape with 8 vetices
-    in each zones.
-    To identify each cell, an index number called 'physical index' is allocated to each cell.
+    in each zones. Several integrated cells, what is called ``physical cell``, are defined where the
+    same physical quantities are calculated.
     Here such indices are parsed from text file and save them into an HDF5 file in each zone group.
 
     Parameters
@@ -158,7 +158,7 @@ def install_cell_index(
 
     # start spinner and open HDF5 file
     with (
-        Spinner(text=f"install cell index data from {path.stem}...") as sp,
+        Spinner(text=f"install physical cell indices data from {path.stem}...") as sp,
         h5py.File(hdf5_path, mode="r+") as h5file,
     ):
         # obtain grid group
@@ -216,7 +216,7 @@ def install_cell_index(
             ds = index_group.create_dataset(name="physics", data=indices)
 
             # save attribution information
-            ds.attrs["description"] = "used to plot EMC3-calculated data"
+            ds.attrs["description"] = "for EMC3-calculated data"
             ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
             ds.attrs["L"] = L - 1
             ds.attrs["M"] = M - 1
@@ -228,6 +228,88 @@ def install_cell_index(
         grid_group.attrs["num_total"] = num_total
         grid_group.attrs["num_plasma"] = num_plasma
         grid_group.attrs["num_plasma_vac"] = num_plasma_vac
+
+        sp.ok()
+
+
+def install_cell_indices(
+    hdf5_path: Path | str = DEFAULT_HDF5_PATH,
+    grid_group_name: str = "grid-360",
+    update: bool = False,
+) -> None:
+    """Create EMC3-EIRENE geometry cell indices and install it to a HDF5 file.
+
+    EMC3-EIRENE has numerous geometric cells, each of which forms a cubic-like shape with 8 vetices
+    in each zones.
+    To identify each cell, an index number is allocated to each cell.
+    Each number of an index is uneaque in all zones where plasma exists, so targeted zone labels are
+    ``zone0`` - ``zone4`` and ``zone11`` - ``zone15``.
+    The index data is saved into an HDF5 file in each zone group.
+
+    Parameters
+    ----------
+    hdf5_path
+        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
+    grid_group_name
+        name of grid group in the HDF5 file, by default ``grid-360``.
+    update
+        whether or not to update/override dataset, by default False
+    """
+    # validate parameters
+    hdf5_path = path_validate(hdf5_path)
+
+    # start spinner and open HDF5 file
+    with (
+        Spinner(text="create and install cell indices...") as sp,
+        h5py.File(hdf5_path, mode="r+") as h5file,
+    ):
+        # obtain grid group
+        grid_group = h5file.get(grid_group_name)
+        if grid_group is None:
+            raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
+
+        # define zones
+        zones = [
+            "zone0",
+            "zone1",
+            "zone2",
+            "zone3",
+            "zone4",
+            "zone11",
+            "zone12",
+            "zone13",
+            "zone14",
+            "zone15",
+        ]
+
+        start = 0
+        for zone in zones:
+            zone_group = grid_group.get(zone)
+            num_cells: int = zone_group["grids"].attrs["num_cells"]
+            L: int = zone_group["grids"].attrs["L"]
+            M: int = zone_group["grids"].attrs["M"]
+            N: int = zone_group["grids"].attrs["N"]
+
+            # create index group
+            if "index" not in zone_group:
+                index_group = zone_group.create_group("index")
+            else:
+                index_group = zone_group.get("index")
+
+            # create cell index array
+            indices = np.arange(start, start + num_cells).reshape((L - 1, M - 1, N - 1), order="F")
+
+            if update is True and "cell" in index_group:
+                sp.write(f"update {index_group.name}/cell")
+                del index_group["cell"]
+            ds = index_group.create_dataset(name="cell", data=indices)
+
+            # save attribution information
+            ds.attrs["description"] = "fine cell index"
+            ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
+            ds.attrs["L"] = L - 1
+            ds.attrs["M"] = M - 1
+            ds.attrs["N"] = N - 1
 
         sp.ok()
 
