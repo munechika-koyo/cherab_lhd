@@ -102,7 +102,7 @@ class EMC3CenterGrids:
         L, M, N, total = self._grid_config.values()
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, total: {total})"
 
-    def __getitem__(self, item) -> NDArray[np.float64] | float:
+    def __getitem__(self, item: slice) -> NDArray[np.float64] | float:
         """Return center grid coordinates indexed by (l, m, n, xyz).
 
         Examples

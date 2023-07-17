@@ -105,7 +105,7 @@ class EMC3Grid:
         L, M, N, num_cells = self._grid_config.values()
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
 
-    def __getitem__(self, item) -> NDArray[np.float64] | float:
+    def __getitem__(self, item: slice) -> NDArray[np.float64] | float:
         """Return grid coordinates indexed by (l, m, n, rzphi).
 
         Examples
