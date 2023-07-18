@@ -3,7 +3,7 @@ requires = [
     "wheel",
     "numpy",
     "meson-python >= 0.13",
-    "cython==3.0.0rc1",
+    "cython >= 3.0",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
@@ -69,7 +69,7 @@ dev = [
     "rich-click",
     "cython-lint",
     "pre-commit",
-    "cython==3.0.0rc1",
+    "cython >= 3.0",
     "meson-python >= 0.13",
     "setuptools",      # added untill meson-python comes to allow the editable install
 ]
