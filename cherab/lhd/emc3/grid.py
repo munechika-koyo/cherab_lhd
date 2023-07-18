@@ -15,7 +15,7 @@ from ..tools.visualization import set_axis_properties
 from .cython import tetrahedralize
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
-__all__ = ["EMC3Grid", "plot_grids_rz", "install_tetra_meshes"]
+__all__ = ["Grid", "plot_grids_rz", "install_tetra_meshes"]
 
 ZONES = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
@@ -31,11 +31,12 @@ ZMAX = 1.6
 LINE_STYLE = {"color": "black", "linewidth": 0.25}
 
 
-class EMC3Grid:
-    """Grid vertices and cell indices generation of EMC3-EIRENE.
+class Grid:
+    """Class for dealing with grid coordinates defined by EMC3-EIRENE.
 
-    This class offers methods to produce EMC3 grid vertices in :math:`(X, Y, Z)` coordinates and
-    cell indices representing a cubic-like mesh with 8 vertices.
+    This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z, \\varphi)`,
+    and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
+    their indices, which a ``cell'' means a cubic-like mesh with 8 vertices.
     Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
     instance is also implemented.
 
@@ -59,11 +60,11 @@ class EMC3Grid:
     --------
     .. prompt:: python >>> auto
 
-        >>> grid = EMC3Grid("zone0")
+        >>> grid = Grid("zone0")
         >>> grid
-        EMC3Grid(zone='zone0', grid_group='grid-360')
+        Grid(zone='zone0', grid_group='grid-360')
         >>> str(grid)
-        'EMC3Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
+        'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(
@@ -108,11 +109,14 @@ class EMC3Grid:
     def __getitem__(self, item: slice) -> NDArray[np.float64] | float:
         """Return grid coordinates indexed by (l, m, n, rzphi).
 
+        Returned grid coordinates are in :math:`(R, Z, \\varphi)` which can be specified by
+        ``l``: radial, ``m``: poloidal, ``n``: torodial indices.
+
         Examples
         --------
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> grid[0, 0, 0, :]  # (l=0, m=0, n=0)
             array([3.593351e+00, 0.000000e+00, 0.000000e+00])  # (R, Z, phi) coordinates
 
@@ -151,7 +155,7 @@ class EMC3Grid:
 
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> grid.grid_config
             {'L': 82, 'M': 601, 'N': 37, 'num_cells': 1749600}
         """
@@ -166,7 +170,7 @@ class EMC3Grid:
 
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> grid.grid_data.shape
             (82, 601, 37, 3)
             >>> grid.grid_data
@@ -194,7 +198,7 @@ class EMC3Grid:
 
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> verts = grid.generate_vertices()
             >>> verts.shape
             (1823434, 3)
@@ -235,7 +239,7 @@ class EMC3Grid:
 
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> cells = grid.generate_cell_indices()
             >>> cells.shape
             (1749600, 8)
@@ -299,7 +303,7 @@ class EMC3Grid:
 
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3Grid("zone0")
+            >>> grid = Grid("zone0")
             >>> grid.plot()
 
         .. image:: ../_static/images/plotting/grid_zone0.png
@@ -430,7 +434,7 @@ def plot_grids_rz(
     zone_type -= 1
 
     for zone in ZONES[zone_type]:
-        emc = EMC3Grid(zone=zone)
+        emc = Grid(zone=zone)
         L, M, _ = emc.shape
 
         # plot radial line
@@ -497,8 +501,8 @@ def install_tetra_meshes(
         path to the directory to save TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
     update
         whether or not to update existing TetraMesh .rsm file, by default True
-    **kwargs : :obj:`.EMC3Grid` properties, optional
-        *kwargs* are used to specify :obj:`.EMC3Grid` properties except for ``zone`` argument.
+    **kwargs : :obj:`.Grid` properties, optional
+        *kwargs* are used to specify :obj:`.Grid` properties except for ``zone`` argument.
     """
     if isinstance(tetra_mesh_path, (Path, str)):
         tetra_mesh_path = Path(tetra_mesh_path)
@@ -520,7 +524,7 @@ def install_tetra_meshes(
                 continue
 
             # Load EMC3 grid
-            emc = EMC3Grid(zone, **kwargs)
+            emc = Grid(zone, **kwargs)
 
             # prepare vertices and tetrahedral indices
             vertices = emc.generate_vertices()
@@ -537,5 +541,5 @@ def install_tetra_meshes(
 
 if __name__ == "__main__":
     # debug
-    grid = EMC3Grid("zone0")
+    grid = Grid("zone0")
     pass

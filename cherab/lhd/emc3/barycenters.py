@@ -7,12 +7,14 @@ from numpy.typing import NDArray
 
 from ..tools.spinner import Spinner
 from .cython import tetrahedralize
-from .grid import EMC3Grid
+from .grid import Grid
 from .repository.utility import DEFAULT_HDF5_PATH
 
+__all__ = ["CenterGrids"]
 
-class EMC3CenterGrids:
-    """Class for dealing with barycenters of variouse EMC3-EIRENE-based volume.
+
+class CenterGrids:
+    """Class for dealing with barycenter coordinates of variouse EMC3-EIRENE-based volume.
 
     One EMC3 cell is divided to six tetrahedra and the center point of each cell is defined
     as the avarage of the six tetrahedra's barycenters.
@@ -41,11 +43,11 @@ class EMC3CenterGrids:
     --------
     .. prompt:: python >>> auto
 
-        >>> grid = EMC3CenterGrids("zone0", index="cell")
+        >>> grid = CenterGrids("zone0", index="cell")
         >>> grid
-        EMC3CenterGrids(zone='zone0', index='cell', grid_group='grid-360')
+        CenterGrids(zone='zone0', index='cell', grid_group='grid-360')
         >>> str(grid)
-        'EMC3CenterGrids with cell index (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
+        'CenterGrids with cell index (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(
@@ -109,7 +111,7 @@ class EMC3CenterGrids:
         --------
         .. prompt:: python >>> auto
 
-            >>> grid = EMC3CenterGrids("zone0")
+            >>> grid = CenterGrids("zone0")
             >>> grid[0, 0, 0, :]  # (l=0, m=0, n=0)
             array([ 3.59664909e+00,  7.84665944e-03, -5.75750000e-04])  # (x, y, z)
 
@@ -190,7 +192,7 @@ class EMC3CenterGrids:
                     L, M, N = indices.shape
 
             # generate vertices, cells and tetrahedra
-            grid = EMC3Grid(zone, grid_group=grid_group)
+            grid = Grid(zone, grid_group=grid_group)
             vertices = grid.generate_vertices()
             cells = grid.generate_cell_indices()
             tetrahedra = tetrahedralize(cells)
