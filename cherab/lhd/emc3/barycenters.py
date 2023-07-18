@@ -111,10 +111,13 @@ class EMC3CenterGrids:
 
             >>> grid = EMC3CenterGrids("zone0")
             >>> grid[0, 0, 0, :]  # (l=0, m=0, n=0)
-            TODO: add  # (X, Y, Z) coordinates
+            array([ 3.59664909e+00,  7.84665944e-03, -5.75750000e-04])  # (x, y, z)
 
             >>> grid[:, -10, 0, :]  # (radial coords at m=-10, n=0)
-            TODO: add
+            array([[3.59672601e+00, 7.84684125e-03, 1.13558333e-03],
+                   [3.57695347e+00, 7.80372411e-03, 1.03814167e-02],
+                   ...
+                   [3.26883531e+00, 7.13347363e-03, 1.63643583e-01]])
         """
         return self.grid_data[item]
 
@@ -169,7 +172,7 @@ class EMC3CenterGrids:
         Returns
         -------
         tuple[NDArray[np.float64], int, int, int]
-            The center grids for the given zone.
+            The center grids for the given zone. Each tuple element is: (grids array, L, M, N).
         """
         with Spinner(f"Generating center points of {zone}'s cells...", timer=True) as sp:
 
