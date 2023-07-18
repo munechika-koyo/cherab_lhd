@@ -212,18 +212,16 @@ class Grid:
                    [ 3.04060646,  0.48158475, -0.065439  ]])
         """
         L, M, N = self.shape
-        vertices = np.zeros((L * M * N, 3), dtype=np.float64)
-        grid = self._grid_data.view()
-        for n in range(N):
-            for m in range(M):
-                for l in range(L):
-                    phi = np.deg2rad(grid[l, m, n, 2])
-                    row = M * L * n + L * m + l
-                    vertices[row, 0] = grid[l, m, n, 0] * np.cos(phi)
-                    vertices[row, 1] = grid[l, m, n, 0] * np.sin(phi)
-                    vertices[row, 2] = grid[l, m, n, 1]
+        vertices = np.zeros_like(self._grid_data)
+        grid = self._grid_data
 
-        return vertices
+        for n in range(N):
+            phi = np.deg2rad(grid[0, 0, n, 2])
+            vertices[:, :, n, 0] = grid[:, :, n, 0] * np.cos(phi)
+            vertices[:, :, n, 1] = grid[:, :, n, 0] * np.sin(phi)
+            vertices[:, :, n, 2] = grid[:, :, n, 1]
+
+        return vertices.reshape((L * M * N, 3), order="F")
 
     def generate_cell_indices(self) -> NDArray[np.uint32]:
         """Generate cell indices array.
