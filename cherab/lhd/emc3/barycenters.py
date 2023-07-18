@@ -199,11 +199,11 @@ class EMC3CenterGrids:
                     for k in tetrahedra[j, :]:
                         verts[i] += vertices[k, :]
 
-                # divide by 6 x 4 for one cell
-                verts[i] /= 24
+            # divide by 6 x 4 for one cell
+            verts /= 24
 
             # convert 1-D to 4-D array
-            verts = verts.reshape((L, M, N, 3))
+            verts = verts.reshape((L, M, N, 3), order="F")
 
             # reconstruct centers considering indexing way
             # TODO: implement other indexing ways
