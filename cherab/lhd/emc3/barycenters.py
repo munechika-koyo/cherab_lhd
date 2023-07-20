@@ -1,5 +1,6 @@
 """A module that handles barycenters derived from EMC3-EIRENE grids."""
 from pathlib import Path
+from types import EllipsisType
 
 import h5py
 import numpy as np
@@ -104,7 +105,9 @@ class CenterGrids:
         L, M, N, total = self._grid_config.values()
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, total: {total})"
 
-    def __getitem__(self, item: slice) -> NDArray[np.float64] | float:
+    def __getitem__(
+        self, key: int | slice | EllipsisType | tuple[int | slice | EllipsisType, ...] | NDArray
+    ) -> NDArray[np.float64] | float:
         """Return center grid coordinates indexed by (l, m, n, xyz).
 
         Examples
@@ -121,7 +124,7 @@ class CenterGrids:
                    ...
                    [3.26883531e+00, 7.13347363e-03, 1.63643583e-01]])
         """
-        return self.grid_data[item]
+        return self.grid_data[key]
 
     @property
     def zone(self) -> str:
@@ -177,8 +180,7 @@ class CenterGrids:
             The center grids for the given zone. Each tuple element is: (grids array, L, M, N).
         """
         with Spinner(f"Generating center points of {zone}'s cells...", timer=True) as sp:
-
-        # retrieve cell indexing array from HDF5 file
+            # retrieve cell indexing array from HDF5 file
             with h5py.File(DEFAULT_HDF5_PATH, mode="r") as h5file:
                 # get index group
                 index_group = h5file[f"{grid_group}/{zone}/index"]

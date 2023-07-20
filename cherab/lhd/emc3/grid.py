@@ -1,5 +1,6 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
 from pathlib import Path
+from types import EllipsisType
 from typing import Any
 
 import h5py
@@ -106,7 +107,9 @@ class Grid:
         L, M, N, num_cells = self._grid_config.values()
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
 
-    def __getitem__(self, item: slice) -> NDArray[np.float64] | float:
+    def __getitem__(
+        self, key: int | slice | EllipsisType | tuple[int | slice | EllipsisType, ...] | NDArray
+    ) -> NDArray[np.float64] | float:
         """Return grid coordinates indexed by (l, m, n, rzphi).
 
         Returned grid coordinates are in :math:`(R, Z, \\varphi)` which can be specified by
@@ -127,7 +130,7 @@ class Grid:
                    ...,
                    [3.267114e+00, 1.573770e-01, 0.000000e+00]])
         """
-        return self.grid_data[item]
+        return self.grid_data[key]
 
     @property
     def hdf5_path(self) -> Path:
