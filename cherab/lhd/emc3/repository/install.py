@@ -297,7 +297,9 @@ def install_cell_indices(
                 index_group = zone_group.get("index")
 
             # create cell index array
-            indices = np.arange(start, start + num_cells).reshape((L - 1, M - 1, N - 1), order="F")
+            indices = np.arange(start, start + num_cells, dtype=np.uint32).reshape(
+                (L - 1, M - 1, N - 1), order="F"
+            )
 
             if update is True and "cell" in index_group:
                 sp.write(f"update {index_group.name}/cell")
