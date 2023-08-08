@@ -8,6 +8,7 @@ from numbers import Real
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.colors import CenteredNorm, Normalize
 from matplotlib.figure import Figure
 from matplotlib.ticker import AutoLocator, AutoMinorLocator, MultipleLocator, ScalarFormatter
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
@@ -42,6 +43,7 @@ def show_profile_phi_degs(
     vmin: float | None = 0.0,
     clabel: str | None = None,
     cmap: str = "plasma",
+    centerednorm: bool = False,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
     """
@@ -180,6 +182,11 @@ def show_profile_phi_degs(
     elif vmin >= vmax:
         raise ValueError(f"vmin: {vmin} must be less than vmax: {vmax}.")
 
+    if centerednorm:
+        norm = CenteredNorm(halfrange=max(abs(vmax), abs(vmin)))
+    else:
+        norm = Normalize(vmin=vmin, vmax=vmax)
+
     # r, z grids
     r_pts = np.linspace(rmin, rmax, nr)
     z_pts = np.linspace(zmin, zmax, nz)
@@ -188,7 +195,7 @@ def show_profile_phi_degs(
 
         # mapping
         mappable = grids[i].pcolormesh(
-            r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
+            r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", norm=norm
         )
 
         # annotation of toroidal angle
@@ -423,7 +430,7 @@ def _worker1(
     job_queue: Queue,
     profiles: dict,
 ) -> None:
-    """worker process to generate sampled & masked profiles."""
+    """Worker process to generate sampled & masked profiles."""
     while not job_queue.empty():
         try:
             # extract a task
@@ -446,7 +453,7 @@ def _worker2(
     job_queue: Queue,
     profiles: dict,
 ) -> None:
-    """worker process to generate sampled & masked profiles."""
+    """Worker process to generate sampled & masked profiles."""
     while not job_queue.empty():
         try:
             # extract a task
@@ -468,7 +475,7 @@ def _sampler(
     r_range: tuple[float, float, int],
     z_range: tuple[float, float, int],
 ) -> np.ndarray:
-    """sampler for function at any toroidal angle."""
+    """Sampler for function at any toroidal angle."""
     # sampling
     _, _, sampled = sample3d_rz(func, r_range, z_range, phi_deg)
 
