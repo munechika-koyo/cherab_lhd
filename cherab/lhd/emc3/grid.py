@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from numpy.typing import NDArray
 from raysect.primitive.mesh import TetraMesh
 
+from ..machine.wall import adjacent_toroidal_angles, periodic_toroidal_angle
 from ..tools.spinner import Spinner
 from ..tools.visualization import set_axis_properties
 from .cython import tetrahedralize
@@ -279,8 +280,8 @@ class Grid:
         ax: Axes | None = None,
         n_phi: int = 0,
         rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-        line: dict[str, Any] = LINE_STYLE,
-    ):
+        linestyle: dict[str, Any] = LINE_STYLE,
+    ) -> tuple[Figure, Axes]:
         """Plotting EMC3-EIRENE-defined grids in :math:`r - z` plane.
 
         Parameters
@@ -294,8 +295,8 @@ class Grid:
         rz_range
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
             by default ``(2.0, 5.5, -1.6, 1.6)``
-        line
-            line style, by default ``{"color": "black", "linewidth": 0.5}``
+        linestyle
+            line style, by default ``{"color": "black", "linewidth": 0.25}``
 
         Returns
         -------
@@ -314,11 +315,11 @@ class Grid:
             raise ValueError("Invalid rz_range")
 
         # set default line style
-        if not isinstance(line, dict):
-            raise TypeError("line must be a dict")
+        if not isinstance(linestyle, dict):
+            raise TypeError("linestyle must be a dict")
 
-        line.setdefault("color", "black")
-        line.setdefault("linewidth", 0.5)
+        linestyle.setdefault("color", "black")
+        linestyle.setdefault("linewidth", 0.5)
 
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
@@ -339,16 +340,14 @@ class Grid:
             ax.plot(
                 self.grid_data[:, m, n_phi, 0],
                 self.grid_data[:, m, n_phi, 1],
-                linewidth=line["linewidth"],
-                color=line["color"],
+                **linestyle
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
                 self.grid_data[l, :, n_phi, 0],
                 self.grid_data[l, :, n_phi, 1],
-                linewidth=line["linewidth"],
-                color=line["color"],
+                **linestyle
             )
 
         ax.set_xlim(rmin, rmax)
@@ -368,6 +367,121 @@ class Grid:
 
         return (fig, ax)
 
+    def plot_outline(
+        self,
+        phi: float = 0.0,
+        fig: Figure | None = None,
+        ax: Axes | None = None,
+        linestyle: dict[str, Any] = LINE_STYLE,
+        show_phi: bool = True,
+    ) -> tuple[Figure, Axes]:
+        """Plotting EMC3-EIRENE-defined grid outline in :math:`r - z` plane.
+
+        This method allows users to plot grid outline at a specific toroidal angle :math:`\\varphi`.
+        The toroidal angle is arbitrary, where the grid outline is calculated by linear interpolation
+        between two nearest toroidal grids.
+
+        Parameters
+        ----------
+        phi
+            toroidal grid in [degree], by default 0.0
+        fig
+            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
+        ax
+            matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        linestyle
+            line style, by default ``{"color": "black", "linewidth": 0.25}``
+        show_phi
+            show toroidal angle text in the plot, by default True
+
+        Returns
+        -------
+            tuple of matplotlib figure and axes object
+
+
+        .. prompt:: python >>> auto
+
+            >>> grid = Grid("zone0")
+            >>> grid.plot_outline(4.2)
+
+        .. image:: ../_static/images/plotting/grid_zone0_outline.png
+        """
+        # === Parameters validation ================================================================
+        if not isinstance(linestyle, dict):
+            raise TypeError("linestyle must be a dict")
+
+        # === generate interpolated grids ==========================================================
+        # put phi in [0, 18) range
+        phi_t, fliped = periodic_toroidal_angle(phi)
+
+        phi_range = self.grid_data[0, 0, 0, 2], self.grid_data[0, 0, -1, 2]
+        if phi_t < phi_range[0] or phi_t > phi_range[1]:
+            raise ValueError(f"toroidal angle {phi_t} is out of grid range {phi_range}.")
+
+        # find adjacent phis
+        phi_left_index, phi_right_index = adjacent_toroidal_angles(
+            phi_t, self.grid_data[0, 0, :, 2]
+        )
+
+        # load rz grids at adjacent phis
+        grid_left = self.grid_data[:, :, phi_left_index, :2]
+        grid_right = self.grid_data[:, :, phi_right_index, :2]
+
+        # fliped value for z axis
+        if fliped:
+            grid_left[:, :, 1] *= -1
+            grid_right[:, :, 1] *= -1
+
+        # linearly interpolate grid
+        phi_left = self.grid_data[0, 0, phi_left_index, 2]
+        phi_right = self.grid_data[0, 0, phi_right_index, 2]
+        grid = ((phi_t - phi_left) * grid_right + (phi_right - phi_t) * grid_left) / (
+            phi_right - phi_left
+        )
+
+        # === plotting =============================================================================
+        # set default line style
+        linestyle.setdefault("color", "black")
+        linestyle.setdefault("linewidth", 0.5)
+
+        if not isinstance(ax, Axes):
+            if not isinstance(fig, Figure):
+                fig, ax = plt.subplots(dpi=200)
+            else:
+                ax = fig.add_subplot()
+
+        ax.set_aspect("equal")
+
+        # plot outline (last poloidal line)
+        ax.plot(grid[-1, :, 0], grid[-1, :, 1], **linestyle)
+
+        if self.zone not in {"zone0", "zone11"}:
+            # plot first poloidal line
+            ax.plot(grid[0, :, 0], grid[0, :, 1], **linestyle)
+
+            # plot first/last radial lines
+            ax.plot(grid[:, 0, 0], grid[:, 0, 1], **linestyle)
+            ax.plot(grid[:, -1, 0], grid[:, -1, 1], **linestyle)
+
+
+        if show_phi:
+            rmin, rmax = ax.get_xlim()
+            zmin, zmax = ax.get_ylim()
+
+            ax.text(
+                rmin + (rmax - rmin) * 0.02,
+                zmax - (zmax - zmin) * 0.02,
+                f"$\\phi=${phi:.2f}$^\\circ$",
+                fontsize=10,
+                va="top",
+                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+            )
+        set_axis_properties(ax)
+        ax.set_xlabel("R[m]")
+        ax.set_ylabel("Z[m]")
+
+        return (fig, ax)
+
 
 def plot_grids_rz(
     fig: Figure | None = None,
@@ -375,7 +489,7 @@ def plot_grids_rz(
     zone_type: int = 1,
     n_phi: int = 0,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-    line: dict[str, Any] = LINE_STYLE,
+    linestyle: dict[str, Any] = LINE_STYLE,
 ) -> tuple[Figure, Axes]:
     """Plotting EMC-EIRENE-defined grids in :math:`r - z` plane.
 
@@ -395,8 +509,8 @@ def plot_grids_rz(
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
-    line
-        line style, by default ``{"color": "black", "linewidth": 0.5}``
+    linestyle
+        line style, by default ``{"color": "black", "linewidth": 0.25}``
 
     Returns
     -------
@@ -415,11 +529,11 @@ def plot_grids_rz(
         raise ValueError("Invalid rz_range")
 
     # set default line style
-    if not isinstance(line, dict):
-        raise TypeError("line must be a dict")
+    if not isinstance(linestyle, dict):
+        raise TypeError("linestyle must be a dict")
 
-    line.setdefault("color", "black")
-    line.setdefault("linewidth", 0.5)
+    linestyle.setdefault("color", "black")
+    linestyle.setdefault("linewidth", 0.5)
 
     if not isinstance(ax, Axes):
         if not isinstance(fig, Figure):
@@ -447,16 +561,14 @@ def plot_grids_rz(
             ax.plot(
                 emc.grid_data[:, m, n_phi, 0],
                 emc.grid_data[:, m, n_phi, 1],
-                linewidth=line["linewidth"],
-                color=line["color"],
+                **linestyle
             )
         # plot poloidal line
         for l in range(L):
             ax.plot(
                 emc.grid_data[l, :, n_phi, 0],
                 emc.grid_data[l, :, n_phi, 1],
-                linewidth=line["linewidth"],
-                color=line["color"],
+                **linestyle
             )
 
     ax.set_xlim(rmin, rmax)
