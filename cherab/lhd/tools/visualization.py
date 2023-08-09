@@ -44,6 +44,7 @@ def show_profile_phi_degs(
     clabel: str | None = None,
     cmap: str = "plasma",
     centerednorm: bool = False,
+    show_phi: bool = True,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
     """
@@ -83,6 +84,10 @@ def show_profile_phi_degs(
         colorbar label, by default None
     cmap
         colorbar map, by default "plasma"
+    centerednorm
+        If True, colorbar is centered at zero, by default False
+    show_phi
+        If True, toroidal angle is annotated in each axis, by default True
     **kwargs : :obj:`~mpl_toolkits.axes_grid1.axes_grid.ImageGrid` properties, optional
         *kwargs* are used to specify properties,
         by default `axes_pad=0.0`, `label_mode="L"`, `cbar_mode="single"`.
@@ -199,14 +204,15 @@ def show_profile_phi_degs(
         )
 
         # annotation of toroidal angle
-        grids[i].text(
-            rmin + (rmax - rmin) * 0.02,
-            zmax - (zmax - zmin) * 0.02,
-            f"$\\phi=${phi_deg:.1f}$^\\circ$",
-            fontsize=10,
-            va="top",
-            bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-        )
+        if show_phi:
+            grids[i].text(
+                rmin + (rmax - rmin) * 0.02,
+                zmax - (zmax - zmin) * 0.02,
+                f"$\\phi=${phi_deg:.1f}$^\\circ$",
+                fontsize=10,
+                va="top",
+                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+            )
 
         # set each axis properties
         set_axis_properties(grids[i])
@@ -479,28 +485,29 @@ def _sampler(
     # sampling
     _, _, sampled = sample3d_rz(func, r_range, z_range, phi_deg)
 
-    # generate masked array
-    if mask == "wall":
-        wall_contour = wall_outline(phi_deg, basis="rz")
-        inside_wall = PolygonMask2D(wall_contour[:-1, :].copy(order="C"))
-        _, _, mask_arr = sample2d(inside_wall, r_range, z_range)
-        mask_arr = np.logical_not(mask_arr)
-
-    elif mask == "grid":
-        if inside_grids := getattr(func, "inside_grids", None):
-            _, _, mask_arr = sample3d_rz(inside_grids, r_range, z_range, phi_deg)
+    # generate mask array
+    match mask:
+        case "wall":
+            wall_contour = wall_outline(phi_deg, basis="rz")
+            inside_wall = PolygonMask2D(wall_contour[:-1, :].copy(order="C"))
+            _, _, mask_arr = sample2d(inside_wall, r_range, z_range)
             mask_arr = np.logical_not(mask_arr)
-        else:
+
+        case "grid":
+            if inside_grids := getattr(func, "inside_grids", None):
+                _, _, mask_arr = sample3d_rz(inside_grids, r_range, z_range, phi_deg)
+                mask_arr = np.logical_not(mask_arr)
+            else:
+                mask_arr = sampled < 0
+
+        case "<0":
             mask_arr = sampled < 0
 
-    elif mask == "<0":
-        mask_arr = sampled < 0
+        case "<=0":
+            mask_arr = sampled <= 0
 
-    elif mask == "<=0":
-        mask_arr = sampled <= 0
-
-    else:
-        mask_arr = np.zeros_like(sampled, dtype=bool)
+        case _:
+            mask_arr = np.zeros_like(sampled, dtype=bool)
 
     # generate masked sampled array
     profile: np.ndarray = np.transpose(np.ma.masked_array(sampled, mask=mask_arr))
