@@ -1,5 +1,6 @@
 """EMC3-EIRENE related sub-package."""
 from .barycenters import CenterGrids
+from .curvilinear import CurvCoords
 from .cython.discrete3dmesh import Discrete3DMesh
 from .cython.mapper import IndexMapper, Mapper
 from .geometry import CellIndex, PhysIndex, TomographyZone
@@ -15,6 +16,7 @@ __all__ = [
     "TomographyZone",
     "Grid",
     "CenterGrids",
+    "CurvCoords",
     "LHDSpecies",
     "import_plasma",
 ]
