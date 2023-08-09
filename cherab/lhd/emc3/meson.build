@@ -42,3 +42,4 @@ py.install_sources(
 subdir('cython')
 subdir('raytransfer')
 subdir('repository')
+subdir('inversions')
