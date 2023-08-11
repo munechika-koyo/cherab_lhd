@@ -1,10 +1,13 @@
 """Construct derivative matrices of the EMC3-EIRENE grids."""
 from functools import cached_property
+from itertools import product
 
 import numpy as np
-from scipy.sparse import csr_array, lil_matrix
+from scipy.sparse import csr_array, diags, lil_array
 
+from ...tools.spinner import Spinner
 from ..barycenters import CenterGrids
+from ..curvilinear import CurvCoords
 
 
 class Derivative:
@@ -13,8 +16,9 @@ class Derivative:
     This class is used to represent derivative matrices of the EMC3-EIRENE-defined center grids,
     and calculate radial, poloidal and toroidal derivative matrices.
 
-    This derivative matrices follows the radial, poloidal and toroidal directions of the
-    magnetic field lines, which are based on the EMC3-EIRENE-defined center grids.
+    This derivative matrices follows the radial (:math:`\\rho`), poloidal (:maht:`\\theta`) and
+    toroidal (:math:`\\zeta`) directions of the magnetic field lines, which are based on
+    the EMC3-EIRENE-defined center grids.
 
     Parameters
     ----------
@@ -23,10 +27,6 @@ class Derivative:
     """
     def __init__(self, grid: CenterGrids) -> None:
         self.grid = grid
-
-        # create index array
-        L, M, N = self.grid.shape
-        self.index = np.arange(L * M * N, dtype=np.uint32).reshape(L, M, N, order="F")
 
     @property
     def grid(self) -> CenterGrids:
@@ -40,11 +40,25 @@ class Derivative:
         self._grid = grid
 
     @cached_property
-    def radial_dmat(self) -> csr_array:
-        """Radial derivative matrix."""
+    def index(self) -> np.ndarray:
+        """Index of the EMC3-EIRENE-defined center grids.
+
+        The shape of the index array is (L, M, N), which follows the order of (:math:`\\rho`,
+        :math:`\\theta`, :math:`\\zeta`) grid resolution.
+
+        The index array is used to convert the 3D grid coordinates indices to 1D array index, i.e.
+        ``index[l, m, n] = i`` means the 3D grid coordinates ``(l, m, n)`` is converted to the 1D
+        array index ``i``.
+        """
+        L, M, N = self.grid.shape
+        return np.arange(L * M * N, dtype=np.uint32).reshape(L, M, N, order="F")
+
+    @cached_property
+    def dmat_rho(self) -> csr_array:
+        """Radial (:math:\\rho: direction) derivative matrix."""
         L, M, N = self.grid.shape
 
-        dmat = lil_matrix((L * M * N, L * M * N), dtype=np.float64)
+        dmat = lil_array((L * M * N, L * M * N), dtype=np.float64)
 
         # memoryview
         index = self.index.view()
@@ -74,11 +88,11 @@ class Derivative:
         return dmat.tocsr()
 
     @cached_property
-    def poloidal_dmat(self) -> csr_array:
-        """Poloidal derivative matrix."""
+    def dmat_theta(self) -> csr_array:
+        """Poloidal (:math:\\theta: direction) derivative matrix."""
         L, M, N = self.grid.shape
 
-        dmat = lil_matrix((L * M * N, L * M * N), dtype=np.float64)
+        dmat = lil_array((L * M * N, L * M * N), dtype=np.float64)
 
         # memoryview
         index = self.index.view()
@@ -114,11 +128,11 @@ class Derivative:
         return dmat.tocsr()
 
     @cached_property
-    def toroidal_dmat(self) -> csr_array:
-        """Toroidal derivative matrix."""
+    def dmat_zeta(self) -> csr_array:
+        """Toroidal (:math:\\zeta: direction) derivative matrix."""
         L, M, N = self.grid.shape
 
-        dmat = lil_matrix((L * M * N, L * M * N), dtype=np.float64)
+        dmat = lil_array((L * M * N, L * M * N), dtype=np.float64)
 
         # memoryview
         index = self.index.view()
@@ -147,3 +161,39 @@ class Derivative:
                     dmat[index[l, m, n], index[l, m, n + 1]] = length[n - 1] ** 2 / denom
 
         return dmat.tocsr()
+
+    @Spinner(text="Creating derivative matrices...", timer=True)
+    def create_dmats_pairs(self, mode: str = "strict") -> list[tuple[csr_array, csr_array]]:
+        """Create derivative matrices for each coordinate pair.
+
+        Parameters
+        ----------
+        mode : str, optional
+            Derivative matrix mode, by default "strict"
+
+        Returns
+        -------
+        list[tuple[csr_array, csr_array]]
+            List of derivative matrices for each coordinate pair.
+        """
+        curv = CurvCoords(self.grid)
+
+        result = []
+
+        match mode:
+            case "strict":
+                product_list = list(product(range(3), repeat=2))
+                bases = [curv.b_sup_rho, curv.b_sup_theta, curv.b_sup_zeta]
+                dmats = [self.dmat_rho, self.dmat_theta, self.dmat_zeta]
+
+                for i, j in product_list:
+                    metric = diags(curv.compute_metric(bases[i], bases[j]).ravel(order="F"))
+                    result.append((dmats[i], metric @ dmats[j]))  # (D_i, G^ij * D_j)
+
+            case "flux":
+                raise NotImplementedError("Flux coord drivative matrix is not implemented yet.")
+
+            case _:
+                raise ValueError(f"Invalid mode: {mode}")
+
+        return result
