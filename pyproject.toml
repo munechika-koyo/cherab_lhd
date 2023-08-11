@@ -39,6 +39,7 @@ dependencies = [
     "matplotlib",
     "plotly",
     "h5py",
+    "tomotok",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
