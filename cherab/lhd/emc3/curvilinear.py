@@ -215,7 +215,9 @@ class CurvCoords:
         """
         return np.cross(self.b_rho, self.b_theta, axis=-1) / self.jacobian[..., np.newaxis]
 
-    def compute_metric(self, v1:NDArray[np.float64], v2: NDArray[np.float64]) -> NDArray[np.float64]:
+    def compute_metric(
+        self, v1: NDArray[np.float64], v2: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
         """Compute metric tensor.
 
         The metric tensor :math:`g_{ij}` or :math:`g^{ij}` is calculated with inner product of
