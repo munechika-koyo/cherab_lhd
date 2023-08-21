@@ -1,12 +1,11 @@
-pyx_files = [
+cython_sources = [
   ['pinhole', 'pinhole.pyx'],
 ]
 
-foreach pyx_file : pyx_files
+foreach file : cython_sources
   py.extension_module(
-    pyx_file[0],
-    # emc3_cython_gen.process(pyx_file[1]),
-    pyx_file[1],
+    file[0],
+    file[1],
     # c_args: [numpy_nodepr_api],
     dependencies: py_dep,
     include_directories: [inc_np],

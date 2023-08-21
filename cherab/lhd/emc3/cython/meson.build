@@ -1,4 +1,4 @@
-pyx_files = [
+cython_sources = [
   ['intfunction', 'intfunction.pyx'],
   ['discrete3dmesh', 'discrete3dmesh.pyx'],
   ['mapper', 'mapper.pyx'],
@@ -6,11 +6,11 @@ pyx_files = [
   ['tetrahedralization', 'tetrahedralization.pyx'],
 ]
 
-# compile .pyx -> .so
-foreach pyx_file : pyx_files
+# compile cython sources to .so modules
+foreach file : cython_sources
   py.extension_module(
-    pyx_file[0],
-    pyx_file[1],
+    file[0],
+    file[1],
     # c_args: [numpy_nodepr_api],
     dependencies: [py_dep],
     include_directories: [inc_np],
