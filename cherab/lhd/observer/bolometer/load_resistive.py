@@ -4,12 +4,11 @@ from __future__ import annotations
 import json
 from importlib.resources import files
 
+import numpy as np
 from raysect.core import World
-from raysect.core.math import Point3D
+from raysect.core.math import Point3D, Vector3D
 
 from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
-
-from .load_irvb import _centre_basis_and_dimensions
 
 __all__ = ["load_resistive"]
 
@@ -102,6 +101,34 @@ def load_resistive(
     # )
 
     return bolometer_camera
+
+
+def _centre_basis_and_dimensions(
+    corners: list[Point3D],
+) -> tuple[Point3D, Vector3D, Vector3D, float, float]:
+    """Helper function of calculating centre, basis vectors, width and height of a rectangle from
+    its corners.
+
+    Parameters
+    ----------
+    corners
+        a list of corners of a rectangle
+
+    Returns
+    -------
+    tuple[Point3D, Vector3D, Vector3D, float, float]
+        centre, basis vectors, width and height of a rectangle
+    """
+    centre = Point3D(
+        np.mean([corner.x for corner in corners]),
+        np.mean([corner.y for corner in corners]),
+        np.mean([corner.z for corner in corners]),
+    )
+    basis_x = corners[0].vector_to(corners[1]).normalise()
+    basis_y = corners[1].vector_to(corners[2]).normalise()
+    width = corners[0].distance_to(corners[1])
+    height = corners[1].distance_to(corners[2])
+    return (centre, basis_x, basis_y, width, height)
 
 
 if __name__ == "__main__":
