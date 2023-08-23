@@ -423,9 +423,13 @@ class Grid:
             phi_t, self.grid_data[0, 0, :, 2]
         )
 
+        # define phi_left, phi_right
+        phi_left = self.grid_data[0, 0, phi_left_index, 2]
+        phi_right = self.grid_data[0, 0, phi_right_index, 2]
+
         # load rz grids at adjacent phis
-        grid_left = self.grid_data[:, :, phi_left_index, :2]
-        grid_right = self.grid_data[:, :, phi_right_index, :2]
+        grid_left = self.grid_data[:, :, phi_left_index, :2].copy()
+        grid_right = self.grid_data[:, :, phi_right_index, :2].copy()
 
         # fliped value for z axis
         if fliped:
@@ -433,8 +437,6 @@ class Grid:
             grid_right[:, :, 1] *= -1
 
         # linearly interpolate grid
-        phi_left = self.grid_data[0, 0, phi_left_index, 2]
-        phi_right = self.grid_data[0, 0, phi_right_index, 2]
         grid = ((phi_t - phi_left) * grid_right + (phi_right - phi_t) * grid_left) / (
             phi_right - phi_left
         )

@@ -18,14 +18,13 @@ __all__ = [
 def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     """Return toroidal angle & z coordinate under periodic boundary condition.
 
-    The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree. For
-    example, the poloidal grid plane in 27 degree corresponds to fliped one in
-    9 degree.
+    The specified toroidal angle by EMC3-EIRENE varies from 0 to 18 degrees. For example,
+    the poloidal grid plane at 27 degrees corresponds to the one flipped along the z-axis at 9 degrees.
 
     Parameters
     ----------
     phi
-        toroidal angle
+        toroidal angle in degree
 
     Returns
     -------
@@ -33,16 +32,15 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
         (toroidal angle, flag of flipping)
         If this flag is  ``True``, :math:`z` component is multiplied by -1.
     """
-    index = phi // 36
-
-    if (phi // 18) % 2 == 0:
-        fliped = False
-        if index == 0:
-            pass
-        else:
-            phi = phi - 36 * index
+    if phi < 0.0:
+        phi = (phi + 360.0) % 36.0
     else:
-        phi = 36 * (index + 1) - phi
+        phi %= 36.0
+
+    if phi < 18.0:
+        fliped = False
+    else:
+        phi = 36.0 - phi
         fliped = True
     return (phi, fliped)
 
@@ -51,7 +49,7 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
     """Generate adjacent toroidal angles.
 
     if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
-    then (left, right) adjacent toroidal angle are (0.5, 1.0), each index of which is (1, 2), respectively.
+    then (left, right) adjacent toroidal angles are (0.5, 1.0), each index of which is (1, 2), respectively.
 
     Parameters
     ----------
@@ -83,8 +81,8 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
 
 
 def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
-    """
-    :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
+    """:math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle
+    :math:`\\varphi`.
 
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
     then one point of wall outline :math:`xyz` is interpolated linearly according to the following equation:
