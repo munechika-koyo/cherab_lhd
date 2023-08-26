@@ -105,25 +105,20 @@ class Derivative:
                 # calculate length of each segment along to theta direction
                 length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
 
-                # border condition at m = 0 and m = M - 1
                 # TODO: implement border condition except for zone0 & zone11
-                for m in [0, M - 1]:
+                for m in range(M):
                     denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
 
                     dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
                     dmat[index[l, m, n], index[l, m + 0, n]] = (
                         length[m] ** 2 - length[m - 1] ** 2
                     ) / denom
-                    dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
 
-                for m in range(1, M - 1):
-                    denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
-
-                    dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
-                    dmat[index[l, m, n], index[l, m + 0, n]] = (
-                        length[m] ** 2 - length[m - 1] ** 2
-                    ) / denom
-                    dmat[index[l, m, n], index[l, m + 1, n]] = length[m - 1] ** 2 / denom
+                    # border condition at m = M - 1
+                    if m == M - 1:
+                        dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
+                    else:
+                        dmat[index[l, m, n], index[l, m + 1, n]] = length[m - 1] ** 2 / denom
 
         return dmat.tocsr()
 
