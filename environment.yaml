@@ -15,6 +15,7 @@ dependencies:
 - plotly
 - h5py
   # for developper tools
+- black
 - ruff
 - mypy
 - rich-click

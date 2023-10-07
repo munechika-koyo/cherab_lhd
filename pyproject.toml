@@ -65,6 +65,7 @@ docs = [
 ]
 dev = [
     "ipython",
+    "black",
     "ruff",
     "mypy",
     "rich-click",
@@ -83,6 +84,9 @@ repository = "https://github.com/munechika-koyo/cherab_lhd"
 [tool.cython-lint]
 max-line-length = 140
 ignore = ["E741"]
+
+[tool.black]
+line-length = 100
 
 [tool.ruff]
 line-length = 100
