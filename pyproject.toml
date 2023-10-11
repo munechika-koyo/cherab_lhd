@@ -112,7 +112,7 @@ namespace-packages = ["cherab/lhd"]
 "cherab/lhd/emc3/grid.py" = ["E741"]
 "cherab/lhd/emc3/barycenters.py" = ["E741"]
 "cherab/lhd/emc3/curvilinear.py" = ["E741"]
-"cherab/lhd/emc3/inversions/derivative.py" = ["E741"]
+"cherab/lhd/emc3/inversion/derivative.py" = ["E741"]
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.

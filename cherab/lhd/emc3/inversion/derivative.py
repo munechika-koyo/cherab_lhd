@@ -25,6 +25,7 @@ class Derivative:
     grid
         :obj:`.CenterGrids` object.
     """
+
     def __init__(self, grid: CenterGrids) -> None:
         self.grid = grid
 
@@ -173,7 +174,7 @@ class Derivative:
         """
         curv = CurvCoords(self.grid)
 
-        result = []
+        results = []
 
         match mode:
             case "strict":
@@ -183,12 +184,20 @@ class Derivative:
 
                 for i, j in product_list:
                     metric = diags(curv.compute_metric(bases[i], bases[j]).ravel(order="F"))
-                    result.append((dmats[i], metric @ dmats[j]))  # (D_i, G^ij * D_j)
+                    results.append((dmats[i], metric @ dmats[j]))  # (D_i, G^ij * D_j)
 
             case "flux":
                 raise NotImplementedError("Flux coord drivative matrix is not implemented yet.")
 
+            case "ii":
+                bases = [curv.b_sup_rho, curv.b_sup_theta, curv.b_sup_zeta]
+                dmats = [self.dmat_rho, self.dmat_theta, self.dmat_zeta]
+
+                for i in range(3):
+                    metric = diags(curv.compute_metric(bases[i], bases[i]).ravel(order="F"))
+                    results.append((dmats[i], metric @ dmats[i]))  # (D_i, G^ii * D_i)
+
             case _:
                 raise ValueError(f"Invalid mode: {mode}")
 
-        return result
+        return results

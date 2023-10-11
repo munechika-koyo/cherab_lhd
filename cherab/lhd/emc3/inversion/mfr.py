@@ -9,14 +9,15 @@ class MFR(Mfr):
     This class is a wrapper around :obj:`~tomotok.core.inversions.mfr.Mfr` class.
     Please refer to the documentation of the base class for more details.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def regularisation_matrix(
         self,
-        derivatives: list[csr_array],
+        derivatives: list[tuple[csr_array, csr_array]],
         weights: dia_array,
-        weight_coefficients: list[float] | None = None,
+        derivative_weights: list[float] | None = None,
         **kwargs,
     ):
         """Computes nonlinear regularisation matrix from provided derivative matrices and node
@@ -56,7 +57,7 @@ class MFR(Mfr):
             a list of derivative matrices, with shape (# nodes, # nodes)
         w
             diagonal matrix with weight factors (#nodes, #nodes)
-        weight_coefficients
+        derivative_weights
             allows to specify anisotropy by assign weights for each matrix
 
         Returns
@@ -64,16 +65,16 @@ class MFR(Mfr):
         :obj:`~scipy.sparse.csr_array`
             regularisation matrix
         """
-        if weight_coefficients is None:
-            weight_coefficients = [1.0] * len(derivatives)
-        elif len(weight_coefficients) != len(derivatives):
+        if derivative_weights is None:
+            derivative_weights = [1.0] * len(derivatives)
+        elif len(derivative_weights) != len(derivatives):
             raise ValueError(
-                "Number of weight coefficients must be equal to number of derivative matrices"
+                "Number of derivative weight coefficients must be equal to number of derivative matrices"
             )
 
-        regularisation = csr_array(derivatives[0].shape, dtype=float)
+        regularisation = csr_array(derivatives[0][0].shape, dtype=float)
 
-        for (dmat1, dmat2), aniso in zip(derivatives, weight_coefficients, strict=False):
+        for (dmat1, dmat2), aniso in zip(derivatives, derivative_weights, strict=False):
             regularisation += aniso * dmat1.T * weights * dmat2
 
         return regularisation
