@@ -31,7 +31,7 @@ class CenterGrids:
     ----------
     zone
         name of zone
-    index
+    index_type
         indexing way of center grids selected from [`"cell"`] as far as implemented,
         by default ``"cell"``
     grid_group
@@ -44,17 +44,17 @@ class CenterGrids:
     --------
     .. prompt:: python >>> auto
 
-        >>> grid = CenterGrids("zone0", index="cell")
-        >>> grid
-        CenterGrids(zone='zone0', index='cell', grid_group='grid-360')
-        >>> str(grid)
-        'CenterGrids with cell index (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
+        >>> cgrid = CenterGrids("zone0", index_type="cell")
+        >>> cgrid
+        CenterGrids(zone='zone0', index_type='cell', grid_group='grid-360')
+        >>> str(cgrid)
+        'CenterGrids with cell index_type (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(
         self,
         zone: str,
-        index="cell",
+        index_type="cell",
         grid_group: str = "grid-360",
         hdf5_path: Path | str = DEFAULT_HDF5_PATH,
     ) -> None:
@@ -69,13 +69,13 @@ class CenterGrids:
         # set properties
         self._zone = zone
         self._grid_group = grid_group
-        self._index = index
+        self._index_type = index_type
 
         # load center coordinates from HDF5 file
         try:
             with h5py.File(self._hdf5_path, mode="r") as h5file:
                 # Load center grids dataset
-                dset = h5file[f"{grid_group}/{zone}/centers/{index}"]
+                dset = h5file[f"{grid_group}/{zone}/centers/{index_type}"]
 
                 # Load center grids coordinates
                 self._grid_data = dset[:]
@@ -89,7 +89,7 @@ class CenterGrids:
                 )
         except KeyError:
             # Generate center grids if they have not been stored in the HDF5 file
-            self._grid_data, L, M, N = self.generate(zone, index, grid_group=grid_group)
+            self._grid_data, L, M, N = self.generate(zone, index_type, grid_group=grid_group)
             # Set grid configuration
             self._grid_config = dict(
                 L=L,
@@ -99,11 +99,17 @@ class CenterGrids:
             )
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(zone={self.zone!r}, grid_group={self.grid_group!r})"
+        return (
+            f"{self.__class__.__name__}(zone={self.zone!r}, index_type={self.index_type!r}, "
+            f"grid_group={self.grid_group!r})"
+        )
 
     def __str__(self) -> str:
         L, M, N, total = self._grid_config.values()
-        return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, total: {total})"
+        return (
+            f"{self.__class__.__name__} for (zone: {self.zone}, index_type: {self.index_type}, "
+            f"L: {L}, M: {M}, N: {N}, number of cells: {total})"
+        )
 
     def __getitem__(
         self, key: int | slice | EllipsisType | tuple[int | slice | EllipsisType, ...] | NDArray
@@ -132,9 +138,9 @@ class CenterGrids:
         return self._zone
 
     @property
-    def index(self) -> str:
+    def index_type(self) -> str:
         """Indexing way of center grids."""
-        return self._index
+        return self._index_type
 
     @property
     def grid_group(self) -> str:
@@ -156,9 +162,27 @@ class CenterGrids:
         """Shape of grid (L, M, N)."""
         return self.grid_config["L"], self.grid_config["M"], self.grid_config["N"]
 
+    def get_lmn(self, index: int) -> tuple[int, int, int]:
+        """Return (l, m, n) indices from 1D index.
+
+        (l, m, n) means radial, poloidal and toroidal indices, respectively.
+
+        Parameters
+        ----------
+        index
+            1D index
+
+        Returns
+        -------
+        tuple[int, int, int]
+            (l, m, n) indices
+        """
+        L, M, _ = self.shape
+        return index % L, (index // L) % M, index // (L * M)
+
     @classmethod
     def generate(
-        cls, zone: str, index: str, grid_group: str = "grid-360"
+        cls, zone: str, index_type: str, grid_group: str = "grid-360"
     ) -> tuple[NDArray[np.float64], int, int, int]:
         """Generate the center grids for a given zone.
 
@@ -169,7 +193,7 @@ class CenterGrids:
         ----------
         zone
             The zone to generate the center grids for.
-        index
+        index_type
             The indexing way of center grids selected from [`"cell"`] as far as implemented.
         grid_group
             name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
@@ -179,18 +203,21 @@ class CenterGrids:
         tuple[NDArray[np.float64], int, int, int]
             The center grids for the given zone. Each tuple element is: (grids array, L, M, N).
         """
-        with Spinner(f"Generating center points of {zone}'s cells...", timer=True) as sp:
+        with Spinner(
+            f"Generating center points of {zone}'s cells with index_type: {index_type}...",
+            timer=True,
+        ) as sp:
             # retrieve cell indexing array from HDF5 file
             with h5py.File(DEFAULT_HDF5_PATH, mode="r") as h5file:
                 # get index group
                 index_group = h5file[f"{grid_group}/{zone}/index"]
 
-                if index not in index_group:
-                    msg = f"{index} indexing is not implemented."
+                if index_type not in index_group:
+                    msg = f"{index_type} indexing is not implemented."
                     sp.fail()
                     raise KeyError(msg)
                 else:
-                    indices = index_group[index][:]
+                    indices = index_group[index_type][:]
                     L, M, N = indices.shape
 
             # generate vertices, cells and tetrahedra
@@ -199,7 +226,7 @@ class CenterGrids:
             cells = grid.generate_cell_indices()
             tetrahedra = tetrahedralize(cells)
 
-            # calculate center of each cell
+            # calculate center of each cell (with fine resolution)
             verts = np.zeros((cells.shape[0], 3), dtype=float)
             for i in range(cells.shape[0]):
                 for j in range(6 * i, 6 * (i + 1)):
@@ -212,8 +239,18 @@ class CenterGrids:
             # convert 1-D to 4-D array
             verts = verts.reshape((L, M, N, 3), order="F")
 
-            # reconstruct centers considering indexing way
-            # TODO: implement other indexing ways
+            # reconstruct centers considering specific indexing way
+            L = indices[-1, 0, 0] + 1
+            M = (indices[-1, -1, 0] + 1) // L
+            N = (indices[-1, -1, -1] + 1) // (L * M)
+
+            verts_rec = np.zeros((L * M * N, 3), dtype=float)
+
+            for i in range(L * M * N):
+                verts_rec[i] = verts[indices == i].mean(axis=0)
+
+            # convert 1-D to 4-D array
+            verts = verts_rec.reshape((L, M, N, 3), order="F")
 
             # store center grids in HDF5 file
             with h5py.File(grid.hdf5_path, mode="r+") as h5file:
@@ -227,10 +264,10 @@ class CenterGrids:
                     centers_group = zone_group["centers"]
 
                 # delete existing center grids
-                if index in centers_group:
-                    del centers_group[index]
+                if index_type in centers_group:
+                    del centers_group[index_type]
 
-                dset = centers_group.create_dataset(name=index, data=verts)
+                dset = centers_group.create_dataset(name=index_type, data=verts)
                 dset.attrs["L"] = L
                 dset.attrs["M"] = M
                 dset.attrs["N"] = N
