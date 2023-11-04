@@ -8,17 +8,35 @@ from numbers import Real
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.colors import CenteredNorm, Normalize
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import AsinhNorm, LogNorm, Normalize, SymLogNorm
 from matplotlib.figure import Figure
-from matplotlib.ticker import AutoLocator, AutoMinorLocator, MultipleLocator, ScalarFormatter
-from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
+from matplotlib.ticker import (
+    AsinhLocator,
+    AutoLocator,
+    AutoMinorLocator,
+    EngFormatter,
+    LogFormatterSciNotation,
+    LogLocator,
+    MultipleLocator,
+    PercentFormatter,
+    ScalarFormatter,
+    SymmetricalLogLocator,
+)
+from mpl_toolkits.axes_grid1.axes_grid import CbarAxesBase, ImageGrid
 
 from cherab.core.math import PolygonMask2D, sample2d
 
 from ..machine import wall_outline
 from .samplers import sample3d_rz
 
-__all__ = ["show_profile_phi_degs", "show_profiles_rz_plane", "set_axis_properties"]
+__all__ = [
+    "show_profile_phi_degs",
+    "show_profiles_rz_plane",
+    "set_axis_properties",
+    "set_norm",
+    "set_cbar_format",
+]
 
 
 # Const.
@@ -43,7 +61,9 @@ def show_profile_phi_degs(
     vmin: float | None = 0.0,
     clabel: str | None = None,
     cmap: str = "plasma",
-    centerednorm: bool = False,
+    plot_mode: str = "scalar",
+    cbar_format: str | None = None,
+    linear_width: float = 1.0,
     show_phi: bool = True,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
@@ -84,8 +104,16 @@ def show_profile_phi_degs(
         colorbar label, by default None
     cmap
         colorbar map, by default "plasma"
-    centerednorm
-        If True, colorbar is centered at zero, by default False
+    plot_mode
+        the way of normalize the data scale.
+        Must select one in {``"scalar"``, ``"log"``, ``"centered"``, ``"symlog"``, ``"asinh"``},
+        by default ``"scalar"``.
+        Each mode corresponds to the :obj:`~matplotlib.colors.Normalize` object as follows.
+    cbar_format
+        formatter for colorbar yaxis major locator, by default None.
+        If None, the formatter is automatically set by `plot_mode`.
+    linear_width
+        linear width of asinh/symlog norm, by default 1.0
     show_phi
         If True, toroidal angle is annotated in each axis, by default True
     **kwargs : :obj:`~mpl_toolkits.axes_grid1.axes_grid.ImageGrid` properties, optional
@@ -113,6 +141,10 @@ def show_profile_phi_degs(
 
     else:
         nrows_ncols = (1, len(phi_degs))
+
+    # set default cbar_format
+    if cbar_format is None:
+        cbar_format = plot_mode
 
     # sampling rate
     rmin, rmax, zmin, zmax = rz_range
@@ -161,47 +193,25 @@ def show_profile_phi_degs(
     # ==============================================================================================
 
     # maximum value of all profiles
-    temp_max = np.amax([profile.max() for profile in profiles.values()])
-    temp_min = np.amin([profile.min() for profile in profiles.values()])
+    data_max = np.amax([profile.max() for profile in profiles.values()])
+    data_min = np.amin([profile.min() for profile in profiles.values()])
 
     # validate vmax
     if vmax is None:
-        vmax = temp_max
-        extend = "neither"
-    elif vmax < temp_max:
-        extend = "max"
-    elif vmax < temp_min:
-        raise ValueError(f"vmax must be greater than {temp_min}")
-    else:
-        extend = "neither"
-
-    # validate vmin
+        vmax = data_max
     if vmin is None:
-        vmin = temp_min
-        extend = "neither"
-    elif vmin > temp_min:
-        if extend == "max":
-            extend = "both"
-        else:
-            extend = "min"
-    elif vmin >= vmax:
-        raise ValueError(f"vmin: {vmin} must be less than vmax: {vmax}.")
+        vmin = data_min
 
-    if centerednorm:
-        norm = CenteredNorm(halfrange=max(abs(vmax), abs(vmin)))
-    else:
-        norm = Normalize(vmin=vmin, vmax=vmax)
+    # set norm
+    norm = set_norm(plot_mode, vmin, vmax, linear_width=linear_width)
 
     # r, z grids
     r_pts = np.linspace(rmin, rmax, nr)
     z_pts = np.linspace(zmin, zmax, nz)
 
     for i, phi_deg in enumerate(phi_degs):
-
         # mapping
-        mappable = grids[i].pcolormesh(
-            r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", norm=norm
-        )
+        grids[i].pcolormesh(r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", norm=norm)
 
         # annotation of toroidal angle
         if show_phi:
@@ -218,21 +228,26 @@ def show_profile_phi_degs(
         set_axis_properties(grids[i])
 
     # set colorbar
+    mappable = ScalarMappable(norm=norm, cmap=cmap)
+    extend = _set_cbar_extend(vmin, vmax, data_min, data_max)
     cbar = plt.colorbar(mappable, grids.cbar_axes[0], extend=extend)
+
+    # set colorbar label
     cbar.set_label(clabel)
-    cbar.ax.yaxis.set_major_locator(AutoLocator())
-    cbar.ax.yaxis.set_minor_locator(AutoMinorLocator())
-    fmt = ScalarFormatter(useMathText=True)
-    fmt.set_powerlimits((0, 0))
-    cbar.ax.yaxis.set_major_formatter(fmt)
+
+    # set colorbar's locator and formatter
+    set_cbar_format(cbar.ax, cbar_format, linear_width=linear_width)
+
     cbar_text = cbar.ax.yaxis.get_offset_text()
     x, y = cbar_text.get_position()
     cbar_text.set_position((x * 3.0, y))
 
-    # set yaxis label
+    # set axis labels
     nrow, ncol = grids.get_geometry()
     for i in range(nrow):
-        grids[i * ncol].set_ylabel("Z[m]")
+        grids[i * ncol].set_ylabel("$Z$ [m]")
+    for i in range(ncol):
+        grids[i + (nrow - 1) * ncol].set_xlabel("$R$ [m]")
 
     return (fig, grids)
 
@@ -248,8 +263,12 @@ def show_profiles_rz_plane(
     vmin: float | None = 0.0,
     resolution: float = 5.0e-3,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-    clabel: str | None = None,
+    clabels: list[str] | str = "",
     cmap: str = "plasma",
+    cbar_mode: str = "single",
+    plot_mode: str = "scalar",
+    cbar_format: str | None = None,
+    linear_width: float = 1.0,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
     """
@@ -287,12 +306,27 @@ def show_profiles_rz_plane(
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
-    clabel
-        colorbar label, by default None
+    clabels
+        list of colorbar labels, by default "".
+        If the length of clabels is less than the length of funcs, the last element of clabels is
+        used for all colorbars when cbar_mode is "single".
     cmap
         colorbar map, by default "plasma"
+    cbar_mode
+        ImgeGrid's parameter to set colorbars in ``"single"`` axes or ``"each"`` axes,
+        by default ``"single"``
+    plot_mode
+        the way of normalize the data scale.
+        Must select one in {``"scalar"``, ``"log"``, ``"centered"``, ``"symlog"``, ``"asinh"``},
+        by default ``"scalar"``.
+        Each mode corresponds to the :obj:`~matplotlib.colors.Normalize` object as follows.
+    cbar_format
+        formatter for colorbar yaxis major locator, by default None.
+        If None, the formatter is automatically set by `plot_mode`.
+    linear_width
+        linear width of asinh/symlog norm, by default 1.0
     **kwargs : :obj:`~mpl_toolkits.axes_grid1.axes_grid.ImageGrid` properties, optional
-        *kwargs* are used to specify properties, by default axes_pad=0.0, label_mode="L", cbar_mode="single".
+        *kwargs* are used to specify properties, by default axes_pad=0.0, label_mode="L".
 
     Returns
     -------
@@ -310,6 +344,19 @@ def show_profiles_rz_plane(
     else:
         nrows_ncols = (1, len(funcs))
 
+    # check clabels
+    if isinstance(clabels, str):
+        clabels = [clabels for _ in range(len(funcs))]
+    elif isinstance(clabels, list):
+        if len(clabels) < len(funcs):
+            raise ValueError("The length of clabels must be equal to or greater than funcs.")
+    else:
+        raise TypeError("clabels must be str or list.")
+
+    # set default cbar_format
+    if cbar_format is None:
+        cbar_format = plot_mode
+
     # sampling rate
     rmin, rmax, zmin, zmax = rz_range
     if rmin >= rmax or zmin >= zmax:
@@ -326,9 +373,9 @@ def show_profiles_rz_plane(
     grid_params = dict(**kwargs)
     grid_params.setdefault("axes_pad", 0.0)
     grid_params.setdefault("label_mode", "L")
-    grid_params.setdefault("cbar_mode", "single")
 
-    grids = ImageGrid(fig, 111, nrows_ncols, **grid_params)
+    # Initiate ImageGrid
+    grids = ImageGrid(fig, 111, nrows_ncols, cbar_mode=cbar_mode, **grid_params)
 
     # === parallelized sampling ====================================================================
     manager = Manager()
@@ -354,41 +401,33 @@ def show_profiles_rz_plane(
     for p in workers:
         p.join()
 
-    # ==============================================================================================
+    # === display image ============================================================================
 
-    # maximum value of all profiles
-    temp_max = np.max([profile.max() for profile in profiles.values()])
-    temp_min = np.min([profile.min() for profile in profiles.values()])
+    # get maximum and minimum value of each profile
+    _vmaxs = [profile.max() for profile in profiles.values()]
+    _vmins = [profile.min() for profile in profiles.values()]
 
-    # validate vmax
-    if vmax is None:
-        vmax = temp_max
-        extend = "neither"
-    elif vmax < temp_max:
-        extend = "max"
-    elif vmax < temp_min:
-        raise ValueError(f"vmax must be greater than {temp_min}")
+    # define vmaxs
+    if isinstance(vmax, (float, int)):
+        vmaxs: list[float] = [vmax for _ in range(len(profiles))]
     else:
-        extend = "neither"
+        vmaxs: list[float] = _vmaxs
 
-    # validate vmin
-    if vmin is None:
-        vmin = temp_min
-        extend = "neither"
-    elif vmin > temp_min:
-        if extend == "max":
-            extend = "both"
-        else:
-            extend = "min"
-    elif vmin >= vmax:
-        raise ValueError(f"vmin: {vmin} must be less than vmax: {vmax}.")
+    # define vmins
+    if isinstance(vmin, (float, int)):
+        vmins: list[float] = [vmin for _ in range(len(profiles))]
+    else:
+        vmins: list[float] = _vmins
+
+    if cbar_mode == "single":
+        vmaxs: list[float] = [max(vmaxs) for _ in range(len(vmaxs))]
+        vmins: list[float] = [min(vmins) for _ in range(len(vmins))]
 
     # r, z grids
     r_pts = np.linspace(rmin, rmax, nr)
     z_pts = np.linspace(zmin, zmax, nz)
 
     for i in range(len(profiles)):
-
         # mapping
         mappable = grids[i].pcolormesh(
             r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
@@ -408,22 +447,34 @@ def show_profiles_rz_plane(
         # set each axis properties
         set_axis_properties(grids[i])
 
-    # set colorbar
-    cbar = plt.colorbar(mappable, grids.cbar_axes[0], extend=extend)
-    cbar.set_label(clabel)
-    cbar.ax.yaxis.set_major_locator(AutoLocator())
-    cbar.ax.yaxis.set_minor_locator(AutoMinorLocator())
-    fmt = ScalarFormatter(useMathText=True)
-    fmt.set_powerlimits((0, 0))
-    cbar.ax.yaxis.set_major_formatter(fmt)
-    cbar_text = cbar.ax.yaxis.get_offset_text()
-    x, y = cbar_text.get_position()
-    cbar_text.set_position((x * 3.0, y))
+    # create colorbar objects and store them into a list
+    cbars = []
+    if cbar_mode == "each":
+        for i, grid in enumerate(grids):
+            extend = _set_cbar_extend(vmins[i], vmaxs[i], _vmins[i], _vmaxs[i])
+            cbar = plt.colorbar(grid.images[0], grids.cbar_axes[i], extend=extend)
+            cbars.append(cbar)
 
-    # set yaxis label
+    else:  # cbar_mode == "single"
+        vmax, vmin = max(vmaxs), min(vmins)
+        _vmax, _vmin = max(_vmaxs), min(_vmins)
+        extend = _set_cbar_extend(vmin, vmax, _vmin, _vmax)
+        norm = set_norm(plot_mode, vmins[0], vmaxs[0], linear_width=linear_width)
+        mappable = ScalarMappable(norm=norm, cmap=cmap)
+        cbar = plt.colorbar(mappable, grids.cbar_axes[0], extend=extend)
+        cbars.append(cbar)
+
+    # set colorbar's locator and formatter
+    for cbar, clabel in zip(cbars, clabels, strict=True):
+        set_cbar_format(cbar.ax, cbar_format, linear_width=linear_width)
+        cbar.set_label(clabel)
+
+    # set axis labels
     nrow, ncol = grids.get_geometry()
     for i in range(nrow):
-        grids[i * ncol].set_ylabel("Z[m]")
+        grids[i * ncol].set_ylabel("$Z$ [m]")
+    for i in range(ncol):
+        grids[i + (nrow - 1) * ncol].set_xlabel("$R$ [m]")
 
     return (fig, grids)
 
@@ -486,6 +537,7 @@ def _sampler(
     _, _, sampled = sample3d_rz(func, r_range, z_range, phi_deg)
 
     # generate mask array
+    # TODO: use np.ma.masked_where
     match mask:
         case "wall":
             wall_contour = wall_outline(phi_deg, basis="rz")
@@ -536,6 +588,146 @@ def set_axis_properties(axes: Axes) -> Axes:
     axes.tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
 
     return axes
+
+
+def set_norm(mode: str, vmin: float, vmax: float, linear_width: float = 1.0) -> Normalize:
+    """Set variouse :obj:`~matplotlib.colors.Normalize` object.
+
+    Parameters
+    ----------
+    mode
+        the way of normalize the data scale.
+        Must select one in {``"scalar"``, ``"log"``, ``"centered"``, ``"symlog"``, ``"asinh"``}
+    vmin
+        minimum value of the profile.
+    vmax
+        maximum value of the profile.
+    linear_width
+        linear width of asinh/symlog norm, by default 1.0
+
+    Returns
+    -------
+    Normalize
+        norm object
+    """
+    # set norm
+    absolute = max(abs(vmax), abs(vmin))
+    match mode:
+        case "log":
+            if vmin <= 0:
+                raise ValueError("vmin must be positive value.")
+            norm = LogNorm(vmin=vmin, vmax=vmax)
+
+        case "symlog":
+            norm = SymLogNorm(linthresh=linear_width, vmin=-1 * absolute, vmax=absolute)
+
+        case "centered":
+            norm = Normalize(vmin=-1 * absolute, vmax=absolute)
+
+        case "asinh":
+            norm = AsinhNorm(linear_width=linear_width, vmin=-1 * absolute, vmax=absolute)
+
+        case _:
+            norm = Normalize(vmin=vmin, vmax=vmax)
+
+    return norm
+
+
+def set_cbar_format(cax: CbarAxesBase | Axes, formatter: str, linear_width: float = 1.0, **kwargs):
+    """Set colorbar's locator and formatter.
+
+    Parameters
+    ----------
+    cax
+        colorbar axes object
+    formatter
+        formatter for colorbar yaxis major locator.
+        Must select one in {``"scalar"``, ``"log"``, ``"symlog"``, ``"asinh"``, ``percent``, ``eng``}
+    linear_width
+        linear width of asinh/symlog norm, by default 1.0
+    **kwargs
+        keyword arguments for formatter
+
+    Returns
+    -------
+    Colorbar
+        colorbar object with new properties
+    """
+    # define colobar formatter and locator
+    match formatter:
+        case "log":
+            fmt = LogFormatterSciNotation(**kwargs)
+            major_locator = LogLocator(base=10, numticks=None)
+            minor_locator = LogLocator(base=10, subs=tuple(np.arange(0.1, 1.0, 0.1)), numticks=12)
+
+        case "symlog":
+            fmt = LogFormatterSciNotation(linthresh=linear_width, **kwargs)
+            major_locator = SymmetricalLogLocator(linthresh=linear_width, base=10)
+            minor_locator = SymmetricalLogLocator(
+                linthresh=linear_width, base=10, subs=tuple(np.arange(0.1, 1.0, 0.1))
+            )
+
+        case "asinh":
+            fmt = LogFormatterSciNotation(linthresh=linear_width, **kwargs)
+            major_locator = AsinhLocator(linear_width=linear_width, base=10)
+            minor_locator = AsinhLocator(
+                linear_width=linear_width, base=10, subs=tuple(np.arange(0.1, 1.0, 0.1))
+            )
+
+        case "percent":
+            fmt = PercentFormatter(**kwargs)
+            major_locator = AutoLocator()
+            minor_locator = AutoMinorLocator()
+
+        case "eng":
+            fmt = EngFormatter(**kwargs)
+            major_locator = AutoLocator()
+            minor_locator = AutoMinorLocator()
+
+        case _:
+            fmt = ScalarFormatter(useMathText=True)
+            fmt.set_powerlimits((0, 0))
+            major_locator = AutoLocator()
+            minor_locator = AutoMinorLocator()
+
+    # set colorbar's locator and formatter
+    cax.yaxis.set_offset_position("left")
+    cax.yaxis.set_major_formatter(fmt)
+    cax.yaxis.set_major_locator(major_locator)
+    cax.yaxis.set_minor_locator(minor_locator)
+
+
+def _set_cbar_extend(user_vmin: float, user_vmax: float, data_vmin: float, data_vmax: float) -> str:
+    """Set colorbar's extend.
+
+    Parameters
+    ----------
+    user_vmin
+        user defined minimum value.
+    user_vmax
+        user defined maximum value.
+    data_vmin
+        minimum value of the profile.
+    data_vmax
+        maximum value of the profile.
+
+    Returns
+    -------
+    str
+        colorbar's extend.
+    """
+    if data_vmin < user_vmin:
+        if user_vmax < data_vmax:
+            extend = "both"
+        else:
+            extend = "min"
+    else:
+        if user_vmax < data_vmax:
+            extend = "max"
+        else:
+            extend = "neither"
+
+    return extend
 
 
 if __name__ == "__main__":
