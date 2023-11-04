@@ -567,18 +567,13 @@ def _sampler(
     return profile
 
 
-def set_axis_properties(axes: Axes) -> Axes:
+def set_axis_properties(axes: Axes):
     """Set x-, y-axis property. This function set axis labels and tickers.
 
     Parameters
     ----------
     axes
         matplotlib Axes object
-
-    Returns
-    -------
-    :obj:`~matplotlib.axes.Axes`
-        axes object with new properties
     """
     axes.set_xlabel("R[m]")
     axes.xaxis.set_minor_locator(MultipleLocator(0.1))
@@ -586,8 +581,6 @@ def set_axis_properties(axes: Axes) -> Axes:
     axes.xaxis.set_major_formatter("{x:.1f}")
     axes.yaxis.set_major_formatter("{x:.1f}")
     axes.tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
-
-    return axes
 
 
 def set_norm(mode: str, vmin: float, vmax: float, linear_width: float = 1.0) -> Normalize:
@@ -647,11 +640,6 @@ def set_cbar_format(cax: CbarAxesBase | Axes, formatter: str, linear_width: floa
         linear width of asinh/symlog norm, by default 1.0
     **kwargs
         keyword arguments for formatter
-
-    Returns
-    -------
-    Colorbar
-        colorbar object with new properties
     """
     # define colobar formatter and locator
     match formatter:
