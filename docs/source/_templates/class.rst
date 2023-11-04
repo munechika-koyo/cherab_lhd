@@ -3,9 +3,7 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
-   :members:
    :show-inheritance:
-   :special-members: __call__, __getitem__
 
    {% block all_methods %}
 
@@ -13,6 +11,8 @@
    .. rubric:: Methods
 
    .. autosummary::
+      :toctree: {{ objname }}
+
    {% for item in all_methods %}
    {%- if not item.startswith('_') or item in ['__call__', '__getitem__'] %}
       ~{{ name }}.{{ item }}
@@ -26,6 +26,8 @@
    .. rubric:: Attributes
 
    .. autosummary::
+      :toctree: {{ objname }}
+
    {% for item in attributes %}
       ~{{ name }}.{{ item }}
    {%- endfor %}
