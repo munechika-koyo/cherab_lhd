@@ -13,7 +13,7 @@ from datetime import timedelta
 from itertools import cycle
 from multiprocessing import Event, Lock, Pipe, Process
 
-__all__ = ["Spinner"]
+__all__ = ["Spinner", "DummySpinner"]
 
 
 SPINNERS = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
@@ -81,7 +81,7 @@ class Spinner:
 
     Here is the result when the above script is excuted.
 
-    .. image:: ../_static/images/spinner_example.gif
+    .. image:: ../../_static/images/spinner_example.gif
     """
 
     def __init__(
