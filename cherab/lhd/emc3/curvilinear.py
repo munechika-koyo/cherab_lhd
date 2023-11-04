@@ -30,6 +30,12 @@ class CurvCoords:
 
         self._grid = grid
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(grid={self.grid})"
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__} with {self.grid}"
+
     @property
     def grid(self) -> CenterGrids:
         """EMC3-EIRENE-defined center grids."""
