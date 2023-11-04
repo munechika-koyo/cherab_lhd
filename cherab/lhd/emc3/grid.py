@@ -1,7 +1,7 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
+import warnings
 from pathlib import Path
 from types import EllipsisType
-from typing import Any
 
 import h5py
 import numpy as np
@@ -30,7 +30,7 @@ ZMIN = -1.6
 ZMAX = 1.6
 
 # Plotting config.
-LINE_STYLE = {"color": "black", "linewidth": 0.25}
+LINE_STYLE = {"color": "black", "linewidth": 0.5}
 
 
 class Grid:
@@ -38,7 +38,7 @@ class Grid:
 
     This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z, \\varphi)`,
     and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
-    their indices, which a ``cell'' means a cubic-like mesh with 8 vertices.
+    their indices, which a **cell** means a cubic-like mesh with 8 vertices.
     Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
     instance is also implemented.
 
@@ -51,7 +51,7 @@ class Grid:
     Parameters
     ----------
     zone
-        name of grid zone. Users can select only one option of ``"zone0" - "zone21"``.
+        name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
     grid_group
         name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
     hdf5_path
@@ -280,7 +280,7 @@ class Grid:
         ax: Axes | None = None,
         n_phi: int = 0,
         rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-        linestyle: dict[str, Any] = LINE_STYLE,
+        **kwargs,
     ) -> tuple[Figure, Axes]:
         """Plotting EMC3-EIRENE-defined grids in :math:`r - z` plane.
 
@@ -295,8 +295,9 @@ class Grid:
         rz_range
             sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
             by default ``(2.0, 5.5, -1.6, 1.6)``
-        linestyle
-            line style, by default ``{"color": "black", "linewidth": 0.25}``
+        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+            *kwargs* are used to specify properties,
+            by default ``{"color": "black", "linewidth": 0.5}``
 
         Returns
         -------
@@ -308,18 +309,15 @@ class Grid:
             >>> grid = Grid("zone0")
             >>> grid.plot()
 
-        .. image:: ../_static/images/plotting/grid_zone0.png
+        .. image:: ../../_static/images/plotting/grid_zone0.png
         """
         rmin, rmax, zmin, zmax = rz_range
         if rmin >= rmax or zmin >= zmax:
             raise ValueError("Invalid rz_range")
 
         # set default line style
-        if not isinstance(linestyle, dict):
-            raise TypeError("linestyle must be a dict")
-
-        linestyle.setdefault("color", "black")
-        linestyle.setdefault("linewidth", 0.5)
+        for key, value in LINE_STYLE.items():
+            kwargs.setdefault(key, value)
 
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
@@ -337,18 +335,107 @@ class Grid:
         else:
             num_pol = M
         for m in range(num_pol):
-            ax.plot(
-                self.grid_data[:, m, n_phi, 0],
-                self.grid_data[:, m, n_phi, 1],
-                **linestyle
-            )
+            ax.plot(self.grid_data[:, m, n_phi, 0], self.grid_data[:, m, n_phi, 1], **kwargs)
         # plot poloidal line
         for l in range(L):
-            ax.plot(
-                self.grid_data[l, :, n_phi, 0],
-                self.grid_data[l, :, n_phi, 1],
-                **linestyle
-            )
+            ax.plot(self.grid_data[l, :, n_phi, 0], self.grid_data[l, :, n_phi, 1], **kwargs)
+
+        ax.set_xlim(rmin, rmax)
+        ax.set_ylim(zmin, zmax)
+
+        ax.text(
+            rmin + (rmax - rmin) * 0.02,
+            zmax - (zmax - zmin) * 0.02,
+            f"$\\phi=${self.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
+            fontsize=10,
+            va="top",
+            bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+        )
+        set_axis_properties(ax)
+        ax.set_xlabel("R[m]")
+        ax.set_ylabel("Z[m]")
+
+        return (fig, ax)
+
+    def plot_coarse(
+        self,
+        fig: Figure | None = None,
+        ax: Axes | None = None,
+        n_phi: int = 0,
+        rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
+        **kwargs,
+    ) -> tuple[Figure, Axes]:
+        """Plotting EMC-EIRENE-defined coarse grids in :math:`r - z` plane.
+
+        The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` HDF5
+        group. So this method is available only if they are stored.
+        Creating coarse grid indices is achieved by executing
+        :obj:`~cherab.lhd.emc3.indices.create_new_index`.
+
+
+        Parameters
+        ----------
+        fig
+            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
+        ax
+            matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        n_phi
+            index of toroidal grid, by default 0
+        rz_range
+            sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
+            by default ``(2.0, 5.5, -1.6, 1.6)``
+        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+            *kwargs* are used to specify properties,
+            by default ``{"color": "black", "linewidth": 0.5}``
+
+        Returns
+        -------
+            tuple of matplotlib figure and axes object
+
+
+        .. prompt:: python >>> auto
+
+            >>> grid = Grid("zone0")
+            >>> grid.plot_coarse()
+
+        .. image:: ../../_static/images/plotting/grid_coarse_zone0.png
+        """
+        rmin, rmax, zmin, zmax = rz_range
+        if rmin >= rmax or zmin >= zmax:
+            raise ValueError("Invalid rz_range")
+
+        # set default line style
+        for key, value in LINE_STYLE.items():
+            kwargs.setdefault(key, value)
+
+        # load coarse grid indices
+        with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
+            try:
+                ds = file["grid-360"][self.zone]["index"]["coarse"]
+                radial_indices: np.ndarray = ds.attrs["radial indices"]
+                poloidal_indices: np.ndarray = ds.attrs["poloidal indices"]
+
+            except Exception as err:
+                raise ValueError("Cannot load coarse grid attributes") from err
+
+        # === plotting =============================================================================
+        if not isinstance(ax, Axes):
+            if not isinstance(fig, Figure):
+                fig, ax = plt.subplots(dpi=200)
+            else:
+                ax = fig.add_subplot()
+
+        ax.set_aspect("equal")
+
+        if self.zone in {"zone0", "zone11"}:
+            poloidal_indices = poloidal_indices[:-1]
+
+        # plot radial line
+        for m in poloidal_indices:
+            ax.plot(self.grid_data[:, m, n_phi, 0], self.grid_data[:, m, n_phi, 1], **kwargs)
+        # plot poloidal line
+        for l in radial_indices:
+            ax.plot(self.grid_data[l, :, n_phi, 0], self.grid_data[l, :, n_phi, 1], **kwargs)
 
         ax.set_xlim(rmin, rmax)
         ax.set_ylim(zmin, zmax)
@@ -372,8 +459,8 @@ class Grid:
         phi: float = 0.0,
         fig: Figure | None = None,
         ax: Axes | None = None,
-        linestyle: dict[str, Any] = LINE_STYLE,
         show_phi: bool = True,
+        **kwargs,
     ) -> tuple[Figure, Axes]:
         """Plotting EMC3-EIRENE-defined grid outline in :math:`r - z` plane.
 
@@ -389,10 +476,11 @@ class Grid:
             matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
         ax
             matplotlib axes object, by default ``ax = fig.add_subplot()``.
-        linestyle
-            line style, by default ``{"color": "black", "linewidth": 0.25}``
         show_phi
             show toroidal angle text in the plot, by default True
+        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+            *kwargs* are used to specify properties,
+            by default ``{"color": "black", "linewidth": 0.5}``
 
         Returns
         -------
@@ -404,12 +492,8 @@ class Grid:
             >>> grid = Grid("zone0")
             >>> grid.plot_outline(4.2)
 
-        .. image:: ../_static/images/plotting/grid_zone0_outline.png
+        .. image:: ../../_static/images/plotting/grid_outline_zone0.png
         """
-        # === Parameters validation ================================================================
-        if not isinstance(linestyle, dict):
-            raise TypeError("linestyle must be a dict")
-
         # === generate interpolated grids ==========================================================
         # put phi in [0, 18) range
         phi_t, fliped = periodic_toroidal_angle(phi)
@@ -443,8 +527,8 @@ class Grid:
 
         # === plotting =============================================================================
         # set default line style
-        linestyle.setdefault("color", "black")
-        linestyle.setdefault("linewidth", 0.5)
+        for key, value in LINE_STYLE.items():
+            kwargs.setdefault(key, value)
 
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
@@ -455,16 +539,15 @@ class Grid:
         ax.set_aspect("equal")
 
         # plot outline (last poloidal line)
-        ax.plot(grid[-1, :, 0], grid[-1, :, 1], **linestyle)
+        ax.plot(grid[-1, :, 0], grid[-1, :, 1], **kwargs)
 
         if self.zone not in {"zone0", "zone11"}:
             # plot first poloidal line
-            ax.plot(grid[0, :, 0], grid[0, :, 1], **linestyle)
+            ax.plot(grid[0, :, 0], grid[0, :, 1], **kwargs)
 
             # plot first/last radial lines
-            ax.plot(grid[:, 0, 0], grid[:, 0, 1], **linestyle)
-            ax.plot(grid[:, -1, 0], grid[:, -1, 1], **linestyle)
-
+            ax.plot(grid[:, 0, 0], grid[:, 0, 1], **kwargs)
+            ax.plot(grid[:, -1, 0], grid[:, -1, 1], **kwargs)
 
         if show_phi:
             rmin, rmax = ax.get_xlim()
@@ -491,7 +574,7 @@ def plot_grids_rz(
     zone_type: int = 1,
     n_phi: int = 0,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-    linestyle: dict[str, Any] = LINE_STYLE,
+    **kwargs,
 ) -> tuple[Figure, Axes]:
     """Plotting EMC-EIRENE-defined grids in :math:`r - z` plane.
 
@@ -511,8 +594,9 @@ def plot_grids_rz(
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
-    linestyle
-        line style, by default ``{"color": "black", "linewidth": 0.25}``
+    **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+        *kwargs* are used to specify properties,
+        by default ``{"color": "black", "linewidth": 0.5}``
 
     Returns
     -------
@@ -524,19 +608,22 @@ def plot_grids_rz(
 
         >>> plot_grids_rz(zone_type=1, n_phi=10)
 
-    .. image:: ../_static/images/plotting/plot_grids_rz.png
+    .. image:: ../../_static/images/plotting/plot_grids_rz.png
     """
+    # validate parameters
+    if zone_type not in {1, 2}:
+        raise ValueError(f"zone_type must be either 1 or 2. (zone_type: {zone_type})")
+    zone_type -= 1
+
     rmin, rmax, zmin, zmax = rz_range
     if rmin >= rmax or zmin >= zmax:
         raise ValueError("Invalid rz_range")
 
     # set default line style
-    if not isinstance(linestyle, dict):
-        raise TypeError("linestyle must be a dict")
+    for key, value in LINE_STYLE.items():
+        kwargs.setdefault(key, value)
 
-    linestyle.setdefault("color", "black")
-    linestyle.setdefault("linewidth", 0.5)
-
+    # create figure/axes object
     if not isinstance(ax, Axes):
         if not isinstance(fig, Figure):
             fig, ax = plt.subplots(dpi=200)
@@ -544,11 +631,6 @@ def plot_grids_rz(
             ax = fig.add_subplot()
 
     ax.set_aspect("equal")
-
-    if zone_type not in {1, 2}:
-        raise ValueError(f"zone_type must be either 1 or 2. (zone_type: {zone_type})")
-
-    zone_type -= 1
 
     for zone in ZONES[zone_type]:
         emc = Grid(zone=zone)
@@ -560,18 +642,118 @@ def plot_grids_rz(
         else:
             num_pol = M
         for m in range(num_pol):
-            ax.plot(
-                emc.grid_data[:, m, n_phi, 0],
-                emc.grid_data[:, m, n_phi, 1],
-                **linestyle
-            )
+            ax.plot(emc.grid_data[:, m, n_phi, 0], emc.grid_data[:, m, n_phi, 1], **kwargs)
         # plot poloidal line
         for l in range(L):
-            ax.plot(
-                emc.grid_data[l, :, n_phi, 0],
-                emc.grid_data[l, :, n_phi, 1],
-                **linestyle
-            )
+            ax.plot(emc.grid_data[l, :, n_phi, 0], emc.grid_data[l, :, n_phi, 1], **kwargs)
+
+    ax.set_xlim(rmin, rmax)
+    ax.set_ylim(zmin, zmax)
+
+    ax.text(
+        rmin + (rmax - rmin) * 0.02,
+        zmax - (zmax - zmin) * 0.02,
+        f"$\\phi=${emc.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
+        fontsize=10,
+        va="top",
+        bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+    )
+    set_axis_properties(ax)
+    ax.set_xlabel("R[m]")
+    ax.set_ylabel("Z[m]")
+
+    return (fig, ax)
+
+
+def plot_grids_coarse(
+    fig: Figure | None = None,
+    ax: Axes | None = None,
+    zone_type: int = 1,
+    n_phi: int = 0,
+    rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
+    **kwargs,
+) -> tuple[Figure, Axes]:
+    """Plotting EMC-EIRENE-defined coarse grids in :math:`r - z` plane.
+
+    The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` HDF5 group.
+
+    Parameters
+    ----------
+    fig
+        matplotlib figure object, by default ``plt.figure(dpi=200)``
+    ax
+        matplotlib axes object, by default ``ax = fig.add_subplot()``.
+    zone_type
+        type of zones collections, by default 1
+
+        | type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
+        | type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
+    n_phi
+        index of toroidal grid, by default 0
+    rz_range
+        sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
+        by default ``(2.0, 5.5, -1.6, 1.6)``
+    **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+        *kwargs* are used to specify properties,
+        by default ``{"color": "black", "linewidth": 0.5}``
+
+    Returns
+    -------
+        tuple of matplotlib figure and axes objects
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> plot_grids_coarse(zone_type=1, n_phi=10)
+
+    .. image:: ../../_static/images/plotting/plot_grids_coarse.png
+    """
+    # validate parameters
+    if zone_type not in {1, 2}:
+        raise ValueError(f"zone_type must be either 1 or 2. (zone_type: {zone_type})")
+    zone_type -= 1
+
+    rmin, rmax, zmin, zmax = rz_range
+    if rmin >= rmax or zmin >= zmax:
+        raise ValueError("Invalid rz_range")
+
+    # set default line style
+    for key, value in LINE_STYLE.items():
+        kwargs.setdefault(key, value)
+
+    if not isinstance(ax, Axes):
+        if not isinstance(fig, Figure):
+            fig, ax = plt.subplots(dpi=200)
+        else:
+            ax = fig.add_subplot()
+
+    ax.set_aspect("equal")
+    for zone in ZONES[zone_type]:
+        # load coarse grid indices
+        with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
+            try:
+                ds = file["grid-360"][zone]["index"]["coarse"]
+                radial_indices: np.ndarray = ds.attrs["radial indices"]
+                poloidal_indices: np.ndarray = ds.attrs["poloidal indices"]
+
+            except Exception:
+                warnings.warn(f"Cannot load coarse grid attributes in {zone}.", stacklevel=2)
+                continue
+
+        emc = Grid(zone=zone)
+        L, M, _ = emc.shape
+
+        # plot radial line
+        if zone in {"zone0", "zone11"}:
+            poloidal_indices = poloidal_indices[:-1]
+
+        # plot radial line
+        for m in poloidal_indices:
+            ax.plot(emc.grid_data[:, m, n_phi, 0], emc.grid_data[:, m, n_phi, 1], **kwargs)
+        # plot poloidal line
+        for l in radial_indices:
+            ax.plot(emc.grid_data[l, :, n_phi, 0], emc.grid_data[l, :, n_phi, 1], **kwargs)
 
     ax.set_xlim(rmin, rmax)
     ax.set_ylim(zmin, zmax)
