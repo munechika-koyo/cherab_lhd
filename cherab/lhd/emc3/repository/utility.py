@@ -12,6 +12,11 @@ def exist_path_validate(path: Path | str) -> Path:
 
     This checks the path with or w/o ``.txt`` suffix and return the
     existing one.
+
+    Parameters
+    ----------
+    path
+        path to a text file
     """
     path = path_validate(path)
     if not path.exists():
@@ -23,7 +28,13 @@ def exist_path_validate(path: Path | str) -> Path:
 
 
 def path_validate(path: Path | str) -> Path:
-    """Validate path and return :obj:`~pathlib.Path` instance."""
+    """Validate path and return :obj:`~pathlib.Path` instance.
+
+    Parameters
+    ----------
+    path
+        arbitarary path
+    """
     if isinstance(path, (Path, str)):
         path = Path(path)
     else:

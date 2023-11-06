@@ -1,40 +1,41 @@
-"""
-Module to offer mapping classes
+"""Module to offer mapping classes
 """
 cimport cython
-from numpy import array, float64, int32
+from .intfunction cimport is_callable, autowrap_intfunction3d
+from numpy import array, int32
 
-__all__ = ["EMC3Mapper", "IndexMapper"]
+__all__ = ["Mapper", "IndexMapper"]
 
 
-cdef class EMC3Mapper(Function3D):
-    """
-    Mapping EMC3-EIRENE data to tetrahedra meshes.
-    Several EMC3's data are stored in some EMC3's geometric cells.
-    This instance is callable function returning physical data corresponding in
-    3D space where EMC3's index function returns a physical index
+cdef class Mapper(Function3D):
+    """Mapping data array to function retuning its index value.
 
-    :param IntegerFunction3D index_func: EMC3's index_funcion returning a physical index.
-    :param array-like data: An 1D array of data defined by EMC3.
+    This instance is callable function returning the element of 1-D `.data` array, the index of which
+    is given by a Index function defined in 3-D space.
+
+    If the index function returns an integer which is out of bounds or negative,
+    an instance returns a default value defined by `.default_value`.
+
+    :param IntegerFunction3D index_func: callable returning a index integer.
+    :param array-like data: An 1D array of data.
     :param double default_value: The value to return outside the data size limits, by default 0.0.
     """
 
     def __init__(self, object index_func not None, object data not None, double default_value=0.0):
 
         # use numpy arrays to store data internally
-        data = array(data, dtype=float64)
+        data = array(data, dtype=float)
 
         # validate arguments
         if data.ndim != 1:
             raise ValueError("data array must be 1D.")
 
-        if not callable(index_func):
+        if not is_callable(index_func):
             raise TypeError("This function is not callable.")
 
         # populate internal attributes
-        self._data = data
         self._data_mv = data
-        self._index_func = index_func
+        self._index_func = autowrap_intfunction3d(index_func)
         self._default_value = default_value
 
     @cython.boundscheck(False)
@@ -45,9 +46,9 @@ cdef class EMC3Mapper(Function3D):
         cdef:
             int index
 
-        index = <int>self._index_func(x, y, z)
+        index = self._index_func(x, y, z)
 
-        if index < 0 or self._data.size - 1 < index:
+        if index < 0 or self._data_mv.size - 1 < index:
             return self._default_value
         else:
             return self._data_mv[index]
@@ -55,20 +56,22 @@ cdef class EMC3Mapper(Function3D):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
-    cpdef int inside_grids(self, double x, double y, double z):
-        """
-        mask function returning True if Point (x, y, z) in any grids,
-        otherwise False.
+    cpdef bint inside_grids(self, double x, double y, double z):
+        """mask function returning True if Point (x, y, z) in any grids, otherwise False.
         """
         return self._index_func(x, y, z) > -1
 
 
 cdef class IndexMapper(IntegerFunction3D):
-    """
-    Mapping new EMC3-EIRENE indices to original cell indices.
-    This instance is callable function returning an integer index value.
+    """Mapping integer array to function retuning its index value.
 
-    :param IntegerFunction3D index_func: EMC3's index_funcion returning an index value.
+    This instance is callable function returning the element of 1-D `.indices` array,
+    the index of which is given by a Index function defined in 3-D space.
+
+    If the index function returns an integer which is out of bounds or negative,
+    an instance returns a default value defined by `.default_value`.
+
+    :param IntegerFunction3D index_func: callable returning an index value.
     :param array-like indices: An 1D array of indices.
     :param double default_value: The value to return outside limits, by default -1.
     """
@@ -82,11 +85,10 @@ cdef class IndexMapper(IntegerFunction3D):
         if indices.ndim != 1:
             raise ValueError("indices array must be 1D.")
 
-        if not callable(index_func):
-            raise TypeError("This function is not callable.")
+        if not is_callable(index_func):
+            raise TypeError("This function must be .")
 
         # populate internal attributes
-        self._indices = indices
         self._indices_mv = indices
         self._index_func = index_func
         self._default_value = default_value
@@ -99,9 +101,9 @@ cdef class IndexMapper(IntegerFunction3D):
         cdef:
             int index
 
-        index = <int>self._index_func(x, y, z)
+        index = self._index_func(x, y, z)
 
-        if index < 0 or self._indices.size - 1 < index:
+        if index < 0 or self._indices_mv.size - 1 < index:
             return self._default_value
         else:
             return self._indices_mv[index]
@@ -109,9 +111,6 @@ cdef class IndexMapper(IntegerFunction3D):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
-    cpdef int inside_grids(self, double x, double y, double z):
-        """
-        mask function returning True if Point (x, y, z) in any grids,
-        otherwise False.
-        """
+    cpdef bint inside_grids(self, double x, double y, double z):
+        """mask function returning True if Point (x, y, z) in any grids, otherwise False."""
         return self._index_func(x, y, z) > -1

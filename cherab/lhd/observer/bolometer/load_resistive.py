@@ -2,15 +2,13 @@
 from __future__ import annotations
 
 import json
-from importlib import resources
+from importlib.resources import files
+
+import numpy as np
+from raysect.core import World
+from raysect.core.math import Point3D, Vector3D
 
 from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
-from raysect.core import World
-from raysect.core.math import Point3D
-from raysect.optical.material import AbsorbingSurface
-from raysect.primitive import Box, Subtract
-
-from .load_irvb import _centre_basis_and_dimensions
 
 __all__ = ["load_resistive"]
 
@@ -38,14 +36,14 @@ def load_resistive(
         populated :obj:`~cherab.tools.observers.bolometry.BolometerCamera.BolometerCamera` instance
     """
     # import configs as a resource
-    with resources.open_text("cherab.lhd.observer.bolometer.data", "RB.json") as file:
+    with files("cherab.lhd.observer.bolometer.data").joinpath("RB.json").open("r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][model_variant]
-    except KeyError:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.")
+    except KeyError as err:
+        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.") from err
 
     # ----------------------------------------------------------------------- #
     #  Build Bolometer Camera
@@ -103,6 +101,34 @@ def load_resistive(
     # )
 
     return bolometer_camera
+
+
+def _centre_basis_and_dimensions(
+    corners: list[Point3D],
+) -> tuple[Point3D, Vector3D, Vector3D, float, float]:
+    """Helper function of calculating centre, basis vectors, width and height of a rectangle from
+    its corners.
+
+    Parameters
+    ----------
+    corners
+        a list of corners of a rectangle
+
+    Returns
+    -------
+    tuple[Point3D, Vector3D, Vector3D, float, float]
+        centre, basis vectors, width and height of a rectangle
+    """
+    centre = Point3D(
+        np.mean([corner.x for corner in corners]),
+        np.mean([corner.y for corner in corners]),
+        np.mean([corner.z for corner in corners]),
+    )
+    basis_x = corners[0].vector_to(corners[1]).normalise()
+    basis_y = corners[1].vector_to(corners[2]).normalise()
+    width = corners[0].distance_to(corners[1])
+    height = corners[1].distance_to(corners[2])
+    return (centre, basis_x, basis_y, width, height)
 
 
 if __name__ == "__main__":

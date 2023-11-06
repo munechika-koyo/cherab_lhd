@@ -45,7 +45,7 @@ cdef class _IndexBase(IntegerFunction3D):
     tetra_path : str
         path to the directory containing TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
     hdf5_path : str
-        path to the data repository formated as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``
+        path to the data repository formatted as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``
     populate : bool
         whether or not to populate instances of Discrete3DMesh, by default True
     """
@@ -98,7 +98,6 @@ cdef class _IndexBase(IntegerFunction3D):
         else:
             raise FileExistsError(f"{tetra_path} does not exist.")
 
-
     @property
     def hdf5_path(self):
         """:obj:`~pathlib.Path`: path to the data repository formated as HDF5
@@ -136,13 +135,7 @@ cdef class _IndexBase(IntegerFunction3D):
         tuple[dict, dict, dict, dict]
             containing indices dictionaries.
         """
-        cdef:
-            dict indices1_dict = {}
-            dict indices2_dict = {}
-            dict indices3_dict = {}
-            dict indices4_dict = {}
-
-        return (indices1_dict, indices2_dict, indices3_dict, indices4_dict)
+        raise NotImplementedError("To be defined in subclass.")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -189,13 +182,13 @@ cdef class _IndexBase(IntegerFunction3D):
 cdef class CellIndex(_IndexBase):
     """EMC3-EIRENE cell index function defined in zone0-4 & zone11-15.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding cell index
     when :math:`(X, Y, Z)` arguments are given.
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, *args, **keywards):
@@ -258,31 +251,23 @@ cdef class CellIndex(_IndexBase):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef ndarray[uint32_t, ndim=1] _cell_index2mapping_array(
-        self,
-        uint32_t[::1] cell_indices,
-        int L,
-        int M,
-        int N,
-    ):return np.ravel(
-            np.flip(
-                np.reshape(cell_indices, (N - 1, M - 1, L - 1)),
-                axis=1,
-            )
+    cdef ndarray[uint32_t, ndim=1] _cell_index2mapping_array(self, uint32_t[::1] cell_indices, int L, int M, int N):
+        return np.ravel(
+            np.flip(np.reshape(cell_indices, (N - 1, M - 1, L - 1)), axis=1)
         )
 
 
 cdef class PhysIndex(_IndexBase):
     """EMC3-EIRENE-defined Physical Cell Index function.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding physical cell index
     when :math:`(X, Y, Z)` arguments are given.
-    Physical cell indices must be stored in HDF5 dataset file which is specified by `hdf5_path'.
+    Physical cell indices must be stored in HDF5 dataset file which is specified by `hdf5_path`.
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, **keywards):
@@ -314,14 +299,14 @@ cdef class PhysIndex(_IndexBase):
 cdef class TomographyZone(_IndexBase):
     """EMC3-EIRENE-based Tmography Zone function.
 
-    This class is a subclass of :obj:`._IndexBase` and
+    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
     populates callable instance returning a corresponding tomography zone index
     when :math:`(X, Y, Z)` arguments are given.
     Total zone size is 252 = 14 (poloidal) x 18 (0-18 deg in toroidal).
 
     Parameters
     ----------
-    **kwargs : :obj:`._IndexBase` properties, optional
+    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
         *kwargs* are used to specify properties like a `tetra_path`
     """
     def __init__(self, **keywards):

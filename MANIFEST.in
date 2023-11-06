@@ -7,7 +7,7 @@ include pyproject.toml
 include README.md CHANGELOG.txt LICENSE.md AUTHORS.md MANIFEST.in .pre-commit-config.yaml
 include .gitignore .gitattributes
 # All source files
-recursive-include cherab *.py *.pyx *.pxd *.csv *.json *.npy *.rsm *.STL *.txt meson.build
+recursive-include cherab *.py *.pyx *.pxd *.csv *.json *.npy *.rsm *.STL *.txt *.hdf5 meson.build
 include cherab/lhd/VERSION
 # Exclude what we don't want to include
 global-exclude *.c *.py[cod]

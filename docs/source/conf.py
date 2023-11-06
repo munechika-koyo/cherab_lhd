@@ -11,6 +11,9 @@
 import os
 import sys
 from datetime import datetime
+
+from packaging.version import parse
+
 from cherab.lhd import __version__
 
 sys.path.insert(0, os.path.abspath("."))
@@ -21,10 +24,8 @@ sys.path.insert(0, os.path.abspath("."))
 project = "cherab-lhd"
 author = "Koyo Munechika"
 copyright = f"2020-{datetime.now().year}, {author}"
-# The short X.Y version.
-version = __version__
-# The full version, including alpha/beta/rc tags.
-release = __version__
+version_obj = parse(__version__)
+release = str(version_obj)
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -40,6 +41,9 @@ extensions = [
     "sphinx_copybutton",
     "nbsphinx",
     "sphinx_design",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_codeautolink",
+    "sphinx_github_style",
 ]
 
 default_role = "obj"
@@ -100,6 +104,24 @@ html_theme = "pydata_sphinx_theme"
 
 # html_favicon = "_static/favicon/favicon.ico"
 
+# Define the json_url for our version switcher.
+json_url = "https://cherab-phix.readthedocs.io/en/latest/_static/switcher.json"
+version_match = os.environ.get("READTHEDOCS_VERSION")
+# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
+# If it is an integer, we're in a PR build and the version isn't correct.
+# If it's "latest" → change to "dev" (that's what we want the switcher to call it)
+if not version_match or version_match.isdigit() or version_match == "latest":
+    # For local development, infer the version to match from the package.
+    if version_obj.is_prerelease:
+        version_match = "dev"
+        # We want to keep the relative reference if we are in dev mode
+        # but we want the whole url if we are effectively in a released version
+        json_url = "_static/switcher.json"
+    else:
+        version_match = f"v{release}"
+elif version_match == "stable":
+    version_match = f"v{release}"
+
 html_theme_options = {
     "icon_links": [
         {
@@ -111,11 +133,17 @@ html_theme_options = {
     ],
     "pygment_light_style": "default",
     "pygment_dark_style": "native",
+    "switcher": {
+        "json_url": json_url,
+        "version_match": version_match,
+    },
+    "show_version_warning_banner": True,
+    "navbar_start": ["navbar-logo", "version-switcher"],
 }
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "cherab-lhd Documentation"
+html_title = "Cherab-LHD"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -123,7 +151,6 @@ html_title = "cherab-lhd Documentation"
 html_static_path = ["_static"]
 html_css_files = [
     "custom.css",
-    "gallery.css",
 ]
 
 # === Intersphinx configuration ===============================================
@@ -142,11 +169,6 @@ intersphinx_timeout = 10
 # === NB Sphinx configuration ============================================
 nbsphinx_allow_errors = True
 nbsphinx_prolog = """
-.. raw:: html
-
-    <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
-    <script>require=requirejs;</script>
-
 {% set docname = env.doc2path(env.docname, base=None) %}
 .. only:: html
 
@@ -155,8 +177,19 @@ nbsphinx_prolog = """
 
     .. note::
         This page was generated from `{{ docname }}`__.
-    __ https://github.com/munechika-koyo/cherab_lhd/docs/{{ docname }}
+    __ https://github.com/munechika-koyo/cherab_lhd/blob/main/docs/{{ docname }}
 """
 nbsphinx_thumbnails = {
-    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png"
+    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png",
+    "notebooks/observer/bolos_config": "_static/images/plotting/bolos_config.png",
 }
+
+# === sphinx_github_style configuration ============================================
+# get tag name which exists in GitHub
+tag = "master" if version_obj.is_devrelease else f"v{version_obj.public}"
+
+# set sphinx_github_style options
+top_level = "cherab"
+linkcode_blob = tag
+linkcode_url = "https://github.com/munechika-koyo/cherab_lhd"
+linkcode_link_text = "Source"

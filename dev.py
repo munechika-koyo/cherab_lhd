@@ -8,15 +8,15 @@ from pathlib import Path
 import rich_click as click
 
 try:
-    import tomlib
+    import tomllib
 except ImportError:
-    import tomli as tomlib
+    import tomli as tomllib
 
 
 BASE_DIR = Path(__file__).parent.absolute()
 BUILD_DIR = BASE_DIR / "build"
 SRC_PATH = BASE_DIR / "cherab"
-DOC_SRC = BASE_DIR / "docs"
+DOC_ROOT = BASE_DIR / "docs"
 ENVS = dict(os.environ)
 N_CPUs = os.cpu_count()
 
@@ -121,8 +121,8 @@ def install():
 def install_deps():
     """Install build dependencies using pip.
 
-    Only pip install cannot compile cython files appropriately, so we
-    excute this command before installing this package.
+    Only pip install cannot compile cython files appropriately, so we excute this command before
+    installing this package.
     """
     # Load requires from pyproject.toml
     pyproject = BASE_DIR / "pyproject.toml"
@@ -130,7 +130,7 @@ def install_deps():
         raise FileNotFoundError("pyproject.toml must be placed at the root directory.")
 
     with open(pyproject, "rb") as file:
-        conf = tomlib.load(file)
+        conf = tomllib.load(file)
     requires = conf["build-system"].get("requires")
     subprocess.run([sys.executable, "-m", "pip", "install"] + requires)
 
@@ -143,27 +143,48 @@ def install_deps():
 @click.option(
     "--cell-filename", default="CELL_GEO", help="Cell index data text file name", show_default=True
 )
-def install_emc3_data(data_dir: str, grid_filename: str, cell_filename: str):
-    """Install EMC3-EIRENE-related data including grids, indices, calculated
-    data, etc.
+@click.option(
+    "--store-dir",
+    default="~/.cherab/lhd/",
+    help="Relative directory path to store the data",
+    show_default=True,
+)
+@click.option("--overwrite", is_flag=True, help="Overwrite the existing data", show_default=True)
+def install_emc3_data(
+    data_dir: str, grid_filename: str, cell_filename: str, store_dir: str, overwrite: bool
+):
+    """Install EMC3-EIRENE-related data including grids, indices, calculated data, etc. as a
+    `emc3.hdf5` HDF5 file.
 
-    This command should be excuted before using EMC3-related features if
-    EMC3's HDF5 dataset does not been constructed. Note that it is only
-    available after installing cherab-lhd.
+    This command should be excuted before using EMC3-related features if EMC3's HDF5 dataset does
+    not been constructed. Note that it is only available after installing cherab-lhd.
     """
     try:
         from cherab.lhd.emc3.repository.install import (
-            install_cell_index,
+            install_cell_indices,
             install_data,
             install_grids,
+            install_physical_cell_indices,
         )
-    except Exception:
-        raise ImportError("cherab.lhd must be installed in advance.")
+    except Exception as err:
+        raise ImportError("cherab.lhd must be installed in advance.") from err
 
     # install grids
-    install_grids(Path(data_dir) / grid_filename)
-    install_cell_index(Path(data_dir) / cell_filename)
-    install_data(Path(data_dir))
+    install_grids(
+        Path(data_dir) / grid_filename,
+        hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
+    )
+    install_physical_cell_indices(
+        Path(data_dir) / cell_filename,
+        hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
+    )
+    install_cell_indices(
+        hdf5_path= Path(store_dir).expanduser() / "emc3.hdf5",
+        update=overwrite
+    )
+    install_data(Path(data_dir), hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5")
 
 
 ############
@@ -185,19 +206,20 @@ def doc(parallel: int, targets: str):
     # move to docs/ and run command
     os.chdir("docs")
 
-    builddir = DOC_SRC / "build"
+    builddir = DOC_ROOT / "build"
+    srcdir = DOC_ROOT / "source"
     SPHINXBUILD = "sphinx-build"
     if targets == "html":
-        cmd = [SPHINXBUILD, "-b", targets, f"-j{parallel}", str(DOC_SRC), str(builddir / "html")]
+        cmd = [SPHINXBUILD, "-b", targets, f"-j{parallel}", str(srcdir), str(builddir / "html")]
 
     elif targets == "clean":
-        cmd = ["rm", "-rf", str(builddir), "&&", "rm", "-rf", str(DOC_SRC / "_api")]
+        cmd = ["rm", "-rf", str(builddir), "&&", "rm", "-rf", str(srcdir / "_api")]
 
     elif targets == "help":
-        cmd = [SPHINXBUILD, "-M", targets, str(DOC_SRC), str(builddir)]
+        cmd = [SPHINXBUILD, "-M", targets, str(srcdir), str(builddir)]
 
     else:
-        cmd = [SPHINXBUILD, "-M", targets, f"-j{parallel}", str(DOC_SRC), str(builddir)]
+        cmd = [SPHINXBUILD, "-M", targets, f"-j{parallel}", str(srcdir), str(builddir)]
 
     click.echo(" ".join([str(p) for p in cmd]))
     ret = subprocess.call(cmd)
@@ -214,27 +236,17 @@ def doc(parallel: int, targets: str):
 
 @cli.command()
 def format():
-    """:art: Run black & isort formatting
+    """:art: Run ruff linting & formatting
     The default options are defined in pyproject.toml
     """
-    cmd = ["black", str(SRC_PATH)]
+    cmd = ["ruff", "check", "--fix", str(SRC_PATH)]
     click.echo(" ".join([str(p) for p in cmd]))
     ret = subprocess.call(cmd)
 
     if ret == 0:
-        print("black formated")
+        print("ruff formated")
     else:
-        print("black formatting errors!")
-        sys.exit(1)
-
-    cmd = ["isort", str(SRC_PATH)]
-    click.echo(" ".join([str(p) for p in cmd]))
-    ret = subprocess.call(cmd)
-
-    if ret == 0:
-        print("isort formated")
-    else:
-        print("isort formatting errors!")
+        print("ruff formatting errors!")
         sys.exit(1)
 
 
@@ -243,13 +255,10 @@ def cython_lint():
     """:art: Cython linter. Checking all .pyx files in the source directory.
     The default options are defined at the cython-lint table in pyproject.toml
     """
-    # line length option
-    max_line_length = config("cython-lint")["max-line-length"]
-
     # list of .pyx files
     pyx_files = [str(pyx_path) for pyx_path in SRC_PATH.glob("**/*.pyx")]
 
-    cmd = ["cython-lint", "--max-line-length", str(max_line_length)] + pyx_files
+    cmd = ["cython-lint"] + pyx_files
     ret = subprocess.call(cmd)
 
     if ret == 0:
@@ -267,7 +276,7 @@ def config(tool: str):
         raise FileNotFoundError("pyproject.toml must be placed at the root directory.")
 
     with open(pyproject, "rb") as file:
-        conf = tomlib.load(file)
+        conf = tomllib.load(file)
 
     if not conf["tool"].get(tool):
         raise ValueError(f"{tool} config data does not exist.")

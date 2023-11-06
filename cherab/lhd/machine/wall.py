@@ -1,6 +1,7 @@
 """Module to offer wall contour fetures."""
-from pathlib import Path
+from importlib.resources import files
 
+import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import float64, intp
@@ -14,19 +15,16 @@ __all__ = [
 ]
 
 
-DIR_WALL = Path(__file__).parent.resolve() / "geometry" / "data" / "wall_outline"
-
-
 def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     """Return toroidal angle & z coordinate under periodic boundary condition.
-    The defined toroidal angle by EMC3-EIRENE varies from 0 to 18 degree. For
-    example, the poloidal grid plane in 27 degree corresponds to fliped one in
-    9 degree.
+
+    The specified toroidal angle by EMC3-EIRENE varies from 0 to 18 degrees. For example,
+    the poloidal grid plane at 27 degrees corresponds to the one flipped along the z-axis at 9 degrees.
 
     Parameters
     ----------
     phi
-        toroidal angle
+        toroidal angle in degree
 
     Returns
     -------
@@ -34,25 +32,24 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
         (toroidal angle, flag of flipping)
         If this flag is  ``True``, :math:`z` component is multiplied by -1.
     """
-    index = phi // 36
-
-    if (phi // 18) % 2 == 0:
-        fliped = False
-        if index == 0:
-            pass
-        else:
-            phi = phi - 36 * index
+    if phi < 0.0:
+        phi = (phi + 360.0) % 36.0
     else:
-        phi = 36 * (index + 1) - phi
+        phi %= 36.0
+
+    if phi < 18.0:
+        fliped = False
+    else:
+        phi = 36.0 - phi
         fliped = True
     return (phi, fliped)
 
 
 def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
-    """
-    Generate adjacent toroidal angles.
+    """Generate adjacent toroidal angles.
+
     if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
-    then (left, right) adjacent toroidal angle are (0.5, 1.0), each index of which is (1, 2), respectively.
+    then (left, right) adjacent toroidal angles are (0.5, 1.0), each index of which is (1, 2), respectively.
 
     Parameters
     ----------
@@ -84,8 +81,9 @@ def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
 
 
 def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
-    """
-    :math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle :math:`\\varphi`.
+    """:math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle
+    :math:`\\varphi`.
+
     If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
     then one point of wall outline :math:`xyz` is interpolated linearly according to the following equation:
 
@@ -127,9 +125,16 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     if basis not in {"rz", "xyz"}:
         raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
-    # extract toroidal angles from file name
-    filenames = sorted(DIR_WALL.glob("*.txt"))
-    phis = np.array([float(file.stem) for file in filenames])
+    # Load wall ouline data from "wall_outline.hdf5"
+    with (
+        files("cherab.lhd.machine.geometry.data").joinpath("wall_outline.hdf5").open("rb") as file,
+        h5py.File(file, "r") as h5file,
+    ):
+        # load toroidal angles
+        phis = h5file["toroidal_angles"][:]
+
+        # load wall ouline array
+        outlines = h5file["outlines"][:]
 
     # phi -> phi in 0 - 18 deg
     phi_t, fliped = periodic_toroidal_angle(phi)
@@ -138,8 +143,8 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     phi_left, phi_right = adjacent_toroidal_angles(phi_t, phis)
 
     # load rz wall outline
-    rz_left = np.loadtxt(DIR_WALL / filenames[phi_left]) * 1.0e-2  # [cm] -> [m]
-    rz_right = np.loadtxt(DIR_WALL / filenames[phi_right]) * 1.0e-2
+    rz_left = outlines[phi_left, :, :]
+    rz_right = outlines[phi_right, :, :]
 
     # fliped value for z axis
     flip = -1 if fliped else 1
@@ -185,7 +190,7 @@ def plot_lhd_wall_outline(phi: float) -> None:
         >>> from cherab.lhd.machine import plot_lhd_wall_outline
         >>> plot_lhd_wall_outline(15.0)
 
-    .. image:: ../../_static/images/plotting/plot_lhd_wall_outline.png
+    .. image:: ../_static/images/plotting/plot_lhd_wall_outline.png
     """
     rz = wall_outline(phi, basis="rz")
     plt.plot(rz[:, 0], rz[:, 1])

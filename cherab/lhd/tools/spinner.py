@@ -1,5 +1,4 @@
-"""Module offering terminal spinner Spinner implementation is referred by the
-`yaspin` package:
+"""Module offering terminal spinner Spinner implementation is referred by the `yaspin` package:
 
 https://github.com/pavdmyt/yaspin
 """
@@ -12,17 +11,17 @@ import time
 from collections.abc import Callable, Iterable
 from datetime import timedelta
 from itertools import cycle
-from multiprocessing import Event, Lock, Process
+from multiprocessing import Event, Lock, Pipe, Process
 
-__all__ = ["Spinner"]
+__all__ = ["Spinner", "DummySpinner"]
 
 
 SPINNERS = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
 
 
 class Spinner:
-    """Implements a context manager that spawns a child process to write
-    spinner frames into a tty (stdout) duringcontext execution.
+    """Implements a context manager that spawns a child process to write spinner frames into a tty
+    (stdout) duringcontext execution.
 
     Parameters
     ----------
@@ -38,8 +37,8 @@ class Spinner:
         Place spinner to the right or left end of the text string, by default "left"
 
 
-    Example
-    -------
+    Examples
+    --------
     In test.py,
 
     .. code-block:: python
@@ -93,6 +92,7 @@ class Spinner:
         timer: bool = False,
         side: str = "left",
     ) -> None:
+        self._child_conn, self._parent_conn = Pipe(duplex=False)
         self.text = text
         self.interval = interval
         self.frames = frames
@@ -112,7 +112,7 @@ class Spinner:
 
     # === dunders ==================================================================================
     def __repr__(self) -> str:
-        return f"<Spinner object frames={self._frames!s}>"
+        return f"<{self.__class__.__name__} text='{self._text}'>"
 
     def __call__(self, fn) -> Callable:
         @functools.wraps(fn)
@@ -142,11 +142,12 @@ class Spinner:
     def text(self, value: str):
         if not isinstance(value, str):
             raise TypeError("text must be a str type.")
+        self._parent_conn.send(value)
         self._text = value
 
     @property
     def interval(self) -> float:
-        """spinners wait time."""
+        """Spinners wait time."""
         return self._interval
 
     @interval.setter
@@ -157,7 +158,7 @@ class Spinner:
 
     @property
     def frames(self) -> Iterable[str]:
-        """spinner animated frames."""
+        """Spinner animated frames."""
         return self._frames
 
     @frames.setter
@@ -203,7 +204,7 @@ class Spinner:
 
     # === methods ==================================================================================
     def start(self):
-        """start spinner process."""
+        """Start spinner process."""
         self._hide_cursor()
         self._start_time = time.time()
         self._stop_time = None
@@ -216,7 +217,7 @@ class Spinner:
         return self
 
     def stop(self):
-        """stop spinner process."""
+        """Stop spinner process."""
         self._stop_time = time.time()
 
         if self._spin_process:
@@ -267,7 +268,13 @@ class Spinner:
                 self._clear_line()
 
     def write(self, text: str) -> None:
-        """Write text in the terminal without breaking the spinner."""
+        """Write text in the terminal without breaking the spinner.
+
+        Parameters
+        ----------
+        text
+            text to show in the terminal permanently.
+        """
         with self._stdout_lock:
             self._clear_line()
 
@@ -314,6 +321,8 @@ class Spinner:
         # Ensure Unicode input
         assert isinstance(frame, str)
 
+        if self._child_conn.poll():
+            self._text = self._child_conn.recv()
         text = str(self._text)
         assert isinstance(text, str)
 
@@ -341,9 +350,8 @@ class Spinner:
         return out
 
     def _animate(self) -> None:
-        """animate spinners in a child process."""
+        """Animate spinners in a child process."""
         while not self._stop_spin.is_set():
-
             if self._hide_spin.is_set():
                 # Wait a bit to avoid wasting cycles
                 time.sleep(self._interval)
@@ -382,6 +390,48 @@ class Spinner:
             sys.stdout.flush()
 
 
+class DummySpinner:
+    """Dummy spinner class that does nothing.
+
+    This class is used when the spinner is not needed.
+    """
+
+    def __init__(self):
+        # dummy properties
+        self.text: str = "Loading..."
+        self.interval: float = 0.1
+        self.frames: Iterable[str] = SPINNERS
+        self.timer: bool = False
+        self.side: str = "left"
+        self.elapsed_time: float = 0.0
+
+        # dummy methods
+        self.start = lambda *args, **kwargs: None
+        self.stop = lambda *args, **kwargs: None
+        self.hide = lambda *args, **kwargs: None
+        self.show = lambda *args, **kwargs: None
+        self.write = lambda *args, **kwargs: None
+        self.ok = lambda *args, **kwargs: None
+        self.fail = lambda *args, **kwargs: None
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} text='{self.text}'>"
+
+    def __call__(self, fn) -> Callable:
+        @functools.wraps(fn)
+        def inner(*args, **kwargs):
+            with self:
+                return fn(*args, **kwargs)
+
+        return inner
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
 if __name__ == "__main__":
 
     @Spinner()
@@ -391,5 +441,5 @@ if __name__ == "__main__":
     test()
 
     with Spinner("Loading with context manager..."):
-        for i in range(10):
+        for _ in range(10):
             time.sleep(0.25)

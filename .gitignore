@@ -143,3 +143,6 @@ local/
 
 # Meson build
 .mesonpy-native-file.ini
+
+# Ruff stuff:
+.ruff_cache

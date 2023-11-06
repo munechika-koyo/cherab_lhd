@@ -78,7 +78,6 @@ cdef class PinholeCamera(CCDArray):
             raise ValueError(
                 "pinhole_point must be a 2 element tuple defining the x and y position."
             )
-        x, y = pinhole_point
 
         self._pinhole_point = pinhole_point
 
@@ -95,13 +94,13 @@ cdef class PinholeCamera(CCDArray):
         # generate pixel transform
         pixel_x = self.image_start_x - self.image_delta * (ix + 0.5)
         pixel_y = self.image_start_y - self.image_delta * (iy + 0.5)
-        pixel_to_local = translate(pixel_x, pixel_y, -1 * self._focal_length)
+        pixel_to_local = translate(pixel_x, pixel_y, 0.0)
 
         # generate origin points
         origin_points = self.point_sampler.samples(ray_count)
 
         # generate pinhole point in local space
-        pinhole_point = new_point3d(self._pinhole_point[0], self._pinhole_point[1], 0)
+        pinhole_point = new_point3d(self._pinhole_point[0], self._pinhole_point[1], self._focal_length)
 
         # assemble rays
         rays = []

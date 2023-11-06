@@ -5,45 +5,41 @@
 name: cherab-lhd-dev
 channels:
 - conda-forge
-- default
 dependencies:
 - python >= 3.10
-- meson >= 0.64.0
-- meson-python >= 0.10.0
-- ninja >= 1.8.2
-# - cython == 3.0.0a11 installed by pip temporarily
+- meson-python >= 0.13.0
+- cython >= 3.0
 - numpy
 - scipy
 - matplotlib
 - plotly
-- numpy-stl
 - h5py
   # for developper tools
-- ipython
 - black
-- isort
-- flake8
+- ruff
 - mypy
 - rich-click
 - pre-commit
+- cython-lint
+- pytest
   # for documentation
-- docutils >= 0.19, < 0.20
+- docutils
 - ipykernel
 - ipywidgets
+- nbconvert > 7.3
 - nbsphinx
 - pillow
 - pygments >= 2.11.0
-- sphinx >= 5, < 6
+- sphinx
 - sphinx-prompt
 - sphinx-copybutton
-- pydata-sphinx-theme < 0.11
+- pydata-sphinx-theme < 0.15  # for custom css dependency
 - sphinx-design
 - pandoc
 - sphinx-codeautolink
 # pip-install dependencies
 - pip
 - pip:
-  - cython == 3.0.0a11
+  - sphinx-github-style
   - raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh
   - cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat
-  - cython-lint
