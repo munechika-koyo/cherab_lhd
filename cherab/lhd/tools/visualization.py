@@ -34,6 +34,7 @@ from .samplers import sample3d_rz, sample_xy_plane
 __all__ = [
     "show_profile_phi_degs",
     "show_profiles_rz_plane",
+    "show_profile_xy_plane",
     "set_axis_properties",
     "set_norm",
     "set_cbar_format",
