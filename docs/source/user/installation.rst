@@ -31,7 +31,7 @@ Installing for Developper
 ==========================
 If you plan to make any modifications to do any development work on CHERAB-LHD,
 and want to be able to edit the source code without having to run the setup script again
-to have your changes take effect, you can install CHERAB-LHD on eidtable mode.
+to have your changes take effect, you can install CHERAB-LHD on editable mode.
 
 Manually downloading source
 ---------------------------
