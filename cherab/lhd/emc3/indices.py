@@ -13,7 +13,9 @@ from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 __all__ = ["create_index_func", "create_new_index", "create_2d_mesh"]
 
 
-def create_index_func(zone: str, index_type="cell") -> tuple[Discrete3DMesh, int]:
+def create_index_func(
+    zone: str, index_type="cell", load_tetra_mesh: bool = True
+) -> tuple[Discrete3DMesh, int] | int:
     """Create index function using :obj:`.Discrete3DMesh`
 
     The index data must be stored in ``grid-360`` group in HDF5 file.
@@ -23,13 +25,16 @@ def create_index_func(zone: str, index_type="cell") -> tuple[Discrete3DMesh, int
     zone
         zone name
     index_type
-        index type, by default ``cell``.
-        This
+        index type, by default ``"cell"``.
+        usable types are ``"cell"``, ``"physics"`` and ``"coarse"``.
+    load_tetra_mesh
+        whether to load tetra mesh, by default True.
+        If False, return only number of indices (bins).
 
     Returns
     -------
-    tuple[Discrete3DMesh, int]
-        index function and number of indices (bins)
+    tuple[Discrete3DMesh, int] | int
+        index function and number of indices (bins) or only number of indices (bins)
     """
     _create_index = False
     with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
@@ -42,10 +47,14 @@ def create_index_func(zone: str, index_type="cell") -> tuple[Discrete3DMesh, int
     if _create_index:
         indices = create_new_index(index_type, zone)
 
-    if (rsm_path := DEFAULT_TETRA_MESH_PATH / f"{zone}.rsm").exists():
-        tetra = TetraMesh.from_file(rsm_path)
+    # load tetra mesh
+    if load_tetra_mesh:
+        if (rsm_path := DEFAULT_TETRA_MESH_PATH / f"{zone}.rsm").exists():
+            tetra = TetraMesh.from_file(rsm_path)
+        else:
+            raise FileNotFoundError(f"{rsm_path.name} file does not exist.")
     else:
-        raise FileNotFoundError(f"{rsm_path.name} file does not exist.")
+        return indices.max() + 1
 
     # create indices when phi is out of range [0, 18] in degree
     index2 = indices[:, ::-1, :]
