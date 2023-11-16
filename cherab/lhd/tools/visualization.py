@@ -27,8 +27,9 @@ from mpl_toolkits.axes_grid1.axes_grid import CbarAxesBase, ImageGrid
 
 from cherab.core.math import PolygonMask2D, sample2d
 
+from ..emc3.cython.mapper import Mapper
 from ..machine import wall_outline
-from .samplers import sample3d_rz
+from .samplers import sample3d_rz, sample_xy_plane
 
 __all__ = [
     "show_profile_phi_degs",
@@ -253,7 +254,8 @@ def show_profile_phi_degs(
 
 
 def show_profiles_rz_plane(
-    funcs: list[Callable[[float, float, float], Real]],
+    datas: list[np.ndarray],
+    index_func: Callable[[float, float, float], int],
     fig: Figure | None = None,
     phi_deg: float = 0.0,
     mask: str | None = "<=0",
@@ -276,8 +278,10 @@ def show_profiles_rz_plane(
 
     Parameters
     ----------
-    funcs
-        each callable object is a different E3E profile function
+    datas
+        list of numpy.ndarray data
+    index_func
+        callable object to get index of EMC3 meshes
     fig
         Figure object, by default `plt.figure()`
     phi_deg
@@ -333,25 +337,31 @@ def show_profiles_rz_plane(
     tuple of :obj:`~matplotlib.figure.Figure`, :obj:`~mpl_toolkits.axes_grid1.axes_grid.ImageGrid`
     """
     # validation
-    if not isinstance(funcs, list):
-        raise TypeError("funcs must be a list type.")
+    if not isinstance(datas, list):
+        raise TypeError("datas must be a list type.")
 
     if nrows_ncols:
         if not (isinstance(nrows_ncols, tuple) and len(nrows_ncols) == 2):
             raise TypeError("nrows_ncols must be list containing two elements.")
-        if nrows_ncols[0] * nrows_ncols[1] < len(funcs):
-            raise ValueError("nrows_ncols must have numbers over length of funcs.")
+        if nrows_ncols[0] * nrows_ncols[1] < len(datas):
+            raise ValueError("nrows_ncols must have numbers over length of datas.")
     else:
-        nrows_ncols = (1, len(funcs))
+        nrows_ncols = (1, len(datas))
 
     # check clabels
-    if isinstance(clabels, str):
-        clabels = [clabels for _ in range(len(funcs))]
-    elif isinstance(clabels, list):
-        if len(clabels) < len(funcs):
-            raise ValueError("The length of clabels must be equal to or greater than funcs.")
+    if cbar_mode != "single":
+        if isinstance(clabels, str):
+            clabels = [clabels for _ in range(len(datas))]
+        elif isinstance(clabels, list):
+            if len(clabels) < len(datas):
+                raise ValueError("The length of clabels must be equal to or greater than datas.")
+        else:
+            raise TypeError("clabels must be str or list.")
     else:
-        raise TypeError("clabels must be str or list.")
+        if isinstance(clabels, str):
+            clabels = [clabels]
+        else:
+            raise TypeError("clabels must be str if cbar_mode is 'single'.")
 
     # set default cbar_format
     if cbar_format is None:
@@ -383,15 +393,23 @@ def show_profiles_rz_plane(
     job_queue = manager.Queue()
 
     # create tasks
-    for i, func in enumerate(funcs):
-        job_queue.put((i, func))
+    for i, data in enumerate(datas):
+        job_queue.put((i, data))
 
     # produce worker pool
-    pool_size = min(len(funcs), cpu_count())
+    pool_size = min(len(datas), cpu_count())
     workers = [
         Process(
             target=_worker2,
-            args=(phi_deg, mask, (rmin, rmax, nr), (zmin, zmax, nz), job_queue, profiles),
+            args=(
+                phi_deg,
+                index_func,
+                mask,
+                (rmin, rmax, nr),
+                (zmin, zmax, nz),
+                job_queue,
+                profiles,
+            ),
         )
         for _ in range(pool_size)
     ]
@@ -504,6 +522,7 @@ def _worker1(
 
 def _worker2(
     phi_deg: float,
+    index_func: Callable[[float, float, float], int],
     mask: str | None,
     r_range: tuple[float, float, int],
     z_range: tuple[float, float, int],
@@ -514,7 +533,10 @@ def _worker2(
     while not job_queue.empty():
         try:
             # extract a task
-            index, func = job_queue.get(block=False)
+            index, data = job_queue.get(block=False)
+
+            # generate mapper function
+            func = Mapper(index_func, data)
 
             # generate profile
             profile = _sampler(func, phi_deg, mask, r_range, z_range)
@@ -565,6 +587,95 @@ def _sampler(
     profile: np.ndarray = np.transpose(np.ma.masked_array(sampled, mask=mask_arr))
 
     return profile
+
+
+def show_profile_xy_plane(
+    func: Callable[[float, float, float], Real],
+    z: float = 0.0,
+    fig: Figure | None = None,
+    mask: str | None = "<=0",
+    vmax: float | None = None,
+    vmin: float | None = 0.0,
+    resolution: float = 1.0e-3,
+    xy_range: tuple[float, float, float, float] = (2.5, 4.5, 0, 1.5),
+    clabel: str = "",
+    cmap: str = "plasma",
+    plot_mode: str = "scalar",
+    cbar_format: str | None = None,
+    linear_width: float = 1.0,
+    **kwargs,
+) -> ImageGrid:
+    # sampling rate
+    xmin, xmax, ymin, ymax = xy_range
+    if xmin >= xmax or ymin >= ymax:
+        raise ValueError("Invalid xy_range.")
+
+    nx = round((xmax - xmin) / resolution)
+    ny = round((ymax - ymin) / resolution)
+
+    # sampling
+    x_pts, y_pts, samples = sample_xy_plane(func, (xmin, xmax, nx), (ymin, ymax, ny), z=z)
+
+    # masking samples
+    match mask:
+        case "<=0":
+            samples = np.ma.masked_less_equal(samples, 0.0)
+        case "<0":
+            samples = np.ma.masked_less(samples, 0.0)
+        case _:
+            pass
+
+    # set vmin, vmax
+    vmin = samples.min() if vmin is None else vmin
+    vmax = samples.max() if vmax is None else vmax
+
+    if not isinstance(fig, Figure):
+        fig = plt.figure(dpi=150)
+
+    grids = ImageGrid(
+        fig, 111, nrows_ncols=(1, 1), axes_pad=0.0, label_mode="L", cbar_mode="single"
+    )
+
+    # set norm
+    norm = set_norm(plot_mode, vmin, vmax, linear_width=linear_width)
+
+    # plot
+    mappable = grids[0].pcolormesh(x_pts, y_pts, samples.T, cmap=cmap, norm=norm)
+
+    # set colorbar
+    cbar = plt.colorbar(mappable, cax=grids.cbar_axes[0])
+
+    # set colorbar's locator and formatter
+    if cbar_format is None:
+        cbar_format = plot_mode
+    set_cbar_format(cbar.ax, cbar_format, linear_width=linear_width, **kwargs)
+    cbar.set_label(clabel)
+
+    # set axis properties
+    grids[0].set_xlabel("X [m]")
+    grids[0].set_ylabel("Y [m]")
+    grids[0].xaxis.set_major_formatter("{x:.1f}")
+    grids[0].yaxis.set_major_formatter("{x:.1f}")
+    grids[0].tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
+
+    # plot toroidal angle lines
+    grids[0].axline((0, 0), slope=np.tan(np.deg2rad(9.0)), color="k", linestyle="--")
+    grids[0].axline((0, 0), slope=np.tan(np.deg2rad(18.0)), color="k", linestyle="--")
+
+    # toroidal angle text
+    grids[0].text(2.7, 0.45, "$\\phi=9^\\circ$", rotation=9, fontsize=10)
+    grids[0].text(2.7, 0.9, "$\\phi=18^\\circ$", rotation=18, fontsize=10)
+
+    # plot magnetic axis (r, z) = (3.6, 0.0)
+    y_axis = np.linspace(ymin, ymax, 100)
+    phis = np.arcsin(y_axis / 3.6)
+    x_axis = 3.6 * np.cos(phis)
+    grids[0].plot(x_axis, y_axis, color="k", linestyle="--")
+
+    # axes limit
+    grids[0].set(xlim=(xmin, xmax), ylim=(ymin, ymax))
+
+    return grids
 
 
 def set_axis_properties(axes: Axes):
