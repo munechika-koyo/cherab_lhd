@@ -1,1 +1,1 @@
-"""Moudles to handle EMC3-EIRENE data like saving them to repository."""
+"""Subpackage to handle EMC3-EIRENE raw data like saving them to repository."""
