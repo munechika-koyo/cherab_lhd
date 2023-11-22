@@ -36,7 +36,7 @@ cpdef ndarray[uint32_t, ndim=2] tetrahedralize(ndarray cells):
     .. prompt:: python >>> auto
 
         >>> import numpy as np
-        >>> from cherab.lhd.emitter.cython import tetrahedralize
+        >>> from cherab.lhd.emc3.cython import tetrahedralize
         >>>
         >>> array = np.arange(16, dtype=np.uint32).reshape((2, -1))
         >>> array
