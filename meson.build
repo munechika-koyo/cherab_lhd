@@ -1,19 +1,21 @@
 project(
   'cherab-lhd',
+  'c',
   'cython',
   # Note that version cannot dinamically changed now.
   version: '0.1',
   meson_version: '>= 0.64.0',
   default_options: [
     'cython_args=-3',
-    'c_args=-fopenmp',
-    'c_link_args=-fopenmp',
   ],
 )
 
 # https://mesonbuild.com/Python-module.html
 py = import('python').find_installation(pure: false)
 py_dep = py.dependency()
+
+# OpenMP dependency
+omp_dep = dependency('openmp', required: true)
 
 
 # NumPy include directory - needed in all submodules

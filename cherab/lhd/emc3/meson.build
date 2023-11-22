@@ -1,12 +1,3 @@
-# add include path to .pxd files
-add_project_arguments(
-  '-I',
-  'cherab/lhd/emc3/cython/intfunction.pxd',
-  '-I',
-  'cherab/lhd/emc3/cython/discrete3dmesh.pxd',
-  language : 'cython'
-)
-
 
 cython_sources = [
   ['geometry', 'geometry.pyx'],
