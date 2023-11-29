@@ -6,12 +6,14 @@ requires = [
     "cython >= 3.0",
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
+    "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
 
 [project]
 name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
+version = "0.1.0.dev"
 readme = "README.md"
 authors = [
     { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
@@ -42,7 +44,6 @@ dependencies = [
     "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
     "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
 ]
-dynamic = ["version"]
 license = { file = "LICENSE.md" }
 
 [project.optional-dependencies]
@@ -125,9 +126,6 @@ follow-imports = "silent"
 ignore-missing-imports = true
 show-column-numbers = true
 no-pretty = true
-
-[tool.setuptools.dynamic]
-version = { attr = "cherab.lhd.__version__" }
 
 [tool.docformatter]
 recursive = true

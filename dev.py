@@ -88,6 +88,13 @@ def build(build_dir: str, parallel: int):
         print(f"copy {src} into {dst}")
     print("Install .so files in place.")
 
+    # copy version.py
+    for version_path in BUILD_DIR.glob("**/version.py"):
+        src = version_path.resolve()
+        dst = BASE_DIR / version_path.relative_to(BUILD_DIR)
+        shutil.copy(src, dst)
+        print(f"copy {src} into {dst}")
+
     # delete temporary __init__.py
     os.remove(temp_init)
 
@@ -173,17 +180,14 @@ def install_emc3_data(
     install_grids(
         Path(data_dir) / grid_filename,
         hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
-        update=overwrite
+        update=overwrite,
     )
     install_physical_cell_indices(
         Path(data_dir) / cell_filename,
         hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5",
-        update=overwrite
+        update=overwrite,
     )
-    install_cell_indices(
-        hdf5_path= Path(store_dir).expanduser() / "emc3.hdf5",
-        update=overwrite
-    )
+    install_cell_indices(hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5", update=overwrite)
     install_data(Path(data_dir), hdf5_path=Path(store_dir).expanduser() / "emc3.hdf5")
 
 

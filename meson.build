@@ -2,13 +2,19 @@ project(
   'cherab-lhd',
   'c',
   'cython',
-  # Note that version cannot dinamically changed now.
-  version: '0.1',
+  version: run_command(
+    ['cherab/lhd/_build_utils/gitversion.py'],
+    check: true
+  ).stdout().strip(),
   meson_version: '>= 0.64.0',
   default_options: [
     'cython_args=-3',
+    'c_std=c99',
+    'buildtype=debugoptimized',
   ],
 )
+
+fs = import('fs')
 
 # https://mesonbuild.com/Python-module.html
 py = import('python').find_installation(pure: false)
