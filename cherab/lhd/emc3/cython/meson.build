@@ -1,6 +1,3 @@
-# Copy the main __init__.py and pxd files to the build dir.
-# Needed to trick Cython, it won't do a relative import outside a package
-fs = import('fs')
 _cython_tree = declare_dependency(sources: [
   fs.copyfile('__init__.pxd'),
   fs.copyfile('discrete3dmesh.pxd'),
@@ -9,7 +6,6 @@ _cython_tree = declare_dependency(sources: [
   fs.copyfile('masking.pxd'),
   fs.copyfile('tetrahedralization.pxd'),
 ])
-
 
 cython_sources = [
   ['intfunction', 'intfunction.pyx'],
@@ -25,8 +21,7 @@ foreach file : cython_sources
     file[0],
     file[1],
     # c_args: [numpy_nodepr_api],
-    dependencies: [py_dep, omp_dep, _cython_tree],
-    include_directories: [inc_np],
+    dependencies: [py_dep, np_dep, omp_dep, _cython_tree],
     install: true,
     install_dir: py.get_install_dir() / 'cherab/lhd/emc3/cython',
   )
