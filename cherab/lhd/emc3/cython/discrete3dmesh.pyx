@@ -1,5 +1,4 @@
-"""
-Module to offer Discrete3D interpolation for EMC3-EIRENE in LHD
+"""Module to offer Discrete3D interpolation for EMC3-EIRENE in LHD
 """
 cimport cython
 from libc.limits cimport INT_MIN

@@ -1,5 +1,4 @@
-"""
-Module to offer masking features EMC3-EIRENE in LHD
+"""Module to offer masking features EMC3-EIRENE in LHD
 """
 cimport cython
 from libc.limits cimport INT_MIN

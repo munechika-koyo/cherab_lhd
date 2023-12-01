@@ -1,5 +1,4 @@
-"""
-Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
+"""Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
 """
 import numbers
 from libc.limits cimport INT_MIN

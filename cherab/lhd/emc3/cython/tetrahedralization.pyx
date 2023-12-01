@@ -1,5 +1,4 @@
-"""
-Module for tetrahedralization
+"""Module for tetrahedralization
 """
 import numpy as np
 
