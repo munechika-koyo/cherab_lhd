@@ -1,6 +1,7 @@
 
 cython_sources = [
   ['geometry', 'geometry.pyx'],
+  ['grid', 'grid.pyx']
 ]
 
 foreach file : cython_sources
@@ -20,7 +21,6 @@ python_sources = [
     '__init__.py',
     'barycenters.py',
     'curvilinear.py',
-    'grid.py',
     'plasma.py'
 ]
 
