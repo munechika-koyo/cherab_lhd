@@ -1,10 +1,12 @@
 _cython_tree = declare_dependency(sources: [
   fs.copyfile('grid.pxd'),
+  fs.copyfile('barycenters.pxd'),
 ])
 
 cython_sources = [
   ['geometry', 'geometry.pyx'],
-  ['grid', 'grid.pyx']
+  ['grid', 'grid.pyx'],
+  ['barycenters', 'barycenters.pyx'],
 ]
 
 foreach file : cython_sources
@@ -12,7 +14,7 @@ foreach file : cython_sources
     file[0],
     file[1],
     # c_args: [numpy_nodepr_api],
-    dependencies: [py_dep, np_dep, _cython_tree],
+    dependencies: [py_dep, np_dep, omp_dep, _cython_tree],
     install: true,
     install_dir: py.get_install_dir() / 'cherab/lhd/emc3',
   )
@@ -21,7 +23,7 @@ endforeach
 
 python_sources = [
     '__init__.py',
-    'barycenters.py',
+    'barycenters.pxd',
     'curvilinear.py',
     'grid.pxd',
     'plasma.py'
