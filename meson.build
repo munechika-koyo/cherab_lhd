@@ -36,6 +36,9 @@ incdir_numpy = run_command(
 
 inc_np = include_directories(incdir_numpy)
 
+# Create NumPy dependency
+np_dep = declare_dependency(include_directories: inc_np)
+
 # Numpy deprecated api (if errors is occurred, comment out in module section)
 numpy_nodepr_api = '-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION'
 

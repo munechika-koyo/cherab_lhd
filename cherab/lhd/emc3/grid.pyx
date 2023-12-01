@@ -1,7 +1,6 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
 cimport numpy as np
 cimport cython
-from numpy cimport import_array
 from libc.math cimport cos, sin, M_PI
 from raysect.primitive.mesh cimport TetraMesh
 
@@ -23,9 +22,6 @@ from ..tools.spinner import Spinner
 from ..tools.visualization import set_axis_properties
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
-import_array()
-
-
 __all__ = ["Grid", "plot_grids_rz", "install_tetra_meshes"]
 
 cdef list ZONES = [
@@ -41,13 +37,6 @@ cdef:
 
 # Plotting config.
 cdef dict LINE_STYLE = {"color": "black", "linewidth": 0.5}
-
-
-cdef struct GridConfig:
-    int L  # Radial grid resolution
-    int M  # Poloidal grid resolution
-    int N  # Toroidal grid resolution
-    int num_cells  # Number of cells
 
 
 cdef class Grid:
@@ -85,14 +74,6 @@ cdef class Grid:
         >>> str(grid)
         'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
-
-    cdef:
-        str _zone
-        str _grid_group
-        tuple[int, int, int] _shape
-        object _hdf5_path
-        GridConfig _config
-        np.ndarray _grid_data
 
     def __init__(
         self, zone: str, grid_group: str = "grid-360", hdf5_path: Path | str = DEFAULT_HDF5_PATH
