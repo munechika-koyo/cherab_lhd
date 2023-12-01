@@ -2,10 +2,12 @@
 # Needed to trick Cython, it won't do a relative import outside a package
 fs = import('fs')
 _cython_tree = declare_dependency(sources: [
+  fs.copyfile('__init__.pxd'),
   fs.copyfile('discrete3dmesh.pxd'),
   fs.copyfile('intfunction.pxd'),
   fs.copyfile('mapper.pxd'),
   fs.copyfile('masking.pxd'),
+  fs.copyfile('tetrahedralization.pxd'),
 ])
 
 
@@ -38,6 +40,7 @@ python_sources = [
     'intfunction.pxd',
     'mapper.pxd',
     'masking.pxd',
+    'tetrahedralization.pxd',
 ]
 
 py.install_sources(
