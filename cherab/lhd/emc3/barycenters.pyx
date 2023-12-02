@@ -145,27 +145,27 @@ cdef class CenterGrids:
 
     @property
     def zone(self) -> str:
-        """Name of zone."""
+        """str: Name of zone."""
         return self._zone
 
     @property
     def index_type(self) -> str:
-        """Indexing way of center grids."""
+        """str: Indexing way of center grids."""
         return self._index_type
 
     @property
     def grid_group(self) -> str:
-        """Name of grid group."""
+        """str: Name of grid group."""
         return self._grid_group
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        """Shape of grid (L, M, N)."""
+        """tuple[int, int, int]: Shape of grid (L, M, N)."""
         return self._shape
 
     @property
     def config(self) -> dict[str, int]:
-        """Configuration dictionary containing grid resolutions and total number.
+        """dict[str, int]: Configuration dictionary containing grid resolutions and total number.
 
         .. prompt:: python >>> auto
 
@@ -182,7 +182,7 @@ cdef class CenterGrids:
 
     @property
     def grid_data(self) -> NDArray[np.float64]:
-        """Array of center grid coordinates of each volume.
+        """numpy.ndarray: Array of center grid coordinates of each volume.
 
         The dimension of array is 4 dimension, shaping ``(L, M, N, 3)``.
         The coordinate is :math:`(X, Y, Z)` [m].
@@ -213,7 +213,7 @@ cdef class CenterGrids:
 
         Parameters
         ----------
-        index
+        index : int
             1D index
 
         Returns
