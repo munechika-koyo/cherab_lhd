@@ -33,7 +33,7 @@ class Derivative:
     diff_type
         numerical differentiation type for radial and poloidal direction.
         The default is "forward", which means the forward difference method is used to calculate
-        the derivative matrices. Other options are "backward" and "central".
+        the derivative matrices. The other option is and "central".
     """
 
     def __init__(self, grid: CenterGrids, diff_type: str = "forward") -> None:
@@ -58,8 +58,8 @@ class Derivative:
 
     @diff_type.setter
     def diff_type(self, diff_type: str) -> None:
-        if diff_type not in {"forward", "backward", "central"}:
-            raise ValueError(f"{diff_type=} must be one of 'forward', 'backward' or 'central'")
+        if diff_type not in {"forward", "central"}:
+            raise ValueError(f"{diff_type=} must be one of 'forward' or 'central'")
         self._diff_type = diff_type
 
     @cached_property
