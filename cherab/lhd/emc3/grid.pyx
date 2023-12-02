@@ -13,13 +13,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import MultipleLocator
 from numpy.typing import NDArray
 
 from .cython.tetrahedralization cimport tetrahedralize
 
 from ..machine.wall import adjacent_toroidal_angles, periodic_toroidal_angle
 from ..tools.spinner import Spinner
-from ..tools.visualization import set_axis_properties
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
 __all__ = ["Grid", "plot_grids_rz", "install_tetra_meshes"]
@@ -153,27 +153,27 @@ cdef class Grid:
 
     @property
     def hdf5_path(self) -> Path:
-        """HDF5 dataset file path."""
+        """:obj:`~pathlib.Path`: HDF5 dataset file path."""
         return self._hdf5_path
 
     @property
     def zone(self) -> str:
-        """Name of zone."""
+        """str: Name of zone."""
         return self._zone
 
     @property
     def grid_group(self) -> str:
-        """Name of grid group."""
+        """str: Name of grid group."""
         return self._grid_group
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        """Shape of grid (L, M, N)."""
+        """tuple[int, int, int]: Shape of grid (L, M, N)."""
         return self._shape
 
     @property
     def config(self) -> dict[str, int]:
-        """Configuration dictionary containing grid resolutions and number of cells.
+        """dict[str, int]: Configuration dictionary containing grid resolutions and number of cells.
 
         .. prompt:: python >>> auto
 
@@ -190,7 +190,7 @@ cdef class Grid:
 
     @property
     def grid_data(self) -> NDArray[np.float64]:
-        """Raw Grid coordinates data array.
+        """numpy.ndarray: Raw Grid coordinates data array.
 
         The dimension of array is 4 dimension, shaping ``(L, M, N, 3)``.
         The coordinate is :math:`(R, Z, \\phi)`. :math:`\\phi` is in [degree].
@@ -397,8 +397,6 @@ cdef class Grid:
             bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
         )
         set_axis_properties(ax)
-        ax.set_xlabel("R[m]")
-        ax.set_ylabel("Z[m]")
 
         return (fig, ax)
 
@@ -500,8 +498,6 @@ cdef class Grid:
             bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
         )
         set_axis_properties(ax)
-        ax.set_xlabel("R[m]")
-        ax.set_ylabel("Z[m]")
 
         return (fig, ax)
 
@@ -613,8 +609,6 @@ cdef class Grid:
                 bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
             )
         set_axis_properties(ax)
-        ax.set_xlabel("R[m]")
-        ax.set_ylabel("Z[m]")
 
         return (fig, ax)
 
@@ -714,8 +708,6 @@ def plot_grids_rz(
         bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
     )
     set_axis_properties(ax)
-    ax.set_xlabel("R[m]")
-    ax.set_ylabel("Z[m]")
 
     return (fig, ax)
 
@@ -821,10 +813,25 @@ def plot_grids_coarse(
         bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
     )
     set_axis_properties(ax)
-    ax.set_xlabel("R[m]")
-    ax.set_ylabel("Z[m]")
 
     return (fig, ax)
+
+
+def set_axis_properties(axes: Axes):
+    """Set x-, y-axis property. This function set axis labels and tickers.
+
+    Parameters
+    ----------
+    axes
+        matplotlib Axes object
+    """
+    axes.set_xlabel("$R$ [m]")
+    axes.set_ylabel("$Z$ [m]")
+    axes.xaxis.set_minor_locator(MultipleLocator(0.1))
+    axes.yaxis.set_minor_locator(MultipleLocator(0.1))
+    axes.xaxis.set_major_formatter("{x:.1f}")
+    axes.yaxis.set_major_formatter("{x:.1f}")
+    axes.tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
 
 
 @cython.boundscheck(False)
