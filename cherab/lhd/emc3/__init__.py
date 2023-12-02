@@ -3,7 +3,6 @@ from .barycenters import CenterGrids
 from .curvilinear import CurvCoords
 from .cython.mapper import IndexMapper, Mapper
 from .grid import Grid
-from .plasma import LHDSpecies, import_plasma
 
 __all__ = [
     "Mapper",
@@ -11,6 +10,4 @@ __all__ = [
     "Grid",
     "CenterGrids",
     "CurvCoords",
-    "LHDSpecies",
-    "import_plasma",
 ]
