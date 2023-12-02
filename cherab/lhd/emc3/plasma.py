@@ -1,5 +1,4 @@
-"""Module offers helper functions to generate :obj:`~cherab.core.Plasma`
-object."""
+"""Module offers helper functions to generate :obj:`~cherab.core.Plasma` object."""
 from __future__ import annotations
 
 import h5py
@@ -39,9 +38,8 @@ BULK_V = ConstantVector3D(Vector3D(0, 0, 0))
 
 @Spinner(text="Loading Plasma Object...", timer=True)
 def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
-    """Helper function of generating LHD plasma As emissions,
-    :math:`\\mathrm{H}_\\alpha, \\mathrm{H}_\\beta, \\mathrm{H}_\\gamma, \\mathrm{H}_\\delta`
-    are applied.
+    """Helper function of generating LHD plasma As emissions, :math:`\\mathrm{H}_\\alpha,
+    \\mathrm{H}_\\beta, \\mathrm{H}_\\gamma, \\mathrm{H}_\\delta` are applied.
 
     Parameters
     ----------
@@ -124,7 +122,6 @@ class LHDSpecies:
     def __init__(self):
         # Load dataset from HDF5 file
         with h5py.File(DEFAULT_HDF5_PATH, mode="r") as h5file:
-
             # load index function
             func = PhysIndex()
 
@@ -188,8 +185,7 @@ class LHDSpecies:
         temperature: Function3D = TEMPERATURE,
         bulk_velocity: VectorFunction3D = BULK_V,
     ) -> None:
-        """add species to composition which is assumed to be Maxwellian
-        distribution.
+        """Add species to composition which is assumed to be Maxwellian distribution.
 
         Parameters
         ----------
@@ -223,7 +219,7 @@ class LHDSpecies:
         self.composition.append(Species(element_obj, charge, distribution))
 
     def plot_distribution(self, res: float = 5.0e-3):
-        """plot species density and temperature profile.
+        """Plot species density and temperature profile.
 
         Parameters
         ----------
@@ -249,7 +245,6 @@ class LHDSpecies:
 
         # species sampling
         for species in self.composition:
-
             # plot
             for func, title, clabel in zip(
                 [species.distribution._density, species.distribution._temperature],
