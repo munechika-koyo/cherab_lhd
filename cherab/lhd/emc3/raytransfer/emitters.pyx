@@ -1,5 +1,5 @@
-"""
-The following emitters and integrators are used in ray transfer objects.
+"""The following emitters and integrators are used in ray transfer objects.
+
 Note that these emitters support other integrators as well, however high performance
 with other integrators is not guaranteed.
 """
