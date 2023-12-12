@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.cm import ScalarMappable
-from matplotlib.colors import AsinhNorm, LogNorm, Normalize, SymLogNorm
+from matplotlib.colors import AsinhNorm, Colormap, ListedColormap, LogNorm, Normalize, SymLogNorm
 from matplotlib.figure import Figure
 from matplotlib.ticker import (
     AsinhLocator,
@@ -38,6 +38,7 @@ __all__ = [
     "set_axis_properties",
     "set_norm",
     "set_cbar_format",
+    "CMAP_RED",
 ]
 
 
@@ -49,6 +50,10 @@ ZMAX = 1.6
 
 # Default phi values
 PHIS = np.linspace(0, 17.99, 6)
+
+# custom Red colormap extracted from "RdBu_r"
+cmap = plt.get_cmap("RdBu_r")
+CMAP_RED = ListedColormap(cmap(np.linspace(0.5, 1.0, 256)))
 
 
 def show_profile_phi_degs(
@@ -62,7 +67,7 @@ def show_profile_phi_degs(
     vmax: float | None = None,
     vmin: float | None = 0.0,
     clabel: str | None = None,
-    cmap: str = "plasma",
+    cmap: str | Colormap = CMAP_RED,
     plot_mode: str = "scalar",
     cbar_format: str | None = None,
     linear_width: float = 1.0,
@@ -105,7 +110,7 @@ def show_profile_phi_degs(
     clabel
         colorbar label, by default None
     cmap
-        colorbar map, by default "plasma"
+        colorbar map, by default `CMAP_RED` (custom Red colormap extracted from "RdBu_r")
     plot_mode
         the way of normalize the data scale.
         Must select one in {``"scalar"``, ``"log"``, ``"centered"``, ``"symlog"``, ``"asinh"``},
@@ -267,7 +272,7 @@ def show_profiles_rz_plane(
     resolution: float = 5.0e-3,
     rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
     clabels: list[str] | str = "",
-    cmap: str = "plasma",
+    cmap: str | Colormap = CMAP_RED,
     cbar_mode: str = "single",
     plot_mode: str = "scalar",
     cbar_format: str | None = None,
@@ -316,7 +321,7 @@ def show_profiles_rz_plane(
         If the length of clabels is less than the length of funcs, the last element of clabels is
         used for all colorbars when cbar_mode is "single".
     cmap
-        colorbar map, by default "plasma"
+        colorbar map, by default `CMAP_RED` (custom Red colormap extracted from "RdBu_r")
     cbar_mode
         ImgeGrid's parameter to set colorbars in ``"single"`` axes or ``"each"`` axes,
         by default ``"single"``
@@ -600,7 +605,7 @@ def show_profile_xy_plane(
     resolution: float = 1.0e-3,
     xy_range: tuple[float, float, float, float] = (2.5, 4.5, 0, 1.5),
     clabel: str = "",
-    cmap: str = "plasma",
+    cmap: str | Colormap = CMAP_RED,
     plot_mode: str = "scalar",
     cbar_format: str | None = None,
     linear_width: float = 1.0,
