@@ -9,7 +9,7 @@ Installation
 .. note::
 
     Currently (07/07/2023), cherab-lhd requires some specific version of dependencies (`raysect`_
-    and `cherab`_ ) because cherab-lhd handles some new features (like `TetraMesh` class)
+    and `cherab`_ ) because cherab-lhd handles some new features (like `TetraMeshData` class)
     which have not merged to released branch yet.
     These dependencies has already listed in ``pyproject.toml`` in source directory,
     so those who are curious about it should look into the file.

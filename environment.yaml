@@ -42,5 +42,5 @@ dependencies:
 - pip
 - pip:
   - sphinx-github-style
-  - raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh
-  - cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat
+  - raysect @ git+https://github.com/munechika-koyo/source.git@dev/tetra_cython_v3
+  - cherab @ git+https://github.com/cherab/core.git@development

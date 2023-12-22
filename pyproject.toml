@@ -4,8 +4,8 @@ requires = [
     "numpy",
     "meson-python >= 0.13",
     "cython >= 3.0",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
-    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@dev/tetra_cython_v3",
+    "cherab @ git+https://github.com/cherab/core.git@development",
     "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
@@ -41,8 +41,8 @@ dependencies = [
     "matplotlib",
     "plotly",
     "h5py",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
-    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@dev/tetra_cython_v3",
+    "cherab @ git+https://github.com/cherab/core.git@development",
 ]
 license = { file = "LICENSE.md" }
 
