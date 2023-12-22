@@ -427,19 +427,19 @@ def show_profiles_rz_plane(
 
     # === display image ============================================================================
 
-    # get maximum and minimum value of each profile
-    _vmaxs = [profile.max() for profile in profiles.values()]
-    _vmins = [profile.min() for profile in profiles.values()]
+    # get maximum and minimum value of each data
+    _vmaxs = [data.max() for data in datas]
+    _vmins = [data.min() for data in datas]
 
     # define vmaxs
     if isinstance(vmax, (float, int)):
-        vmaxs: list[float] = [vmax for _ in range(len(profiles))]
+        vmaxs: list[float] = [vmax for _ in range(len(datas))]
     else:
         vmaxs: list[float] = _vmaxs
 
     # define vmins
     if isinstance(vmin, (float, int)):
-        vmins: list[float] = [vmin for _ in range(len(profiles))]
+        vmins: list[float] = [vmin for _ in range(len(datas))]
     else:
         vmins: list[float] = _vmins
 
@@ -452,9 +452,11 @@ def show_profiles_rz_plane(
     z_pts = np.linspace(zmin, zmax, nz)
 
     for i in range(len(profiles)):
+        norm = set_norm(plot_mode, vmins[i], vmaxs[i], linear_width=linear_width)
+
         # mapping
         mappable = grids[i].pcolormesh(
-            r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", vmin=vmin, vmax=vmax
+            r_pts, z_pts, profiles[i], cmap=cmap, shading="auto", norm=norm
         )
 
         # annotation of toroidal angle
