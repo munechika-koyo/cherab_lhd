@@ -1,3 +1,7 @@
+_cython_tree = declare_dependency(sources: [
+  fs.copyfile('__init__.py'),
+])
+
 cython_sources = [
   ['pinhole', 'pinhole.pyx'],
 ]

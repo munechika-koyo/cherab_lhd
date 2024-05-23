@@ -1,3 +1,6 @@
+fs.copyfile('__init__.pxd')
+fs.copyfile('__init__.py')
+
 cython_sources = [
   ['samplers', 'samplers.pyx'],
 ]

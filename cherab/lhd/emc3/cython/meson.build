@@ -1,5 +1,6 @@
 _cython_tree = declare_dependency(sources: [
   fs.copyfile('__init__.pxd'),
+  fs.copyfile('__init__.py'),
   fs.copyfile('discrete3dmesh.pxd'),
   fs.copyfile('intfunction.pxd'),
   fs.copyfile('mapper.pxd'),

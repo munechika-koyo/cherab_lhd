@@ -1,4 +1,5 @@
 _cython_tree = declare_dependency(sources: [
+  fs.copyfile('__init__.py'),
   fs.copyfile('grid.pxd'),
   fs.copyfile('barycenters.pxd'),
 ])
