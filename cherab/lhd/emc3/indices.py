@@ -4,13 +4,25 @@ import numpy as np
 from numpy.typing import NDArray
 from raysect.core.math import triangulate2d
 from raysect.core.math.function.float import Discrete2DMesh
-from raysect.primitive.mesh import TetraMesh
+from raysect.primitive.mesh import TetraMeshData
 
 from .cython import Discrete3DMesh
 from .grid import Grid
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
 __all__ = ["create_index_func", "create_new_index", "create_2d_mesh"]
+
+
+ZONE_MATCH = {
+    "zone1": "zone2",
+    "zone2": "zone1",
+    "zone3": "zone4",
+    "zone4": "zone3",
+    "zone12": "zone15",
+    "zone15": "zone12",
+    "zone13": "zone14",
+    "zone14": "zone13",
+}
 
 
 def create_index_func(
@@ -37,7 +49,7 @@ def create_index_func(
         index function and number of indices (bins) or only number of indices (bins)
     """
     _create_index = False
-    with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
+    with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
         try:
             indices: NDArray[np.uint32] = file["grid-360"][zone]["index"][index_type][:]
 
@@ -50,18 +62,28 @@ def create_index_func(
     # load tetra mesh
     if load_tetra_mesh:
         if (rsm_path := DEFAULT_TETRA_MESH_PATH / f"{zone}.rsm").exists():
-            tetra = TetraMesh.from_file(rsm_path)
+            tetra = TetraMeshData.from_file(rsm_path)
         else:
             raise FileNotFoundError(f"{rsm_path.name} file does not exist.")
     else:
         return indices.max() + 1
 
-    # create indices when phi is out of range [0, 18] in degree
-    index2 = indices[:, ::-1, :]
+    # procedure for the specific index type
+    if index_type == "physics":
+        indices2 = indices
+    else:
+        # create indices when phi is out of range [0, 18] in degree
+        if zone in {"zone0", "zone11"}:
+            indices2 = indices[:, ::-1, :]
+        else:
+            # match corresponding zone's indices
+            with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
+                zone2 = ZONE_MATCH[zone]
+                indices2: NDArray[np.uint32] = file["grid-360"][zone2]["index"][index_type][:]
 
     # vectorize index array
     index1_1d = indices.ravel(order="F")
-    index2_1d = index2.ravel(order="F")
+    index2_1d = indices2.ravel(order="F")
 
     return Discrete3DMesh(tetra, index1_1d, index2_1d), indices.max() + 1
 

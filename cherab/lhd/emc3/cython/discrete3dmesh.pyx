@@ -47,12 +47,12 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     If the specified point is ouside the defined tetrahedral mesh, this callble always returns -1.
 
     To optimise the lookup of tetrahedra, acceleration structure (a KD-Tree) is used from the
-    specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`.
+    specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`.
 
     Parameters
     ----------
-    tetra : :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
-        :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` instances.
+    tetra : :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
+        :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData` instances.
     indices1 : ndarray[uint32, ndim=1]
         1-D EMC3-EIRENE's cell indices array which is used in [0, 18] degree in toroidal.
     indices2 : ndarray[uint32, ndim=1]
@@ -66,7 +66,7 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     """
     def __init__(
         self,
-        TetraMesh tetra,
+        TetraMeshData tetra,
         uint32_t[::1] indices1,
         uint32_t[::1] indices2,
         uint32_t[::1] indices3 = None,
@@ -110,7 +110,7 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
     @property
     def tetra_mesh(self):
-        """:obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`: Tetrahedral mesh instance
+        """:obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`: Tetrahedral mesh instance
         """
         return self._tetra_mesh
 

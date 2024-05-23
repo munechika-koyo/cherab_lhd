@@ -1,6 +1,6 @@
 from libc.limits cimport INT_MIN
 from numpy cimport import_array, uint32_t
-from raysect.primitive.mesh cimport TetraMesh
+from raysect.primitive.mesh cimport TetraMeshData
 
 from .intfunction cimport IntegerFunction3D
 
@@ -10,7 +10,7 @@ import_array()
 cdef class Discrete3DMesh(IntegerFunction3D):
 
     cdef:
-        TetraMesh _tetra_mesh
+        TetraMeshData _tetra_mesh
         uint32_t[::1] _indices1_mv
         uint32_t[::1] _indices2_mv
         uint32_t[::1] _indices3_mv

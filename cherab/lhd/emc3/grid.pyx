@@ -2,7 +2,7 @@
 cimport numpy as np
 cimport cython
 from libc.math cimport cos, sin, M_PI
-from raysect.primitive.mesh cimport TetraMesh
+from raysect.primitive.mesh cimport TetraMeshData
 
 import warnings
 from pathlib import Path
@@ -45,7 +45,7 @@ cdef class Grid:
     This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z, \\varphi)`,
     and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
     their indices, which a **cell** means a cubic-like mesh with 8 vertices.
-    Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh`
+    Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
     instance is also implemented.
 
     | Total number of grids coordinates is L x M x N, each letter of which means:
@@ -843,7 +843,7 @@ cpdef void install_tetra_meshes(
     grid_group: str = "grid-360",
     hdf5_path: Path | str = DEFAULT_HDF5_PATH,
 ):
-    """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMesh` .rsm files
+    """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files
     and install them into a repository.
 
     Default repository is set to ``~/.cherab/lhd/tetra/``, and automatically created if it does not
@@ -851,7 +851,7 @@ cpdef void install_tetra_meshes(
 
     .. note::
 
-        It takes a lot of time to calculate all TetraMesh instance because each zone has numerous
+        It takes a lot of time to calculate all TetraMeshData instance because each zone has numerous
         number of grids.
 
     Parameters
@@ -859,9 +859,9 @@ cpdef void install_tetra_meshes(
     zones
         list of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
     tetra_mesh_path
-        path to the directory to save TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
+        path to the directory to save TetraMeshData .rsm files, by default ``~/.cherab/lhd/tetra/``
     update
-        whether or not to update existing TetraMesh .rsm file, by default True
+        whether or not to update existing TetraMeshData .rsm file, by default True
     **kwargs : :obj:`.Grid` properties, optional
         *kwargs* are used to specify :obj:`.Grid` properties except for ``zone`` argument.
     """
@@ -871,7 +871,7 @@ cpdef void install_tetra_meshes(
         Grid emc
         np.ndarray[np.float64_t] vertices
         np.ndarray[np.uint32_t] tetrahedra
-        TetraMesh tetra
+        TetraMeshData tetra
 
     if isinstance(tetra_mesh_path, (Path, str)):
         tetra_mesh_path = Path(tetra_mesh_path)
@@ -881,7 +881,7 @@ cpdef void install_tetra_meshes(
     # make directory
     tetra_mesh_path.mkdir(parents=True, exist_ok=True)
 
-    # populate each zone TetraMesh instance
+    # populate each zone TetraMeshData instance
     for zone in zones:
         # path to the tetra .rsm file
         tetra_path = tetra_mesh_path / f"{zone}.rsm"
@@ -899,8 +899,8 @@ cpdef void install_tetra_meshes(
             vertices = emc.generate_vertices()
             tetrahedra = tetrahedralize(emc.generate_cell_indices())
 
-            # create TetraMesh instance (heavy calculation)
-            tetra = TetraMesh(vertices, tetrahedra, tolerant=False)
+            # create TetraMeshData instance (heavy calculation)
+            tetra = TetraMeshData(vertices, tetrahedra, tolerant=False)
 
             # save
             tetra.save(tetra_path)
