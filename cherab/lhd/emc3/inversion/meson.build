@@ -28,5 +28,3 @@ py.install_sources(
   python_sources,
   subdir: 'cherab/lhd/emc3/inversion',
 )
-
-subdir('tests')
