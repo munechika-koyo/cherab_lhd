@@ -1,6 +1,8 @@
 """Construct derivative matrices of the EMC3-EIRENE grids."""
+
 from functools import cached_property
 from itertools import product
+from typing import Literal
 
 import numpy as np
 from scipy.sparse import bmat, csr_matrix, diags, lil_matrix
@@ -28,15 +30,17 @@ class Derivative:
 
     Parameters
     ----------
-    grid
-        :obj:`.CenterGrids` object.
-    diff_type
-        numerical differentiation type for radial and poloidal direction.
+    grid : `.CenterGrids`
+        `.CenterGrids` instance of the EMC3-EIRENE-defined center grids.
+    diff_type : {"forward", "central"}, optional
+        Numerical differentiation type for radial and poloidal direction.
         The default is "forward", which means the forward difference method is used to calculate
         the derivative matrices. The other option is and "central".
     """
 
-    def __init__(self, grid: CenterGrids, diff_type: str = "forward") -> None:
+    def __init__(
+        self, grid: CenterGrids, diff_type: Literal["forward", "central"] = "forward"
+    ) -> None:
         self.grid = grid
         self.diff_type = diff_type
 
@@ -244,12 +248,14 @@ class Derivative:
         return dmat.tocsr()
 
     @Spinner(text="Creating derivative matrices...", timer=True)
-    def create_dmats_pairs(self, mode: str = "strict") -> list[tuple[csr_matrix, csr_matrix]]:
+    def create_dmats_pairs(
+        self, mode: Literal["strict", "ii", "flux"] = "strict"
+    ) -> list[tuple[csr_matrix, csr_matrix]]:
         """Create derivative matrices for each coordinate pair.
 
         Parameters
         ----------
-        mode : str, optional
+        mode : {"strict", "ii", "flux"}, optional
             Derivative matrix mode, by default "strict"
 
         Returns
@@ -290,9 +296,12 @@ class Derivative:
 
 @Spinner(text="Creating two subdomain's derivative matrices...", timer=True)
 def create_dmats_pairs_subdomains(
-    zone1: str = "zone0", zone2: str = "zone11", index_type: str = "coarse", mode: str = "strict"
+    zone1: str = "zone0",
+    zone2: str = "zone11",
+    index_type: str = "coarse",
+    mode: Literal["strict", "ii", "ii+no-metric", "flux"] = "strict",
 ) -> list[tuple[csr_matrix, csr_matrix]]:
-    """Create derivative matrices for each coordinate pair considering the connection betwee
+    """Create derivative matrices for each coordinate pair considering the connection between two
     subdomains.
 
     This function is used to conbaine two derivative matrices both of which are connected along
@@ -301,13 +310,13 @@ def create_dmats_pairs_subdomains(
     Parameters
     ----------
     zone1 : str, optional
-        Zone name of the first subdomain, by default "zone0"
+        Zone name of the first subdomain, by default "zone0".
     zone2 : str, optional
-        Zone name of the second subdomain, by default "zone11"
+        Zone name of the second subdomain, by default "zone11".
     index_type : str, optional
-        Index type, by default "coarse"
-    mode : str, optional
-        Derivative matrix mode, by default "strict"
+        Index type, by default "coarse".
+    mode : {"strict", "ii", "ii+no-metric", "flux"}, optional
+        Derivative matrix mode, by default "strict".
 
     Returns
     -------
