@@ -131,6 +131,9 @@ override_SS05 = ['^Process ', '^Assess ', '^Access ']
 channels = ["https://prefix.dev/conda-forge", "https://repo.prefix.dev/koyo-forge"]
 platforms = ["linux-64", "osx-arm64"]
 
+[tool.pixi.build-dependencies]
+c-compiler = "*"
+
 [tool.pixi.host-dependencies]
 python = "3.12.*"
 meson-python = "*"
@@ -138,6 +141,9 @@ tomli = "*"  # if python_version < 3.11
 cython = "*"
 raysect = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
 cherab = "*"
+
+[tool.pixi.target.osx-arm64.host-dependencies]
+llvm-openmp = "*"
 
 [tool.pixi.dependencies]
 numpy = "*"
