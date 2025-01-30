@@ -182,9 +182,9 @@ cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(object func, tuple x_rang
         >>> y_pts
         array([1., 2., 3.])
         >>> f_vals
-        array([[ 2.,  3.,  4.],
-               [ 9., 10., 11.],
-               [28., 29., 30.]])
+        array([[ 2.,  5., 10.],
+               [ 9., 12., 17.],
+               [28., 31., 36.]])
     """
 
     cdef:
