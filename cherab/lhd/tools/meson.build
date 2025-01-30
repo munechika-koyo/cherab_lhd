@@ -1,6 +1,3 @@
-fs.copyfile('__init__.pxd')
-fs.copyfile('__init__.py')
-
 cython_sources = [
   ['samplers', 'samplers.pyx'],
 ]
@@ -18,7 +15,6 @@ endforeach
 
 python_sources = [
     '__init__.py',
-    '__init__.pxd',
     'spinner.py',
     'visualization.py',
 ]
