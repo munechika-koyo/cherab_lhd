@@ -57,4 +57,4 @@ numpy_nodepr_api = ['-DNPY_NO_DEPRECATED_API=NPY_1_9_API_VERSION']
 np_dep = declare_dependency(include_directories: inc_np, compile_args: numpy_nodepr_api)
 
 # subdirectories
-subdir('cherab/lhd')
+subdir('cherab')

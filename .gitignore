@@ -159,3 +159,6 @@ local/
 # pixi environments
 .pixi
 *.egg-info
+
+# Files generated automatically during Meson build
+cherab/__init__.py
