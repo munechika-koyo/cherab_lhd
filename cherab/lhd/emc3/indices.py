@@ -28,25 +28,23 @@ ZONE_MATCH = {
 def create_index_func(
     zone: str, index_type="cell", load_tetra_mesh: bool = True
 ) -> tuple[Discrete3DMesh, int] | int:
-    """Create index function using :obj:`.Discrete3DMesh`
+    """Create index function using :obj:`.Discrete3DMesh`.
 
     The index data must be stored in ``grid-360`` group in HDF5 file.
 
     Parameters
     ----------
-    zone
-        zone name
-    index_type
-        index type, by default ``"cell"``.
-        usable types are ``"cell"``, ``"physics"`` and ``"coarse"``.
-    load_tetra_mesh
-        whether to load tetra mesh, by default True.
-        If False, return only number of indices (bins).
+    zone : str
+        Zone name.
+    index_type : {"cell", "physics", "coarse"}, optional
+        Index type, by default ``"cell"``.
+    load_tetra_mesh : bool, optional
+        Whether to load tetra mesh, by default True. If False, return only number of indices (bins).
 
     Returns
     -------
     tuple[Discrete3DMesh, int] | int
-        index function and number of indices (bins) or only number of indices (bins)
+        Index function and number of indices (bins) or only number of indices (bins).
     """
     _create_index = False
     with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
@@ -60,6 +58,7 @@ def create_index_func(
         indices = create_new_index(index_type, zone)
 
     # load tetra mesh
+    # NOTE: implement rich progress bar
     if load_tetra_mesh:
         if (rsm_path := DEFAULT_TETRA_MESH_PATH / f"{zone}.rsm").exists():
             tetra = TetraMeshData.from_file(rsm_path)
@@ -95,15 +94,15 @@ def create_new_index(index_type: str, zone: str) -> NDArray[np.uint32]:
 
     Parameters
     ----------
-    index_type
-        index type. {`"coars"`} is only supported now.
-    zone
-        zone name
+    index_type : {"coarse"}
+        Index type. `"coars"` is only supported now.
+    zone : str
+        Zone name.
 
     Returns
     -------
     NDArray[np.uint32]
-        index array
+        Index array.
     """
 
     grid = Grid(zone)
@@ -169,24 +168,23 @@ def create_2d_mesh(
     """:obj:`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance
     of the EMC3 poloidal plane.
 
-
     The index data must be stored in ``grid-360`` group in HDF5 file.
 
     Parameters
     ----------
-    zone
-        zone name
-    n_phi
-        index number of toroidal direction
-    index_type
-        index type, by default ``cell``
-    default_value
-        default mesh value, by default ``-1``
+    zone : str
+        Zone name.
+    n_phi : int
+        Index number of toroidal direction.
+    index_type : {"cell", "physics", "coarse"}, optional
+        Index type, by default ``cell``.
+    default_value : int, optional
+        Default mesh value, by default ``-1``.
 
     Returns
     -------
-    tuple[Discrete3DMesh, int]
-        index function and number of indices
+    tuple[Discrete2DMesh, int]
+        Index function and number of indices.
     """
     grid = Grid(zone)
 

@@ -45,7 +45,7 @@ cdef class Grid:
     This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z, \\varphi)`,
     and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
     their indices, which a **cell** means a cubic-like mesh with 8 vertices.
-    Using these data, procedure of generating a :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
+    Using these data, procedure of generating a `~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
     instance is also implemented.
 
     | Total number of grids coordinates is L x M x N, each letter of which means:
@@ -56,12 +56,12 @@ cdef class Grid:
 
     Parameters
     ----------
-    zone
-        name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
-    grid_group
-        name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
-    hdf5_path
-        path to the HDF5 file storing grid dataset, by default ``~/.cherab/lhd/emc3.hdf5``.
+    zone : str
+        Name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
+    grid_group : str, optional
+        Name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
+    hdf5_path : str or pathlib.Path, optional
+        Path to the HDF5 file storing grid dataset, by default `.DEFAULT_HDF5_PATH`.
 
 
     Examples
@@ -153,7 +153,7 @@ cdef class Grid:
 
     @property
     def hdf5_path(self) -> Path:
-        """:obj:`~pathlib.Path`: HDF5 dataset file path."""
+        """`~pathlib.Path`: HDF5 dataset file path."""
         return self._hdf5_path
 
     @property
@@ -222,9 +222,8 @@ cdef class Grid:
 
         Returns
         -------
-        :obj:`~numpy.ndarray`
-            vertices (L x N x M, 3) 2D array
-
+        `~numpy.ndarray`
+            Vertices (L x N x M, 3) 2D array
 
         .. prompt:: python >>> auto
 
@@ -270,8 +269,8 @@ cdef class Grid:
 
         Returns
         -------
-        :obj:`~numpy.ndarray`
-            cell indices ((L-1) x (M-1) x (N-1), 8) 2D array
+        `~numpy.ndarray`
+            Cell indices ((L-1) x (M-1) x (N-1), 8) 2D array.
 
 
         .. prompt:: python >>> auto
@@ -327,24 +326,28 @@ cdef class Grid:
 
         Parameters
         ----------
-        fig
-            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
-        ax
-            matplotlib axes object, by default ``ax = fig.add_subplot()``.
-        n_phi
-            index of toroidal grid, by default 0
-        rz_range
-            sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-            by default ``(2.0, 5.5, -1.6, 1.6)``
-        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
-            *kwargs* are used to specify properties,
-            by default ``{"color": "black", "linewidth": 0.5}``
+        fig : `~matplotlib.figure.Figure`, optional
+            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
+        ax : `~matplotlib.axes.Axes`, optional
+            Matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        n_phi : int, optional
+            Index of toroidal grid, by default 0.
+        rz_range : tuple[float, float, float, float], optional
+            Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
+            by default ``(2.0, 5.5, -1.6, 1.6)``.
+        **kwargs : dict
+            `matplotlib.lines.Line2D` properties, by default
+            ``{"color": "black", "linewidth": 0.5}``.
 
         Returns
         -------
-            tuple of matplotlib figure and axes object
+        fig : `~matplotlib.figure.Figure`
+            Matplotlib figure object.
+        ax : `~matplotlib.axes.Axes`
+            Matplotlib axes object.
 
-
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
@@ -413,29 +416,32 @@ cdef class Grid:
         The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` HDF5
         group. So this method is available only if they are stored.
         Creating coarse grid indices is achieved by executing
-        :obj:`~cherab.lhd.emc3.indices.create_new_index`.
-
+        `~cherab.lhd.emc3.indices.create_new_index`.
 
         Parameters
         ----------
-        fig
-            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
-        ax
-            matplotlib axes object, by default ``ax = fig.add_subplot()``.
-        n_phi
-            index of toroidal grid, by default 0
-        rz_range
-            sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-            by default ``(2.0, 5.5, -1.6, 1.6)``
-        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
-            *kwargs* are used to specify properties,
-            by default ``{"color": "black", "linewidth": 0.5}``
+        fig : `~matplotlib.figure.Figure`, optional
+            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
+        ax : `~matplotlib.axes.Axes`, optional
+            Matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        n_phi : int, optional
+            Index of toroidal grid, by default 0.
+        rz_range : tuple[float, float, float, float], optional
+            Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
+            by default ``(2.0, 5.5, -1.6, 1.6)``.
+        **kwargs : dict
+            `matplotlib.lines.Line2D` properties, by default
+            ``{"color": "black", "linewidth": 0.5}``.
 
         Returns
         -------
-            tuple of matplotlib figure and axes object
+        fig : `~matplotlib.figure.Figure`
+            Matplotlib figure object.
+        ax : `~matplotlib.axes.Axes`
+            Matplotlib axes object.
 
-
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
@@ -517,23 +523,27 @@ cdef class Grid:
 
         Parameters
         ----------
-        phi
-            toroidal grid in [degree], by default 0.0
-        fig
-            matplotlib figure object, by default ``fig = plt.figure(dpi=200)``
-        ax
-            matplotlib axes object, by default ``ax = fig.add_subplot()``.
-        show_phi
-            show toroidal angle text in the plot, by default True
-        **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
-            *kwargs* are used to specify properties,
-            by default ``{"color": "black", "linewidth": 0.5}``
+        phi : float, optional
+            Toroidal grid in [degree], by default 0.0.
+        fig : `~matplotlib.figure.Figure`, optional
+            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
+        ax : `~matplotlib.axes.Axes`, optional
+            Matplotlib axes object, by default ``ax = fig.add_subplot()``.
+        show_phi : bool
+            Show toroidal angle text in the plot, by default True.
+        **kwargs : dict
+            `matplotlib.lines.Line2D` properties, by default
+            ``{"color": "black", "linewidth": 0.5}``.
 
         Returns
         -------
-            tuple of matplotlib figure and axes object
+        fig : `~matplotlib.figure.Figure`
+            Matplotlib figure object.
+        ax : `~matplotlib.axes.Axes`
+            Matplotlib axes object.
 
-
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
@@ -625,27 +635,29 @@ def plot_grids_rz(
 
     Parameters
     ----------
-    fig
-        matplotlib figure object, by default ``plt.figure(dpi=200)``
-    ax
-        matplotlib axes object, by default ``ax = fig.add_subplot()``.
-    zone_type
-        type of zones collections, by default 1
+    fig : `~matplotlib.figure.Figure`, optional
+        Matplotlib figure object, by default ``plt.figure(dpi=200)``.
+    ax : `~matplotlib.axes.Axes`, optional
+        Matplotlib axes object, by default ``ax = fig.add_subplot()``.
+    zone_type : int, optional
+        Type of zones collections, by default 1.
 
         | type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
         | type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
-    n_phi
-        index of toroidal grid, by default 0
-    rz_range
-        sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-        by default ``(2.0, 5.5, -1.6, 1.6)``
-    **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
-        *kwargs* are used to specify properties,
-        by default ``{"color": "black", "linewidth": 0.5}``
+    n_phi : int, optional
+        Index of toroidal grid, by default 0.
+    rz_range : tuple[float, float, float, float], optional
+        Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
+        by default ``(2.0, 5.5, -1.6, 1.6)``.
+    **kwargs : dict
+        `matplotlib.lines.Line2D` properties, by default ``{"color": "black", "linewidth": 0.5}``.
 
     Returns
     -------
-        tuple of matplotlib figure and axes objects
+    fig : `~matplotlib.figure.Figure`
+        Matplotlib figure object.
+    ax : `~matplotlib.axes.Axes`
+        Matplotlib axes object.
 
     Examples
     --------
@@ -740,7 +752,7 @@ def plot_grids_coarse(
     rz_range
         sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
         by default ``(2.0, 5.5, -1.6, 1.6)``
-    **kwargs: :obj:`matplotlib.lines.Line2D` properties, optional
+    **kwargs: `matplotlib.lines.Line2D` properties, optional
         *kwargs* are used to specify properties,
         by default ``{"color": "black", "linewidth": 0.5}``
 
@@ -843,27 +855,28 @@ cpdef void install_tetra_meshes(
     grid_group: str = "grid-360",
     hdf5_path: Path | str = DEFAULT_HDF5_PATH,
 ):
-    """Create :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files
-    and install them into a repository.
+    """Create `~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files and install them
+    into a repository.
 
-    Default repository is set to ``~/.cherab/lhd/tetra/``, and automatically created if it does not
-    exist. The file name is determined by each zone name like ``zone0.rsm``.
+    Default repository is set to `.DEFAULT_TETRA_MESH_PATH`, and automatically created if it does
+    not exist. The file name is determined by each zone name like ``zone0.rsm``.
 
     .. note::
 
-        It takes a lot of time to calculate all TetraMeshData instance because each zone has numerous
-        number of grids.
+        It takes a lot of time to calculate all TetraMeshData instance because each zone has
+        numerous number of grids.
 
     Parameters
     ----------
-    zones
-        list of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
-    tetra_mesh_path
-        path to the directory to save TetraMeshData .rsm files, by default ``~/.cherab/lhd/tetra/``
-    update
-        whether or not to update existing TetraMeshData .rsm file, by default True
-    **kwargs : :obj:`.Grid` properties, optional
-        *kwargs* are used to specify :obj:`.Grid` properties except for ``zone`` argument.
+    zones : list[str], optional
+        List of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
+    tetra_mesh_path : Path | str, optional
+        Path to the directory to save `TetraMeshData` .rsm files,
+        by default `.DEFAULT_TETRA_MESH_PATH`.
+    update : bool, optional
+        Whether or not to update existing TetraMeshData .rsm file, by default True.
+    **kwargs : `.Grid` properties, optional
+        `.Grid` properties except for ``zone`` argument.
     """
     cdef:
         str zone
