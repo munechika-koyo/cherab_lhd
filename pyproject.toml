@@ -44,8 +44,12 @@ dependencies = [
     "plotly",
     "h5py",
     # "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
-    "cherab",
+    # "cherab",
     "cherab-inversion",
+    "rich",
+    "pooch",
+    "paramiko",
+    "tqdm",
 ]
 
 [project.urls]
@@ -140,7 +144,7 @@ meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
 raysect = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
-cherab = "*"
+cherab = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
 
 [tool.pixi.target.osx-arm64.host-dependencies]
 llvm-openmp = "*"
@@ -152,6 +156,10 @@ cherab-inversion = "*"
 matplotlib = "*"
 plotly = "*"
 h5py = "*"
+rich = ">=13.9.4,<14"
+pooch = ">=1.8.2,<2"
+paramiko = ">=3.5.0,<4"
+tqdm = ">=4.67.1,<5"
 # For development
 ipython = "*"
 
@@ -222,14 +230,14 @@ pre-commit = "<4"  # docformatter issue: https://github.com/PyCQA/docformatter/p
 [tool.pixi.feature.lint.tasks]
 lint = { cmd = ["ruff", "check"], description = "🧹 Lint the code" }
 format = { cmd = ["ruff", "format"], description = "🧹 Format the code" }
-check = { cmd = [
+pre-commit-run = { cmd = [
     "pre-commit",
     "run",
     "--all-files",
-], description = "🩺 Check pre-commit hooks", depends-on = [
-    "install_hook",
+], description = "🩺 Run pre-commit hooks for all files", depends-on = [
+    "pre-commit-install",
 ] }
-install_hooks = { cmd = [
+pre-commit-install = { cmd = [
     "pre-commit",
     "install",
 ], description = "🔗 Install pre-commit hooks" }
