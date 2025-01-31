@@ -16,6 +16,7 @@ endforeach
 python_sources = [
     '__init__.py',
     'spinner.py',
+    'fetch.py',
     'visualization.py',
 ]
 
