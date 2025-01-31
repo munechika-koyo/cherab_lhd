@@ -47,6 +47,7 @@ REGISTRIES = {
     "tetra/zone15.rsm": "25381a62eda6c217f280e0bf8d93fe077bb1c517a1e3dfa1fc60043db5be5fa2",
 }
 
+PATH_TO_STORAGE = pooch.os_cache("cherab/lhd")
 
 def show_registries() -> None:
     """Show the registries of the datasets."""
@@ -91,7 +92,7 @@ def fetch_file(
         Path to the fetched file.
     """
     pup = pooch.create(
-        path=pooch.os_cache("cherab/lhd"),
+        path=PATH_TO_STORAGE,
         base_url=host,
         registry=REGISTRIES,
     )
