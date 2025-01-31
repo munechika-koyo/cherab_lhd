@@ -1,4 +1,5 @@
 """Module to provide useful functions around Install EMC3-related data."""
+
 from __future__ import annotations
 
 import re
@@ -29,12 +30,12 @@ def install_grids(
 
     Parameters
     ----------
-    path
-        path to the original text file written about grid coordinates at each zone.
-    hdf5_path
-        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    update
-        whether or not to update/override dataset, by default False
+    path : Path | str
+        Path to the original text file written about grid coordinates at each zone.
+    hdf5_path : Path | str, optional
+        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
+    update : bool, optional
+        Whether or not to update/override dataset, by default False.
     """
     # validate paths
     path = exist_path_validate(path)
@@ -118,9 +119,9 @@ def install_grids(
             dset.attrs["M"] = M
             dset.attrs["N"] = N
             dset.attrs["num_cells"] = (L - 1) * (M - 1) * (N - 1)
-            dset.attrs[
-                "shape description"
-            ] = "radial index, poloidal index, toroidal index, (r, z, phi) coordinates"
+            dset.attrs["shape description"] = (
+                "radial index, poloidal index, toroidal index, (r, z, phi) coordinates"
+            )
 
         # add attribution
         grid_group.attrs["magnetic axis (R, Z) [m]"] = (magnetic_axis_r, 0)
@@ -143,14 +144,14 @@ def install_physical_cell_indices(
 
     Parameters
     ----------
-    path
-        path to the raw text file: e.g. ``CELL_GEO``.
-    hdf5_path
-        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name
-        name of grid group in the HDF5 file, by default ``grid-360``.
-    update
-        whether or not to update/override dataset, by default False
+    path : Path | str
+        Path to the raw text file: e.g. ``CELL_GEO``.
+    hdf5_path : Path | str, optional
+        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
+    grid_group_name : str, optional
+        Name of grid group in the HDF5 file, by default ``grid-360``.
+    update : bool, optional
+        Whether or not to update/override dataset, by default False.
     """
     # validate parameters
     path = exist_path_validate(path)
@@ -197,7 +198,7 @@ def install_physical_cell_indices(
                 )
 
                 # insert dummy indices for around magnetic axis region.
-                # inserted indeces are duplicated from the first index of radial direction.
+                # inserted indices are duplicated from the first index of radial direction.
                 indices = np.concatenate(
                     (indices_temp[0, ...][np.newaxis, :, :], indices_temp), axis=0
                 )
@@ -248,12 +249,12 @@ def install_cell_indices(
 
     Parameters
     ----------
-    hdf5_path
-        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name
-        name of grid group in the HDF5 file, by default ``grid-360``.
-    update
-        whether or not to update/override dataset, by default False
+    hdf5_path : Path | str, optional
+        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
+    grid_group_name : str, optional
+        Name of grid group in the HDF5 file, by default ``grid-360``.
+    update : bool, optional
+        Whether or not to update/override dataset, by default False.
     """
     # validate parameters
     hdf5_path = path_validate(hdf5_path)
@@ -325,12 +326,12 @@ def install_data(
 
     Parameters
     ----------
-    directory_path
-        path to the directory storing EMC3-calculated data.
-    hdf5_path
-        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name
-        name of grid group in the HDF5 file, by default ``grid-360``.
+    directory_path : Path | str
+        Path to the directory storing EMC3-calculated data.
+    hdf5_path : Path | str, optional
+        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
+    grid_group_name : str, optional
+        Name of grid group in the HDF5 file, by default ``grid-360``.
     """
     # populate DataParser instance
     parser = DataParser(
@@ -373,11 +374,11 @@ def install_data(
                     sp.write(f"💥 Failed to install {atom} density")
         data_group["density"].attrs["unit"] = "1/m^3"
 
-        # temerature
+        # temperature
         try:
-            te, ti = parser.temperature_electron_ion()
-            data_group.create_dataset(name="temperature/electron", data=te)
-            data_group.create_dataset(name="temperature/ion", data=ti)
+            t_e, t_i = parser.temperature_electron_ion()
+            data_group.create_dataset(name="temperature/electron", data=t_e)
+            data_group.create_dataset(name="temperature/ion", data=t_i)
             sp.write("✅ electron and ion temperature was installed.")
         except Exception:
             sp.write("💥 Failed to install electron and ion temperature")

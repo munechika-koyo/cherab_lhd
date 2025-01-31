@@ -1,11 +1,13 @@
-"""Module offers helper functions to generate :obj:`~cherab.core.Plasma` object."""
+"""Module offers helper functions to generate `~cherab.core.Plasma` object."""
+
 from __future__ import annotations
 
 import h5py
 from matplotlib import pyplot as plt
-from raysect.core import Node, Vector3D, translate
+from raysect.core import Vector3D, translate
 from raysect.core.math.function.float.function3d.base import Function3D
 from raysect.core.math.function.vector3d.function3d.base import Function3D as VectorFunction3D
+from raysect.core.scenegraph._nodebase import _NodeBase
 from raysect.optical.material.emitter.inhomogeneous import NumericalIntegrator
 from raysect.primitive import Cylinder, Subtract
 from scipy.constants import atomic_mass, electron_mass
@@ -37,23 +39,23 @@ BULK_V = ConstantVector3D(Vector3D(0, 0, 0))
 
 
 @Spinner(text="Loading Plasma Object...", timer=True)
-def import_plasma(parent: Node, species: Species | None = None) -> Plasma:
-    """Helper function of generating LHD plasma As emissions, :math:`\\mathrm{H}_\\alpha,
-    \\mathrm{H}_\\beta, \\mathrm{H}_\\gamma, \\mathrm{H}_\\delta` are applied.
+def import_plasma(parent: _NodeBase, species: Species | None = None) -> Plasma:
+    """Helper function of generating LHD plasma.
+
+    As emissions, Hɑ, Hβ, Hγ, Hδ are applied.
 
     Parameters
     ----------
-    parent
-        Raysect's scene-graph parent node
-    species
-        user-defined species object having composition which is a list of
-        :obj:`~cherab.core.Species` objects and electron distribution function attributes,
-        by default :py:class:`.LHDSpecies`
+    parent : `_NodeBase`
+        Parent node of this plasma in the scenegraph, often `~raysect.core.World` object.
+    species : `~cherab.core.Species`, optional
+        User-defined species object having composition which is a list of `~cherab.core.Species`
+        objects and electron distribution function attributes, by default `.LHDSpecies`.
 
     Returns
     -------
-    :obj:`~cherab.core.Plasma`
-        plasma object
+    `~cherab.core.Plasma`
+        Plasma object.
     """
     # create atomic data source
     adas = OpenADAS(permit_extrapolation=True)
@@ -111,12 +113,12 @@ class LHDSpecies:
     """Class representing LHD plasma species.
 
     Attributes
-    -----------
-    electron_distribution : :obj:`~cherab.core.distribution.Maxwellian`
-        electron distribution function
-    composition : list of :obj:`~cherab.core.Species`
-        composition of plasma species, each information of which is
-        element, charge, density_distribution, temperature_distribution, bulk_velocity_distribution.
+    ----------
+    electron_distribution : `~cherab.core.distribution.Maxwellian`
+        Electron distribution function.
+    composition : list[`~cherab.core.Species`]
+        Composition of plasma species, each information of which is element, charge,
+        density_distribution, temperature_distribution, bulk_velocity_distribution.
     """
 
     def __init__(self):
@@ -189,16 +191,16 @@ class LHDSpecies:
 
         Parameters
         ----------
-        element
-            element name registored in cherabs elements.pyx
-        charge
-            element's charge state, by default 0
-        density
-            density distribution, by default :obj:`~cherab.core.math.Constant3D` (1.0e19)
-        temperature
-            temperature distribution, by default :obj:`~cherab.core.math.Constant3D` (1.0e2)
-        bulk_velocity
-            bulk velocity, by default :obj:`~cherab.core.math.ConstantVector3D` (0)
+        element : str
+            Element name registered in cherabs `elements.pyx` module.
+        charge : int
+            Element's charge state, by default 0.
+        density : `~cherab.core.math.Function3D`, optional
+            Density distribution, by default `~cherab.core.math.Constant3D` (1.0e19).
+        temperature : `~cherab.core.math.Function3D`, optional
+            Temperature distribution, by default `~cherab.core.math.Constant3D` (1.0e2).
+        bulk_velocity : `~cherab.core.math.VectorFunction3D`, optional
+            Bulk velocity, by default `~cherab.core.math.ConstantVector3D` (0).
         """
         # extract specified element object
         element_obj = getattr(elements, element, None)
@@ -223,8 +225,8 @@ class LHDSpecies:
 
         Parameters
         ----------
-        res
-            Spactial resolution for sampling, by default 0.005 [m]
+        res : float, optional
+            Spactial resolution for sampling, by default 0.005 [m].
         """
         # plot electron distribution
         fig, _ = show_profile_phi_degs(

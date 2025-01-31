@@ -1,4 +1,5 @@
 """This module provides functions to create index function for EMC3."""
+
 import h5py
 import numpy as np
 from numpy.typing import NDArray
@@ -137,9 +138,7 @@ def create_new_index(index_type: str, zone: str) -> NDArray[np.uint32]:
                             radial_indices[i] : radial_indices[i + 1],
                             poloidal_indices[j] : poloidal_indices[j + 1],
                             toroidal_indices[k] : toroidal_indices[k + 1],
-                        ] = (
-                            i + j * num_radial_index + k * num_radial_index * num_poloidal_index
-                        )
+                        ] = i + j * num_radial_index + k * num_radial_index * num_poloidal_index
 
             # save index array as dataset
             with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
@@ -165,8 +164,8 @@ def create_new_index(index_type: str, zone: str) -> NDArray[np.uint32]:
 def create_2d_mesh(
     zone: str, n_phi: int, index_type="coarse", default_value: int = -1
 ) -> tuple[Discrete2DMesh, int]:
-    """:obj:`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance
-    of the EMC3 poloidal plane.
+    """:obj:`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance of
+    the EMC3 poloidal plane.
 
     The index data must be stored in ``grid-360`` group in HDF5 file.
 

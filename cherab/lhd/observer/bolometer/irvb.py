@@ -1,4 +1,5 @@
 """Module defining the IRVB Camera class."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -64,7 +65,6 @@ class IRVBCamera(Node):
         transform: AffineMatrix3D | None = None,
         name: str = "",
     ) -> None:
-
         super().__init__(parent=parent, transform=transform, name=name)
 
         self._foil_detector: TargettedCCDArray | None = None
@@ -75,6 +75,9 @@ class IRVBCamera(Node):
                 raise TypeError("camera_geometry must be a primitive")
             camera_geometry.parent = self
         self._camera_geometry = camera_geometry
+
+    def __repr__(self) -> str:
+        return f"IRVBCamera(name={self.name})"
 
     @property
     def slit(self) -> BolometerSlit:
@@ -108,9 +111,10 @@ class IRVBCamera(Node):
 
     @property
     def pixels_as_foils(self) -> ndarray:
-        """An array, the element which is a BolometerFoil's instance defined by
-        regarding each pixel as a bolometer foil."""
+        """Regard each pixel as a bolometer foil.
 
+        The element is a `BolometerFoil` instance.
+        """
         nx, ny = self.foil_detector.pixels
         width = self.foil_detector.width
         pixel_pitch = width / nx
@@ -144,10 +148,10 @@ class IRVBCamera(Node):
 
     @property
     def sightline_rays(self) -> ndarray:
-        """
-        :obj:`numpy.ndarray` of :obj:`~raysect.optical.Ray`: an array containing sightline rays, each of which
-        starts from the centre of each pixel and passes through
-        the centre of the slit
+        """Array containing sightline rays `~raysect.optical.Ray`.
+
+        Each ray starts from the centre of corresponding pixel and passes through the centre of the
+        slit.
         """
         return np.asarray(
             [
@@ -184,22 +188,22 @@ class IRVBCamera(Node):
 
         Parameters
         ----------
-        fig
-            Figure object created by plotly, by default :obj:`plotly.graph_objs.Figure` if fig is None.
-        plot_pixel_rays
-            properties of plotting rays, by default None.
+        fig : `~plotly.graph_objs.Figure`, optional
+            Figure object created by plotly, by default `plotly.graph_objs.Figure` if fig is None.
+        plot_pixel_rays : dict, optional
+            Properties of plotting rays, by default None.
             If the user want to use it, set any key and value, by default
             ``{"pixel": (0, 0), "num_rays": 50, "terminate": 30e-2}`` is applied.
             ``"pixel"`` is the specific pixel where rays are triggered, ``"num_rays"`` is the number
             of rays triggered, and ``"terminate"`` is the distance between foil and the board which
-            terminates triggered rays in units of meter. If ``"terminate`` is 0, no terminating board
-            is set.
-        show_foil_xy_axes
-            whether or not to show the local foil x, y axis, by default True
+            terminates triggered rays in units of meter. If ``"terminate`` is 0, no terminating
+            board is set.
+        show_foil_xy_axes : bool, optional
+            Whether or not to show the local foil x, y axis, by default True.
 
         Returns
         -------
-        :obj:`plotly.graph_objs.Figure`
+        `~plotly.graph_objs.Figure`
             Figure objects include some traces.
         """
 
@@ -341,7 +345,6 @@ class IRVBCamera(Node):
                 pixel[0], pixel[1], ray_temp, plot_pixel_rays["num_rays"]
             )
             for ray in rays:
-
                 origin = ray[0].origin.transform(self.foil_detector.to_root())
                 origin_0 = origin.copy()
                 direction = ray[0].direction.transform(self.foil_detector.to_root())
@@ -367,7 +370,7 @@ class IRVBCamera(Node):
                         )
                         break
 
-                # TODO: remove teminating board
+                # TODO: remove terminating board
                 # self.parent.children.pop(-1)
 
                 line = np.array([[*origin_0], [*hit_point]])

@@ -1,11 +1,12 @@
-"""Module to offer wall contour fetures."""
-from importlib.resources import files
+"""Module to offer wall contour features."""
 
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import float64, intp
 from numpy.typing import NDArray
+
+from ..tools.fetch import fetch_file
 
 __all__ = [
     "wall_outline",
@@ -19,18 +20,21 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
     """Return toroidal angle & z coordinate under periodic boundary condition.
 
     The specified toroidal angle by EMC3-EIRENE varies from 0 to 18 degrees. For example,
-    the poloidal grid plane at 27 degrees corresponds to the one flipped along the z-axis at 9 degrees.
+    the poloidal grid plane at 27 degrees corresponds to the one flipped along the z-axis at
+    9 degrees.
 
     Parameters
     ----------
-    phi
-        toroidal angle in degree
+    phi : float
+        Toroidal angle in degree.
 
     Returns
     -------
-    tuple[float, bool]
-        (toroidal angle, flag of flipping)
-        If this flag is  ``True``, :math:`z` component is multiplied by -1.
+    phi : float
+        Toroidal angle in degree between 0 and 18.
+    flipped : bool
+        Flag of flipping z coordinate.
+        If `flipped` is ``True``, :math:`z` component is multiplied by -1.
     """
     if phi < 0.0:
         phi = (phi + 360.0) % 36.0
@@ -38,30 +42,30 @@ def periodic_toroidal_angle(phi: float) -> tuple[float, bool]:
         phi %= 36.0
 
     if phi < 18.0:
-        fliped = False
+        flipped = False
     else:
         phi = 36.0 - phi
-        fliped = True
-    return (phi, fliped)
+        flipped = True
+    return (phi, flipped)
 
 
 def adjacent_toroidal_angles(phi: float, phis: np.ndarray) -> tuple[intp, intp]:
     """Generate adjacent toroidal angles.
 
-    if ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``,
-    then (left, right) adjacent toroidal angles are (0.5, 1.0), each index of which is (1, 2), respectively.
+    If ``phis = [0.0, 0.5, 1.0,..., 18.0]`` and given ``phi = 0.75``, then (left, right) adjacent
+    toroidal angles are (0.5, 1.0), each index of which is (1, 2), respectively.
 
     Parameters
     ----------
-    phi
-        toroidal angle betwenn 0 and 18 degree
-    phis
-        1D array of toroidal angles
+    phi : float
+        Toroidal angle between 0 and 18 degree.
+    phis : (N, ) array_like
+        1D array of toroidal angles.
 
     Returns
     -------
     tuple[int, int]
-        (left, right) adjacent toroidal angle indices
+        (left, right) adjacent toroidal angle indices.
     """
     if phi < 0.0 or phi > 18.0:
         raise ValueError("phi must be an angle between 0 to 18 degree.")
@@ -84,29 +88,28 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     """:math:`(r, z)` or :math:`(x, y, z)` coordinates of LHD wall outline at a toroidal angle
     :math:`\\varphi`.
 
-    If no :math:`(r, z)` coordinates data is at :math:`\\varphi`,
-    then one point of wall outline :math:`xyz` is interpolated linearly according to the following equation:
+    If no :math:`(r, z)` coordinates data is at :math:`\\varphi`, then one point of wall outline
+    :math:`xyz` is interpolated linearly according to the following equation:
 
     .. math::
 
         xyz = \\frac{(\\varphi - \\varphi_i) xyz_{i+1} + (\\varphi_{i+1} - \\varphi) xyz_{i}}{\\varphi_{i+1} - \\varphi_{i}}
 
-    where :math:`\\varphi_{i} < \\varphi < \\varphi_{i+1}` and :math:`xyz_{i}` and :math:`xyz_{i+1}` is wall outline coordinates at
-    :math:`\\varphi_{i}` and :math:`\\varphi_{i+1}`, respectively.
+    where :math:`\\varphi_{i} < \\varphi < \\varphi_{i+1}` and :math:`xyz_{i}` and :math:`xyz_{i+1}`
+    is wall outline coordinates at :math:`\\varphi_{i}` and :math:`\\varphi_{i+1}`, respectively.
 
     Parameters
     ----------
-    phi
-        toroidal angle in units of degree.
-    basis : str `{"rz" or "xyz"}`
-        coordinate system for returned points, by default `"rz"`
+    phi : float
+        Toroidal angle in units of degree.
+    basis : {"rz", "xyz"}, optional
+        Coordinate system for returned points, by default "rz".
 
     Returns
     -------
-    :obj:`~numpy.ndarray`
-        wall outline points in either :math:`(r, z)` or :math:`(x, y, z)` coordinates which depends on
-        the `basis` parameter.
-        The shape of ndarray is either `(N, 2)` in :math:`(r, z)` or `(N, 3)` in :math:`(x, y, z)`.
+    (N, 2) or (N, 3) array_like
+        Wall outline points in either :math:`(r, z)` or :math:`(x, y, z)` coordinates which depends
+        on the `basis` parameter.
 
     Examples
     --------
@@ -125,19 +128,19 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     if basis not in {"rz", "xyz"}:
         raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
-    # Load wall ouline data from "wall_outline.hdf5"
+    # Load wall outline data from "wall_outline.hdf5"
     with (
-        files("cherab.lhd.machine.geometry.data").joinpath("wall_outline.hdf5").open("rb") as file,
+        open(fetch_file("machine/wall_outline.hdf5"), "rb") as file,
         h5py.File(file, "r") as h5file,
     ):
         # load toroidal angles
         phis = h5file["toroidal_angles"][:]
 
-        # load wall ouline array
+        # load wall outline array
         outlines = h5file["outlines"][:]
 
     # phi -> phi in 0 - 18 deg
-    phi_t, fliped = periodic_toroidal_angle(phi)
+    phi_t, flipped = periodic_toroidal_angle(phi)
 
     # find adjacent phis
     phi_left, phi_right = adjacent_toroidal_angles(phi_t, phis)
@@ -146,8 +149,8 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     rz_left = outlines[phi_left, :, :]
     rz_right = outlines[phi_right, :, :]
 
-    # fliped value for z axis
-    flip = -1 if fliped else 1
+    # flipped value for z axis
+    flip = -1 if flipped else 1
 
     xyz_left = np.array(
         [
@@ -176,12 +179,12 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
 
 
 def plot_lhd_wall_outline(phi: float) -> None:
-    """plot LHD vessel wall polygons in a :math:`r` - :math:`z` plane
+    """Plot LHD vessel wall polygons in a :math:`r` - :math:`z` plane.
 
     Parameters
     ----------
-    phi
-        toroidal angle in unit of degree
+    phi : float
+        Toroidal angle in unit of degree.
 
     Examples
     --------

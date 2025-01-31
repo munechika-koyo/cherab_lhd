@@ -1,8 +1,8 @@
 """Module to convert STL files to RSM files.
 
-STL means Standard Tessellation Language, which is a file format native to the stereolithography CAD
-software created by 3D Systems.
-RSM means Raysect Mesh files containing a K-D tree structure as well as basic mesh information.
+* STL means Standard Tessellation Language, which is a file format native to the stereolithography
+  CAD software created by 3D Systems.
+* RSM means Raysect Mesh files containing a K-D tree structure as well as basic mesh information.
 """
 
 from __future__ import annotations

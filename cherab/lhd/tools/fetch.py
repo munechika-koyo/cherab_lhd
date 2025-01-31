@@ -49,6 +49,7 @@ REGISTRIES = {
 
 PATH_TO_STORAGE = pooch.os_cache("cherab/lhd")
 
+
 def show_registries() -> None:
     """Show the registries of the datasets."""
     table = Table(title="Registries", show_lines=True)

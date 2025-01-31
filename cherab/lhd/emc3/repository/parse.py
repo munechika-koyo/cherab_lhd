@@ -1,4 +1,5 @@
 """Module to parse and load raw data calculated by EMC3-EIRENE."""
+
 from __future__ import annotations
 
 import re
@@ -20,12 +21,12 @@ class DataParser:
 
     Parameters
     ----------
-    directory_path
-        path to the directory storing EMC3-calculated data.
-    hdf5_path
-        path to the stored HDF5 file, by default ``~/.cherab/lhd/emc3.hdf5``.
-    grid_group_name
-        name of grid group in the HDF5 file, by default ``grid-360``.
+    directory_path : str | pathlib.Path
+        Path to the directory storing EMC3-calculated data.
+    hdf5_path : str | pathlib.Path
+        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
+    grid_group_name : str
+        Name of grid group in the HDF5 file, by default ``grid-360``.
 
     Example
     -------
@@ -67,17 +68,17 @@ class DataParser:
             self.num_plasma_vac = grid_group.attrs["num_plasma_vac"]
 
     def plasma_radiation(self, filename: str = "RADIATION_1") -> NDArray[np.float64]:
-        """Load plasma radation data.
+        """Load plasma radiation data.
 
         Parameters
         ----------
-        filename
-            loading text file name, by default ``"RADIATION_1"``.
+        filename : str
+            Loading text file name, by default ``"RADIATION_1"``.
 
         Returns
         -------
-        numpy.ndarray
-            1D plasma radiation data [W/m^3]
+        (N, ) array_like
+            1D plasma radiation data [W/m^3].
         """
         with open(self.directory_path / filename, "r") as f:
             _ = f.readline()  # skip first row
@@ -90,7 +91,7 @@ class DataParser:
         # validation
         if radiation.size != self.num_plasma:
             raise ValueError(
-                f"The size of radation data ({radiation.size}) "
+                f"The size of radiation data ({radiation.size}) "
                 f"must be same as the number of plasma cells ({self.num_plasma})"
             )
 
@@ -100,18 +101,17 @@ class DataParser:
         return radiation
 
     def impurity_radiation(self, filename: str = "IMP_RADIATION") -> NDArray[np.float64]:
-        """Load impurity radation data.
+        """Load impurity radiation data.
 
         Parameters
         ----------
-        filename
-            loading text file name, by default ``"IMP_RADIATION"``.
+        filename : str
+            Loading text file name, by default ``"IMP_RADIATION"``.
 
         Returns
         -------
-        numpy.ndarray
-            1D impurity radiation data [W/m^3].
-            negative values are made positive.
+        (N, ) array_like
+            1D impurity radiation data [W/m^3]. Negative values are made positive.
         """
         with open(self.directory_path / filename, "r") as f:
             radiation = f.read()
@@ -122,7 +122,7 @@ class DataParser:
         # validation
         if radiation.size != self.num_plasma:
             raise ValueError(
-                f"The size of impurity radation data ({radiation.size}) "
+                f"The size of impurity radiation data ({radiation.size}) "
                 f"must be same as the number of plasma cells ({self.num_plasma})"
             )
 
@@ -135,13 +135,12 @@ class DataParser:
         return radiation
 
     def radiation(self) -> NDArray[np.float64]:
-        """Load total radation data: plasma + impurity radiation.
+        """Load total radiation data: plasma + impurity radiation.
 
         Returns
         -------
-        numpy.ndarray
-            1D radiation data [W/m^3].
-            negative values are made positive.
+        (N, ) array_like
+            1D radiation data [W/m^3]. Negative values are made positive.
         """
         return self.plasma_radiation() + self.impurity_radiation()
 
@@ -150,13 +149,13 @@ class DataParser:
 
         Parameters
         ----------
-        filename
-            loading text file name, by default ``"DENSITY"``.
+        filename : str
+            Loading text file name, by default ``"DENSITY"``.
 
         Returns
         -------
-        numpy.ndarray
-            1D electron density data [1/m^3]
+        (N, ) array_like
+            1D electron density data [1/m^3].
         """
         with open(self.directory_path / filename, "r") as f:
             density = f.read()
@@ -179,18 +178,18 @@ class DataParser:
         return density
 
     def density_ions(self, filename: str = "DENSITY") -> dict[str, NDArray[np.float64]]:
-        """Load ions density data. the list of species state is: H+, C1+,
-        C2+,..., C+6, Ne1+,..., Ne10+. The total number is 17.
+        """Load ions density data. the list of species state is: H+, C1+, C2+,..., C+6, Ne1+,...,
+        Ne10+. The total number is 17.
 
         Parameters
         ----------
-        filename
-            loading text file name, by default ``"DENSITY"``.
+        filename : str
+            Loading text file name, by default ``"DENSITY"``.
 
         Returns
         -------
-        dict[str, numpy.ndarray]
-            key is label of ion and value is density data [1/m^3]
+        dict[str, (N, ) array_like]
+            Key is label of ion and value is density data [1/m^3].
         """
         state_list = ["H+"] + [f"C{i}+" for i in range(1, 7)] + [f"Ne{i}+" for i in range(1, 11)]
         density_ions = {}
@@ -200,7 +199,7 @@ class DataParser:
         # divide values by index
         densities = re.split(self.pattern_index, densities)
 
-        # mapping density values into each state lavel
+        # mapping density values into each state level
         for ion, density in zip(state_list, densities[1:], strict=True):
             density_ions[ion] = (
                 np.asarray_chkfinite(re.findall(self.pattern_value, density), dtype=np.float64)
@@ -216,20 +215,18 @@ class DataParser:
         return density_ions
 
     def density_neutrals(self) -> dict[str, NDArray[np.float64]]:
-        """Load neutral particles density data. the list of species state is:
-        H, H2, C, Ne.
+        """Load neutral particles density data. the list of species state is: H, H2, C, Ne.
 
         Returns
         -------
-        dict[str, numpy.ndarray]
-            key is label of species and value is density data [1/m^3]
+        dict[str, (N, ) array_like]
+            Key is label of species and value is density data [1/m^3].
         """
         atoms = ["H", "H2", "C", "Ne"]
         filenames = ["DENSITY_A", "DENSITY_M", "IMPURITY_NEUTRAL_2", "IMPURITY_NEUTRAL_3"]
         density_neutral = {}
 
         for filename, atom in zip(filenames, atoms, strict=True):
-
             with open(self.directory_path / filename, "r") as f:
                 density = f.read()
 
@@ -257,13 +254,15 @@ class DataParser:
 
         Parameters
         ----------
-        filename
-            loading text file name, by default ``"DENSITY"``.
+        filename : str
+            Loading text file name, by default ``"DENSITY"``.
 
         Returns
         -------
-        tuple[numpy.ndarray]
-            electron and ion temperature data [eV]
+        T_e : (N, ) array_like
+            1D electron temperature data [eV].
+        T_i : (N, ) array_like
+            1D ion temperature data [eV].
         """
         with open(self.directory_path / filename, "r") as f:
             temp = f.read().split()
@@ -281,20 +280,18 @@ class DataParser:
         return (temp_e, temp_ion)
 
     def temperature_neutrals(self) -> dict[str, NDArray[np.float64]]:
-        """Load neutral particles temperature data. the list of species state
-        is: H, H2.
+        """Load neutral particles temperature data. the list of species state is: H, H2.
 
         Returns
         -------
-        dict[str, numpy.ndarray]
-            key is label of species and value is temperature data [eV]
+        dict[str, (N, ) array_like]
+            Key is label of species and value is temperature data [eV].
         """
         atoms = ["H", "H2"]
         filenames = ["TEMPERATURE_A", "TEMPERATURE_M"]
         temperature_neutral = {}
 
         for filename, atom in zip(filenames, atoms, strict=True):
-
             with open(self.directory_path / filename, "r") as f:
                 temperature = f.read()
 

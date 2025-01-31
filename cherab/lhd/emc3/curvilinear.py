@@ -1,4 +1,5 @@
 """Module for handling curvilinear coordinates of EMC3-EIRENE-defined center grids."""
+
 from functools import cached_property
 
 import numpy as np
@@ -20,8 +21,8 @@ class CurvCoords:
 
     Parameters
     ----------
-    grid
-        :obj:`.CenterGrids` object.
+    grid : `.CenterGrids`
+        Instance of `.CenterGrids` class.
     """
 
     def __init__(self, grid: CenterGrids):
@@ -62,16 +63,15 @@ class CurvCoords:
         b_rho = np.zeros((L, M, N, 3), dtype=float)
 
         # calculate rho covariant basis
-        for n in range(N):
-            for m in range(M):
-                # calculate length of each segment along to rho direction
-                length = np.linalg.norm(self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1)
+        for n, m in np.ndindex(N, M):
+            # calculate length of each segment along to rho direction
+            length = np.linalg.norm(self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1)
 
-                # reconstruct length array to coordinates starting from 0
-                coord = np.hstack(([0.0], np.cumsum(length)))
+            # reconstruct length array to coordinates starting from 0
+            coord = np.hstack(([0.0], np.cumsum(length)))
 
-                # calculate rho covariant basis with numpy.gradient
-                b_rho[:, m, n, :] = np.gradient(self.grid[:, m, n, :], coord, axis=0)
+            # calculate rho covariant basis with numpy.gradient
+            b_rho[:, m, n, :] = np.gradient(self.grid[:, m, n, :], coord, axis=0)
 
         return b_rho
 
@@ -96,16 +96,15 @@ class CurvCoords:
         b_theta = np.zeros((L, M, N, 3), dtype=float)
 
         # calculate theta covariant basis
-        for l in range(L):
-            for n in range(N):
-                # calculate length of each segment along to theta direction
-                length = np.linalg.norm(self.grid[l, 1:, n, :] - self.grid[l, 0:-1, n, :], axis=1)
+        for l, n in np.ndindex(L, N):
+            # calculate length of each segment along to theta direction
+            length = np.linalg.norm(self.grid[l, 1:, n, :] - self.grid[l, 0:-1, n, :], axis=1)
 
-                # reconstruct length array to coordinates starting from 0
-                coord = np.hstack(([0.0], np.cumsum(length)))
+            # reconstruct length array to coordinates starting from 0
+            coord = np.hstack(([0.0], np.cumsum(length)))
 
-                # calculate theta covariant basis with numpy.gradient
-                b_theta[l, :, n, :] = np.gradient(self.grid[l, :, n, :], coord, axis=0)
+            # calculate theta covariant basis with numpy.gradient
+            b_theta[l, :, n, :] = np.gradient(self.grid[l, :, n, :], coord, axis=0)
 
         return b_theta
 
@@ -130,16 +129,15 @@ class CurvCoords:
         b_zeta = np.zeros((L, M, N, 3), dtype=float)
 
         # calculate zeta covariant basis
-        for l in range(L):
-            for m in range(M):
-                # calculate length of each segment along to zeta direction
-                length = np.linalg.norm(self.grid[l, m, 1:, :] - self.grid[l, m, 0:-1, :], axis=1)
+        for l, m in np.ndindex(L, M):
+            # calculate length of each segment along to zeta direction
+            length = np.linalg.norm(self.grid[l, m, 1:, :] - self.grid[l, m, 0:-1, :], axis=1)
 
-                # reconstruct length array to coordinates starting from 0
-                coord = np.hstack(([0.0], np.cumsum(length)))
+            # reconstruct length array to coordinates starting from 0
+            coord = np.hstack(([0.0], np.cumsum(length)))
 
-                # calculate zeta covariant basis with numpy.gradient
-                b_zeta[l, m, :, :] = np.gradient(self.grid[l, m, :, :], coord, axis=0)
+            # calculate zeta covariant basis with numpy.gradient
+            b_zeta[l, m, :, :] = np.gradient(self.grid[l, m, :, :], coord, axis=0)
 
         return b_zeta
 
@@ -241,14 +239,14 @@ class CurvCoords:
 
         Parameters
         ----------
-        v1
+        v1 : array_like
             :math:`i`-th co/contra-variant basis.
-        v2
+        v2 : array_like
             :math:`j`-th co/contra-variant basis.
 
         Returns
         -------
-        NDArray[np.float64]
+        array_like
             Metric tensor :math:`g_{ij}` or :math:`g^{ij}`.
         """
 
