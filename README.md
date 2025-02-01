@@ -62,7 +62,8 @@ pixi run lab
 Then, you can access the Jupyter lab server from your web browser.
 
 ## Documentation
-The [documentation]() is made with GitHub Actions and hosted by [GitHub Pages](https://docs.github.com/pages).
+<!-- The [documentation]() is made with GitHub Actions and hosted by [GitHub Pages](https://docs.github.com/pages). -->
+The documentation is currently under preparation.
 
 ## License
 `cherab-lhd` is distributed under the terms of the [BSD-3-Clause license](https://opensource.org/licenses/BSD-3-Clause).
