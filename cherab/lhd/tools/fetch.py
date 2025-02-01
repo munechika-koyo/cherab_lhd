@@ -32,7 +32,7 @@ REGISTRIES = {
     # machine wall outline data
     "machine/wall_outline.hdf5": "f82cdc636d6874a2a292ddf1d4e3077690d1c06b53c4d9fb7a7c210e358bf790",
     # material data
-    "materials/sus316L.json": "0f473be0d3f9efc88d11d3cbacbc5a8596ff2b39dcb2dbd561d0fa116de5f301",
+    "material/sus316L.json": "0f473be0d3f9efc88d11d3cbacbc5a8596ff2b39dcb2dbd561d0fa116de5f301",
     # EMC3-EIRENE-related data
     "emc3.hdf5": "99fb503798bb80f207b9de70e9fa6605584020a4d0c6dbc49ecbf38792a3e7f4",
     "tetra/zone0.rsm": "2859a0618badd7d764691750bbc617479a00ee4f0a31dcf9d616d81174f3402b",

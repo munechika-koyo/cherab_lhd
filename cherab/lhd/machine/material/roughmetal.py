@@ -13,7 +13,7 @@ __all__ = ["RoughSUS316L"]
 
 class _DataLoader(RoughConductor):
     def __init__(self, filename, roughness):
-        path = fetch_file(f"materials/{filename}.json")
+        path = fetch_file(f"material/{filename}.json")
         with open(path, "r") as f:
             data = json.load(f)
 
