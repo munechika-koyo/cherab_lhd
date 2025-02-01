@@ -1,5 +1,7 @@
 """Module to offer mapping classes
 """
+import numbers
+
 cimport cython
 from .intfunction cimport is_callable, autowrap_intfunction3d
 from numpy import array, int32
@@ -38,6 +40,33 @@ cdef class Mapper(Function3D):
         self._index_func = autowrap_intfunction3d(index_func)
         self._default_value = default_value
 
+    def __getstate__(self):
+        return (
+            self._index_func,
+            self._data_mv,
+            self._default_value
+        )
+
+    def __setstate__(self, state):
+        (
+            self._index_func,
+            self._data_mv,
+            self._default_value
+        ) = state
+
+    def __reduce__(self):
+        return self.__new__, (self.__class__, ), self.__getstate__()
+
+    # operator overloading
+    def __add__(self, object b):
+        if isinstance(b, Mapper):
+            # a() + b()
+            return AddMapper(self, b)
+        elif isinstance(b, numbers.Real):
+            # a() + B -> B + a()
+            return AddScalarMapper(<double> b, self)
+        return NotImplemented
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
@@ -60,6 +89,46 @@ cdef class Mapper(Function3D):
         """mask function returning True if Point (x, y, z) in any grids, otherwise False.
         """
         return self._index_func(x, y, z) > -1
+
+
+cdef class AddMapper(Mapper):
+    """
+    A Function3D class that implements the addition of the results of two Mapper objects: f1() + f2()
+
+    This class is not intended to be used directly, but rather returned as the result of an
+    __add__() call on a Function3D object.
+
+    :param mapper1: A Mapper object.
+    :param mapper2: A Mapper object.
+    """
+
+    def __init__(self, object mapper1, object mapper2):
+        self._mapper1 = mapper1
+        self._mapper2 = mapper2
+        self._index_func = mapper1._index_func + mapper2._index_func
+
+    cdef double evaluate(self, double x, double y, double z) except? -1e999:
+        return self._mapper1.evaluate(x, y, z) + self._mapper2.evaluate(x, y, z)
+
+
+cdef class AddScalarMapper(Mapper):
+    """
+    A Mapper class that implements the addition of scalar and the result of a Mapper object: K + f()
+
+    This class is not intended to be used directly, but rather returned as the result of an
+    __add__() call on a Mapper object.
+
+    :param value: A double value.
+    :param mapper: A Mapper object.
+    """
+
+    def __init__(self, double value, Mapper mapper):
+        self._value = value
+        self._mapper = mapper
+        self._index_func = mapper._index_func
+
+    cdef double evaluate(self, double x, double y, double z) except? -1e999:
+        return self._value + self._mapper.evaluate(x, y, z)
 
 
 cdef class IndexMapper(IntegerFunction3D):
@@ -92,6 +161,23 @@ cdef class IndexMapper(IntegerFunction3D):
         self._indices_mv = indices
         self._index_func = index_func
         self._default_value = default_value
+
+    def __getstate__(self):
+        return (
+            self._index_func,
+            self._indices_mv,
+            self._default_value
+        )
+
+    def __setstate__(self, state):
+        (
+            self._index_func,
+            self._indices_mv,
+            self._default_value
+        ) = state
+
+    def __reduce__(self):
+        return self.__new__, (self.__class__, ), self.__getstate__()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

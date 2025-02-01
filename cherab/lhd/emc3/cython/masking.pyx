@@ -1,11 +1,10 @@
-"""
-Module to offer masking features EMC3-EIRENE in LHD
+"""Module to offer masking features EMC3-EIRENE in LHD
 """
 cimport cython
 from libc.limits cimport INT_MIN
 
 
-cdef class EMC3Mask(IntegerFunction3D):
+cdef class Mask(IntegerFunction3D):
     """
     Masking EMC3-EIRINE grid space to identify whether or not a mesh exists at the point.
     This instance is callable function returning 1 corresponding in

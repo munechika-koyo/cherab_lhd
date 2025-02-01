@@ -25,7 +25,7 @@ project = "cherab-lhd"
 author = "Koyo Munechika"
 copyright = f"2020-{datetime.now().year}, {author}"
 version_obj = parse(__version__)
-release = str(version_obj)
+release = version_obj.base_version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -105,7 +105,7 @@ html_theme = "pydata_sphinx_theme"
 # html_favicon = "_static/favicon/favicon.ico"
 
 # Define the json_url for our version switcher.
-json_url = "https://cherab-phix.readthedocs.io/en/latest/_static/switcher.json"
+json_url = "https://cherab-lhd.readthedocs.io/en/latest/_static/switcher.json"
 version_match = os.environ.get("READTHEDOCS_VERSION")
 # If READTHEDOCS_VERSION doesn't exist, we're not on RTD
 # If it is an integer, we're in a PR build and the version isn't correct.
@@ -114,9 +114,6 @@ if not version_match or version_match.isdigit() or version_match == "latest":
     # For local development, infer the version to match from the package.
     if version_obj.is_prerelease:
         version_match = "dev"
-        # We want to keep the relative reference if we are in dev mode
-        # but we want the whole url if we are effectively in a released version
-        json_url = "_static/switcher.json"
     else:
         version_match = f"v{release}"
 elif version_match == "stable":

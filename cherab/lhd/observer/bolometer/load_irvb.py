@@ -1,16 +1,18 @@
 """Module offers helper functions related to a IRVB camera."""
+
 from __future__ import annotations
 
 import json
-from importlib.resources import files
 
 from raysect.core.math import Point3D, Vector3D, rotate_basis, rotate_z, translate
+from raysect.core.scenegraph._nodebase import _NodeBase
 from raysect.optical.material import AbsorbingSurface
 from raysect.optical.observer import TargettedCCDArray
 from raysect.primitive import Box, Subtract
 
 from cherab.tools.observers import BolometerSlit
 
+from ...tools.fetch import fetch_file
 from ..imaging.pinhole import PinholeCamera
 from .irvb import IRVBCamera
 
@@ -23,37 +25,38 @@ ORIGIN = Point3D(0, 0, 0)
 
 
 def load_irvb(
-    port: str = "6.5U", flange: str = "CC01_04", parent: World | None = None
+    port: str = "6.5U", flange: str = "CC01_04", parent: _NodeBase | None = None
 ) -> IRVBCamera:
-    """helper function of generating a IRVB camera object. An IRVB's
-    configuration is defined in json file, the name of which is "IRVB.json"
-    stored in ``../data folder``.
+    """Helper function of generating a IRVB camera object.
+
+    An IRVB' configuration is defined in json file, the name of which is ``"IRVB.json"``, which
+    can be fetched from the remote repository.
 
     Parameters
     ----------
-    port
-        user-specified port name, by default ``"6.5U"``
-    flange
-        specific flange name, by default ``"CC01_04"``
-    parent
-        The parent node of this camera in the scenegraph, often
-        an optical :obj:`~raysect.core.scenegraph.world.World` object, by default None
+    port : {"6.5U", "6.5L"}, optional
+        User-specified port name, by default ``"6.5U"``.
+    flange : {"CC01_04", "BC02", "BC02-old", "AL01"}, optional
+        Specific flange name, by default ``"CC01_04"``.
+    parent : `_NodeBase`, optional
+        The parent node of this camera in the scenegraph, by default None.
+        `~raysect.core.scenegraph.world.World` object is often used.
 
     Returns
     -------
-    :obj:`.IRVBCamera`
-        populated :obj:`.IRVBCamera` instance
+    `.IRVBCamera`
+        Populated `.IRVBCamera` instance.
     """
 
     # import IRVB configs as a resource
-    with files("cherab.lhd.observer.bolometer.data").joinpath("IRVB.json").open("r") as file:
+    with open(fetch_file("observer/IRVB.json"), "r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][flange]
     except KeyError as err:
-        raise KeyError(f"spcified parameters: {port}-{flange} are not defined.") from err
+        raise KeyError(f"specified parameters: {port}-{flange} are not defined.") from err
 
     # Construct Foil and Slit from port local coordinates
     if raw_data.get("basis_x"):
@@ -141,36 +144,34 @@ def load_irvb(
 
 
 def load_irvb_as_pinhole_camera(
-    port: str = "6.5U", flange: str = "BC02", parent: World | None = None
+    port: str = "6.5U", flange: str = "BC02", parent: _NodeBase | None = None
 ) -> PinholeCamera:
-    """helper function of generating an IRVB camera as Pinhole Camara An IRVB's
-    configuration is defined in json file, the name of which is "IRVB.json"
-    stored in ``../data folder``.
+    """Helper function of generating an IRVB camera as Pinhole Camara.
 
     Parameters
     ----------
-    port
-        user-specified port name, by default "6.5U"
-    flange
-        The variant of IRVB model, by default "BC02"
-    parent
-        The parent node of this camera in the scenegraph, often
-        an optical :obj:`~raysect.core.scenegraph.world.World` object, by default None
+    port : {"6.5U", "6.5L"}, optional
+        User-specified port name, by default "6.5U".
+    flange : {"CC01_04", "BC02", "BC02-old", "AL01"}, optional
+        The variant of IRVB model, by default "BC02".
+    parent : `_NodeBase`, optional
+        The parent node of this camera in the scenegraph, by default None.
+        `~raysect.core.scenegraph.world.World` object is often used.
 
     Returns
     -------
-    :obj:`.PinholeCamera`
-        populated :obj:`.PinholeCamera` instance
+    `.PinholeCamera`
+        Populated `.PinholeCamera` instance.
     """
     # import IRVB configs as a resource
-    with files("cherab.lhd.observer.bolometer.data").joinpath("IRVB.json").open("r") as file:
+    with open(fetch_file("observer/IRVB.json"), "r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][flange]
     except KeyError as err:
-        raise KeyError(f"spcified parameters: {port} or {flange} are not defined.") from err
+        raise KeyError(f"specified parameters: {port} or {flange} are not defined.") from err
 
     # Construct Foil and Slit from port local coordinates
     if raw_data.get("basis_x"):

@@ -1,43 +1,69 @@
-# CHERAB LHD
+# CHERAB-LHD
 
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/munechika-koyo/cherab_lhd/main.svg?badge_token=Lmet0dXxT2iOgJ_pHNunBw)](https://results.pre-commit.ci/latest/github/munechika-koyo/cherab_lhd/main?badge_token=Lmet0dXxT2iOgJ_pHNunBw)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/af76f666-95b7-4282-85f7-42dacd2d97f2/deploy-status)](https://app.netlify.com/sites/cherab-lhd/deploys)
+|         |                                                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------------------------------- |
+| CI/CD   | [![pre-commit.ci status][pre-commit-ci-badge]][pre-commit-ci] [![PyPI Publish][PyPI-publish-badge]][PyPi-publish]   |
+| Docs    | [![Documentation Status][Docs-badge]][Docs]                                                                         |
+| Package | [![PyPI - Version][PyPI-badge]][PyPI] [![Conda][Conda-badge]][Conda] [![PyPI - Python Version][Python-badge]][PyPI] |
+| Meta    | [![DOI][DOI-badge]][DOI] [![License - BSD3][License-badge]][License] [![Pixi Badge][pixi-badge]][pixi-url]          |
 
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Docstring formatter: docformatter](https://img.shields.io/badge/%20formatter-docformatter-fedcba.svg)](https://github.com/PyCQA/docformatter)
-[![Docstring style: numpy](https://img.shields.io/badge/%20style-numpy-459db9.svg)](https://numpydoc.readthedocs.io/en/latest/format.html)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[pre-commit-ci-badge]: https://results.pre-commit.ci/badge/github/munechika-koyo/cherab_lhd/main.svg
+[pre-commit-ci]: https://results.pre-commit.ci/latest/github/munechika-koyo/cherab_lhd/main
+[PyPI-publish-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/deploy-pypi.yml?style=flat-square&label=PyPI%20Publish&logo=github
+[PyPI-publish]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/deploy-pypi.yml
+[Docs-badge]: https://readthedocs.org/projects/cherab-lhd/badge/?version=latest&style=flat-square
+[Docs]: https://cherab-lhd.readthedocs.io/en/latest/?badge=latest
+[PyPI-badge]: https://img.shields.io/pypi/v/cherab-lhd?label=PyPI&logo=pypi&logoColor=gold&style=flat-square
+[PyPI]: https://pypi.org/project/cherab-lhd/
+[Conda-badge]: https://img.shields.io/conda/vn/conda-forge/cherab-lhd?logo=conda-forge&style=flat-square
+[Conda]: https://prefix.dev/channels/conda-forge/packages/cherab-lhd
+[Python-badge]: https://img.shields.io/pypi/pyversions/cherab-lhd?logo=Python&logoColor=gold&style=flat-square
+[DOI-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.10118752.svg
+[DOI]: https://doi.org/10.5281/zenodo.10118752
+[License-badge]: https://img.shields.io/github/license/munechika-koyo/cherab_lhd?style=flat-square
+[License]: https://opensource.org/licenses/BSD-3-Clause
+[pixi-badge]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json&style=flat-square
+[pixi-url]: https://pixi.sh
 
-
-CHERAB for Large Herical Device in National Institute for Fusion Science
-
-Please see our [documentation](https://cherab-lhd.netlify.app/)
-for guidance on using the code.
-
-Quick installation
--------------------
-Synchronize `cherab-lhd` source:
-
-```Shell
-git clone https://github.com/munechika-koyo/cherab_lhd.git
-```
-And, download Large data files by running the following command at the source root:
-```Shell
-git lfs install
-git lfs fetch
-```
-Then, install `cherab-lhd` with pip:
-```Shell
-pip install .
-```
-
-For developper
 ---
-Create a conda development environment, build `cherab-lhd` with `Meson`
-```Shell
-conda env create -f environment.yaml
-conda activate cherab-lhd-dev
-python dev.py build
-python dev.py install
+
+This repository contains the Large Helical Device (LHD) machine-dependent extensions of [`cherab`](https://www.cherab.info/) code.
+LHD is a helical magnetic confinement fusion device in the National Institute for Fusion Science (NIFS) in Japan.
+
+## Table of Contents
+
+- [Get Started](#get-started)
+- [Documentation](#documentation)
+- [License](#license)
+
+## Get Started
+
+### Task-based execution
+We offer some tasks to execute programs in CLI.
+You can see the list of tasks using [pixi](https://pixi.sh) command.
+
+```console
+pixi task list
 ```
+
+If you want to execute a task, you can use the following command.
+
+```console
+pixi run <task_name>
+```
+
+### Notebooks
+We provide some notebooks to demonstrate the usage of the CHERAB-NAGDIS code.
+To launch the Jupyter lab server, you can use the following command.
+
+```console
+pixi run lab
+```
+Then, you can access the Jupyter lab server from your web browser.
+
+## Documentation
+<!-- The [documentation]() is made with GitHub Actions and hosted by [GitHub Pages](https://docs.github.com/pages). -->
+The documentation is currently under preparation.
+
+## License
+`cherab-lhd` is distributed under the terms of the [BSD-3-Clause license](https://opensource.org/licenses/BSD-3-Clause).

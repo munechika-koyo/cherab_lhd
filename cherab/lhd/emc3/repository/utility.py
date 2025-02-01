@@ -1,10 +1,15 @@
 """Utilities for managing the local repository."""
+
+from __future__ import annotations
+
 from pathlib import Path
+
+from ...tools.fetch import PATH_TO_STORAGE
 
 __all__ = ["DEFAULT_HDF5_PATH", "DEFAULT_TETRA_MESH_PATH", "exist_path_validate", "path_validate"]
 
-DEFAULT_HDF5_PATH = Path("~/.cherab/lhd/emc3.hdf5").expanduser()
-DEFAULT_TETRA_MESH_PATH = Path("~/.cherab/lhd/tetra/").expanduser()
+DEFAULT_HDF5_PATH = PATH_TO_STORAGE / "emc3.hdf5"
+DEFAULT_TETRA_MESH_PATH = PATH_TO_STORAGE / "tetra/"
 
 
 def exist_path_validate(path: Path | str) -> Path:

@@ -1,6 +1,8 @@
 """Construct derivative matrices of the EMC3-EIRENE grids."""
+
 from functools import cached_property
 from itertools import product
+from typing import Literal
 
 import numpy as np
 from scipy.sparse import bmat, csr_matrix, diags, lil_matrix
@@ -28,12 +30,19 @@ class Derivative:
 
     Parameters
     ----------
-    grid
-        :obj:`.CenterGrids` object.
+    grid : `.CenterGrids`
+        `.CenterGrids` instance of the EMC3-EIRENE-defined center grids.
+    diff_type : {"forward", "central"}, optional
+        Numerical differentiation type for radial and poloidal direction.
+        The default is "forward", which means the forward difference method is used to calculate
+        the derivative matrices. The other option is and "central".
     """
 
-    def __init__(self, grid: CenterGrids) -> None:
+    def __init__(
+        self, grid: CenterGrids, diff_type: Literal["forward", "central"] = "forward"
+    ) -> None:
         self.grid = grid
+        self.diff_type = diff_type
 
     @property
     def grid(self) -> CenterGrids:
@@ -45,6 +54,17 @@ class Derivative:
         if not isinstance(grid, CenterGrids):
             raise TypeError(f"{grid=} must be an instance of {CenterGrids=}")
         self._grid = grid
+
+    @property
+    def diff_type(self) -> str:
+        """Numerical differentiation type."""
+        return self._diff_type
+
+    @diff_type.setter
+    def diff_type(self, diff_type: str) -> None:
+        if diff_type not in {"forward", "central"}:
+            raise ValueError(f"{diff_type=} must be one of 'forward' or 'central'")
+        self._diff_type = diff_type
 
     @cached_property
     def index(self) -> np.ndarray:
@@ -64,7 +84,7 @@ class Derivative:
     def dmat_rho(self) -> csr_matrix:
         """Radial (:math:\\rho: direction) derivative matrix.
 
-        The poloidal derivative matrix is constructed by the central difference method.
+        The poloidal derivative matrix is constructed by the numerical difference method.
         """
         L, M, N = self.grid.shape
 
@@ -73,27 +93,47 @@ class Derivative:
         # memoryview
         index = self.index.view()
 
-        for n in range(N):
-            for m in range(M):
-                # calculate length of each segment along to rho direction
-                length = np.linalg.norm(self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1)
+        match self._diff_type:
+            case "central":
+                for n in range(N):
+                    for m in range(M):
+                        # calculate length of each segment along to rho direction
+                        length = np.linalg.norm(
+                            self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
+                        )
 
-                # TODO: implement connection between other zones
-                # border condition at l = 0 with forward difference
-                dmat[index[0, m, n], index[1, m, n]] = 1 / length[0]
-                dmat[index[0, m, n], index[0, m, n]] = -1 / length[0]
+                        # TODO: implement connection between other zones
+                        # border condition at l = 0 with forward difference
+                        dmat[index[0, m, n], index[1, m, n]] = 1 / length[0]
+                        dmat[index[0, m, n], index[0, m, n]] = -1 / length[0]
 
-                # border condition at l = L - 1 with dirichlet condition
-                dmat[index[-1, m, n], index[-2, m, n]] = -0.5
+                        # border condition at l = L - 1 with dirichlet condition
+                        dmat[index[-1, m, n], index[-2, m, n]] = -0.5
 
-                for l in range(1, L - 1):
-                    denom = length[l - 1] * length[l] * (length[l - 1] + length[l])
+                        for l in range(1, L - 1):
+                            denom = length[l - 1] * length[l] * (length[l - 1] + length[l])
 
-                    dmat[index[l, m, n], index[l - 1, m, n]] = -(length[l] ** 2) / denom
-                    dmat[index[l, m, n], index[l + 0, m, n]] = (
-                        length[l] ** 2 - length[l - 1] ** 2
-                    ) / denom
-                    dmat[index[l, m, n], index[l + 1, m, n]] = length[l - 1] ** 2 / denom
+                            dmat[index[l, m, n], index[l - 1, m, n]] = -(length[l] ** 2) / denom
+                            dmat[index[l, m, n], index[l + 0, m, n]] = (
+                                length[l] ** 2 - length[l - 1] ** 2
+                            ) / denom
+                            dmat[index[l, m, n], index[l + 1, m, n]] = length[l - 1] ** 2 / denom
+
+            case "forward":
+                for n in range(N):
+                    for m in range(M):
+                        # calculate length of each segment along to rho direction
+                        length = np.linalg.norm(
+                            self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
+                        )
+
+                        # border condition at l = L - 1 with dirichlet condition
+                        # TODO: implement connection between other zones
+                        dmat[index[-1, m, n], index[-1, m, n]] = -1 / length[-1]
+
+                        for l in range(0, L - 1):
+                            dmat[index[l, m, n], index[l, m, n]] = -1 / length[l]
+                            dmat[index[l, m, n], index[l + 1, m, n]] = 1 / length[l]
 
         return dmat.tocsr()
 
@@ -101,7 +141,7 @@ class Derivative:
     def dmat_theta(self) -> csr_matrix:
         """Poloidal (:math:\\theta: direction) derivative matrix.
 
-        The poloidal derivative matrix is constructed by the central difference method.
+        The poloidal derivative matrix is constructed by the numerical difference method.
         """
         L, M, N = self.grid.shape
 
@@ -110,28 +150,59 @@ class Derivative:
         # memoryview
         index = self.index.view()
 
-        for n in range(N):
-            for l in range(L):
-                # connect the last point to the first point
-                grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
+        match self._diff_type:
+            case "central":
+                for n in range(N):
+                    for l in range(L):
+                        # connect the last point to the first point
+                        grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
 
-                # calculate length of each segment along to theta direction
-                length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
+                        # calculate length of each segment along to theta direction
+                        length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
 
-                # TODO: implement border condition except for zone0 & zone11
-                for m in range(M):
-                    denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
+                        # TODO: implement border condition except for zone0 & zone11
+                        for m in range(M):
+                            denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
 
-                    dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
-                    dmat[index[l, m, n], index[l, m + 0, n]] = (
-                        length[m] ** 2 - length[m - 1] ** 2
-                    ) / denom
+                            dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
+                            dmat[index[l, m, n], index[l, m + 0, n]] = (
+                                length[m] ** 2 - length[m - 1] ** 2
+                            ) / denom
 
-                    # border condition at m = M - 1
-                    if m == M - 1:
-                        dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
-                    else:
-                        dmat[index[l, m, n], index[l, m + 1, n]] = length[m - 1] ** 2 / denom
+                            # border condition at m = M - 1
+                            if m == M - 1:
+                                dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
+                            else:
+                                dmat[index[l, m, n], index[l, m + 1, n]] = (
+                                    length[m - 1] ** 2 / denom
+                                )
+
+            case "forward":
+                for n in range(N):
+                    for l in range(L):
+                        if self.grid.zone in {"zone0", "zone11"}:
+                            # connect the last point to the first point
+                            grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
+
+                            # calculate length of each segment along to theta direction
+                            length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
+
+                            # border condition at m = M - 1
+                            dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
+                            dmat[index[l, -1, n], index[l, 0, n]] = 1 / length[-1]
+
+                        else:
+                            # calculate length of each segment along to theta direction
+                            length = np.linalg.norm(
+                                self.grid[l, 1:, n, :] - self.grid[l, :-1, n, :], axis=1
+                            )
+
+                            # border condition at m = M - 1 with dirichlet condition
+                            dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
+
+                        for m in range(0, M - 1):
+                            dmat[index[l, m, n], index[l, m, n]] = -1 / length[m]
+                            dmat[index[l, m, n], index[l, m + 1, n]] = 1 / length[m]
 
         return dmat.tocsr()
 
@@ -177,12 +248,14 @@ class Derivative:
         return dmat.tocsr()
 
     @Spinner(text="Creating derivative matrices...", timer=True)
-    def create_dmats_pairs(self, mode: str = "strict") -> list[tuple[csr_matrix, csr_matrix]]:
+    def create_dmats_pairs(
+        self, mode: Literal["strict", "ii", "flux"] = "strict"
+    ) -> list[tuple[csr_matrix, csr_matrix]]:
         """Create derivative matrices for each coordinate pair.
 
         Parameters
         ----------
-        mode : str, optional
+        mode : {"strict", "ii", "flux"}, optional
             Derivative matrix mode, by default "strict"
 
         Returns
@@ -223,9 +296,12 @@ class Derivative:
 
 @Spinner(text="Creating two subdomain's derivative matrices...", timer=True)
 def create_dmats_pairs_subdomains(
-    zone1: str = "zone0", zone2: str = "zone11", index_type: str = "coarse", mode: str = "strict"
+    zone1: str = "zone0",
+    zone2: str = "zone11",
+    index_type: str = "coarse",
+    mode: Literal["strict", "ii", "ii+no-metric", "flux"] = "strict",
 ) -> list[tuple[csr_matrix, csr_matrix]]:
-    """Create derivative matrices for each coordinate pair considering the connection betwee
+    """Create derivative matrices for each coordinate pair considering the connection between two
     subdomains.
 
     This function is used to conbaine two derivative matrices both of which are connected along
@@ -234,13 +310,13 @@ def create_dmats_pairs_subdomains(
     Parameters
     ----------
     zone1 : str, optional
-        Zone name of the first subdomain, by default "zone0"
+        Zone name of the first subdomain, by default "zone0".
     zone2 : str, optional
-        Zone name of the second subdomain, by default "zone11"
+        Zone name of the second subdomain, by default "zone11".
     index_type : str, optional
-        Index type, by default "coarse"
-    mode : str, optional
-        Derivative matrix mode, by default "strict"
+        Index type, by default "coarse".
+    mode : {"strict", "ii", "ii+no-metric", "flux"}, optional
+        Derivative matrix mode, by default "strict".
 
     Returns
     -------
@@ -326,6 +402,10 @@ def create_dmats_pairs_subdomains(
                 metric2 = diags(curv2.compute_metric(bases2[i], bases2[i]).ravel(order="F"))
                 metric = bmat([[metric1, None], [None, metric2]])
                 results.append((dmats[i], metric @ dmats[i]))  # (D_i, G^ii * D_i)
+
+        case "ii+no-metric":
+            for i in range(3):
+                results.append((dmats[i], dmats[i]))  # (D_i, D_i)
 
         case _:
             raise ValueError(f"Invalid mode: {mode}")

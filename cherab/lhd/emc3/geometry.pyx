@@ -9,15 +9,15 @@ import numpy as np
 from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
 cimport cython
-from cython.parallel cimport prange
+from cython.parallel import prange
 from libc.limits cimport INT_MIN
 from numpy cimport ndarray, uint32_t
-from raysect.primitive.mesh cimport TetraMesh
+from raysect.primitive.mesh cimport TetraMeshData
 
 from .cython.discrete3dmesh cimport Discrete3DMesh
 from .cython.intfunction cimport IntegerFunction3D
 
-__all__ = ["_IndexBase", "CellIndex", "PhysIndex", "TomographyZone"]
+__all__ = ["_IndexBase", "PhysIndex", "TomographyZone"]
 
 cdef:
     list ZONES
@@ -31,23 +31,24 @@ ZONES = [
 cdef class _IndexBase(IntegerFunction3D):
     """Base class for EMC3-EIRENE cell index function.
 
-    This class populates an IntegerFunction3D instance which returns a cell index
+    This class inherits an :obj:`.IntegerFunction3D` and provides callable method a cell index
     when :math:`(X, Y, Z)` arguments are given.
     In addition, this offers common methods for specific cell index class.
-    :obj:`.create_indices` method should be overrided in subclasses.
+    `.create_indices` method should be overridden in subclasses.
 
     Parameters
     ----------
     zones : list[str]
-        list of zone names, by default ``["zone0", ..., "zone4", "zone11", ... "zone15"]``
+        List of zone names, by default ``["zone0", ..., "zone4", "zone11", ... "zone15"]``.
     grid_group : str
-        grid group name stored in HDF5 file, by default ``"grid-360"``
+        Grid group name stored in HDF5 file, by default ``"grid-360"``.
     tetra_path : str
-        path to the directory containing TetraMesh .rsm files, by default ``~/.cherab/lhd/tetra/``
+        Path to the directory containing `TetraMeshData` .rsm files,
+        by default ``~/.cherab/lhd/tetra/``.
     hdf5_path : str
-        path to the data repository formatted as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``
+        Path to the data repository formatted as HDF5, by default ``~/.cherab/lhd/emc3.hdf5``.
     populate : bool
-        whether or not to populate instances of Discrete3DMesh, by default True
+        Whether or not to populate instances of `Discrete3DMesh`, by default True.
     """
     cdef:
         list _zones
@@ -85,7 +86,7 @@ cdef class _IndexBase(IntegerFunction3D):
 
     @property
     def tetra_path(self):
-        """:obj:`~pathlib.Path`: path to the directory containing TetraMesh .rsm files
+        """`~pathlib.Path`: Path to the directory containing `TetraMeshData` .rsm files
         """
         return self._tetra_path
 
@@ -100,7 +101,7 @@ cdef class _IndexBase(IntegerFunction3D):
 
     @property
     def hdf5_path(self):
-        """:obj:`~pathlib.Path`: path to the data repository formated as HDF5
+        """`~pathlib.Path`: Path to the data repository formatted as HDF5
         """
         return self._hdf5_path
 
@@ -133,24 +134,30 @@ cdef class _IndexBase(IntegerFunction3D):
         Returns
         -------
         tuple[dict, dict, dict, dict]
-            containing indices dictionaries.
+            Containing indices dictionaries.
         """
         raise NotImplementedError("To be defined in subclass.")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef void create_interpolate(self):
-        """Create indices array and populate instances of :obj:`~raysect.primitive.mesh.TetraMesh`.
+        """Create indices array and populate instances of `~raysect.primitive.mesh.TetraMeshData`.
 
-        These instances are stored in ``self._interpolaters``
+        These instances are stored in ``self._interpolaters``.
         """
+        cdef:
+            dict indices1_dict, indices2_dict, indices3_dict, indices4_dict
+            str zone
+            object rsm_path
+            TetraMeshData tetra
+
         # create 1D indices arrays
         indices1_dict, indices2_dict, indices3_dict, indices4_dict = self.create_indices()
 
         for zone in self._zones:
-            # load TetraMesh
+            # load TetraMeshData
             if (rsm_path := self._tetra_path / f"{zone}.rsm").exists():
-                tetra = TetraMesh.from_file(rsm_path)
+                tetra = TetraMeshData.from_file(rsm_path)
 
                 # create interplater with Discrete3DMesh
                 self._interpolaters.append(
@@ -179,84 +186,6 @@ cdef class _IndexBase(IntegerFunction3D):
         return -1
 
 
-cdef class CellIndex(_IndexBase):
-    """EMC3-EIRENE cell index function defined in zone0-4 & zone11-15.
-
-    This class is a subclass of :obj:`~cherab.lhd.emc3.geometry._IndexBase` and
-    populates callable instance returning a corresponding cell index
-    when :math:`(X, Y, Z)` arguments are given.
-
-    Parameters
-    ----------
-    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
-        *kwargs* are used to specify properties like a `tetra_path`
-    """
-    def __init__(self, *args, **keywards):
-        super().__init__(*args, **keywards)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef tuple create_indices(self):
-        cdef:
-            dict cell_indices = {}
-            int start = 0
-            int last
-            str zone
-        with h5py.File(self.hdf5_path, mode="r") as h5file:
-            for zone in self._zones:
-                last = h5file[self._grid_group][zone]["grids"].attrs["num_cells"] + start
-                cell_indices[zone] = np.arange(start=start, stop=last, dtype=np.uint32)
-                start = last
-
-        return (cell_indices, cell_indices, cell_indices, cell_indices)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef dict _create_mapping_array(self, dict cell_indices, dict grid_config):
-        cdef:
-            dict mapping_array = {}
-            str zone
-            int L, M, N
-
-        for zone in self._zones:
-            with h5py.File(self._hdf5_path, mode="r") as h5file:
-                L = h5file[self._grid_group][zone]["grids"].attrs["L"]
-                M = h5file[self._grid_group][zone]["grids"].attrs["M"]
-                N = h5file[self._grid_group][zone]["grids"].attrs["N"]
-
-            if zone in {"zone0", "zone11"}:
-                mapping_array[zone] = self._cell_index2mapping_array(cell_indices[zone], L, M, N)
-            elif zone in {"zone1", "zone3", "zone13"}:
-                zone_next = "zone" + str(int(zone.split("zone")[1]) + 1)
-                mapping_array[zone] = self._cell_index2mapping_array(
-                    cell_indices[zone_next], L, M, N
-                )
-            elif zone in {"zone2", "zone4", "zone14"}:
-                zone_prev = "zone" + str(int(zone.split("zone")[1]) - 1)
-                mapping_array[zone] = self._cell_index2mapping_array(
-                    cell_indices[zone_prev], L, M, N
-                )
-            elif zone == "zone12":
-                zone_next = "zone15"
-                mapping_array[zone] = self._cell_index2mapping_array(
-                    cell_indices[zone_next], L, M, N
-                )
-            elif zone == "zone15":
-                zone_prev = "zone12"
-                mapping_array[zone] = self._cell_index2mapping_array(
-                    cell_indices[zone_prev], L, M, N
-                )
-
-        return mapping_array
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef ndarray[uint32_t, ndim=1] _cell_index2mapping_array(self, uint32_t[::1] cell_indices, int L, int M, int N):
-        return np.ravel(
-            np.flip(np.reshape(cell_indices, (N - 1, M - 1, L - 1)), axis=1)
-        )
-
-
 cdef class PhysIndex(_IndexBase):
     """EMC3-EIRENE-defined Physical Cell Index function.
 
@@ -267,11 +196,11 @@ cdef class PhysIndex(_IndexBase):
 
     Parameters
     ----------
-    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
-        *kwargs* are used to specify properties like a `tetra_path`
+    **kwargs
+        `~cherab.lhd.emc3.geometry._IndexBase` properties, like `tetra_path`.
     """
-    def __init__(self, **keywards):
-        super().__init__(**keywards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -283,7 +212,7 @@ cdef class PhysIndex(_IndexBase):
         Returns
         -------
         tuple[dict, dict, dict, dict]
-            tuple containing indices dictionaries.
+            Tuple containing indices dictionaries.
         """
         cdef:
             dict indices_dict = {}
@@ -291,7 +220,7 @@ cdef class PhysIndex(_IndexBase):
 
         with h5py.File(self.hdf5_path, mode="r") as h5file:
             for zone in self._zones:
-                indices_dict[zone] = h5file[self._grid_group][zone]["index"][:]
+                indices_dict[zone] = h5file[self._grid_group][zone]["index"]["physics"][:].ravel(order="F")
 
         return (indices_dict, indices_dict, indices_dict, indices_dict)
 
@@ -306,11 +235,11 @@ cdef class TomographyZone(_IndexBase):
 
     Parameters
     ----------
-    **kwargs : :obj:`~cherab.lhd.emc3.geometry._IndexBase` properties, optional
-        *kwargs* are used to specify properties like a `tetra_path`
+    **kwargs
+        `~cherab.lhd.emc3.geometry._IndexBase` properties, like `tetra_path`.
     """
-    def __init__(self, **keywards):
-        super().__init__(**keywards)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     cpdef tuple create_indices(self):
         """All 4 indices are created and returned.
@@ -320,7 +249,7 @@ cdef class TomographyZone(_IndexBase):
         Returns
         -------
         tuple[dict, dict, dict, dict]
-            containing indices dictionaries.
+            Containing indices dictionaries.
         """
         cdef:
             dict indices1_dict = self._indices1()

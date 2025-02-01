@@ -1,3 +1,5 @@
+fs.copyfile('__init__.py')
+
 python_sources = [
     '__init__.py',
 ]

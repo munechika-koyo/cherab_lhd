@@ -1,49 +1,53 @@
 """Module offers helper functions related to resistive bolometers."""
+
 from __future__ import annotations
 
 import json
-from importlib.resources import files
 
 import numpy as np
 from raysect.core import World
 from raysect.core.math import Point3D, Vector3D
+from raysect.core.scenegraph._nodebase import _NodeBase
 
 from cherab.tools.observers import BolometerCamera, BolometerFoil, BolometerSlit
+
+from ...tools.fetch import fetch_file
 
 __all__ = ["load_resistive"]
 
 
 def load_resistive(
-    port: str = "6.5L", model_variant: str = "I", parent: World | None = None
+    port: str = "6.5L", model_variant: str = "I", parent: _NodeBase | None = None
 ) -> BolometerCamera:
-    """helper function of generating a Resistive bolometer camera object. An
-    bolometers' configuration is defined in json file, the name of which is
-    ``"RB.json"`` stored in ``data`` folder.
+    """Helper function of generating a Resistive bolometer camera object.
+
+    An bolometers' configuration is defined in json file, the name of which is ``"RB.json"``, which
+    can be fetched from the remote repository.
 
     Parameters
     ----------
-    port
-        user-specified port name, by default ``"6.5L"``
-    model_variant
-        The variant of bolometer model, by default ``"I"``
-    parent
-        The parent node of this camera in the scenegraph, often
-        an optical :obj:`~raysect.core.scenegraph.world.World` object, by default None
+    port : {"6.5U", "6.5L", "3O", "8O"}, optional
+        user-specified port name, by default ``"6.5L"``.
+    model_variant : {"I", "O", "BC02-01", "BC02-04", ""}, optional
+        The variant of bolometer model, by default ``"I"``.
+    parent : `_NodeBase`, optional
+        The parent node of this camera in the scenegraph, by default None.
+        `~raysect.core.World` object is often used.
 
     Returns
     -------
-    :obj:`~cherab.tools.observers.bolometry.BolometerCamera`
-        populated :obj:`~cherab.tools.observers.bolometry.BolometerCamera.BolometerCamera` instance
+    `~cherab.tools.observers.bolometry.BolometerCamera`
+        Populated `~cherab.tools.observers.bolometry.BolometerCamera.BolometerCamera` instance.
     """
     # import configs as a resource
-    with files("cherab.lhd.observer.bolometer.data").joinpath("RB.json").open("r") as file:
+    with open(fetch_file("observer/RB.json"), "r") as file:
         raw_data = json.load(file)
 
     # extract user-specified IRVB model
     try:
         raw_data = raw_data[port][model_variant]
     except KeyError as err:
-        raise KeyError(f"spcified parameters: {port} or {model_variant} are not defined.") from err
+        raise KeyError(f"specified parameters: {port} or {model_variant} are not defined.") from err
 
     # ----------------------------------------------------------------------- #
     #  Build Bolometer Camera
@@ -111,13 +115,13 @@ def _centre_basis_and_dimensions(
 
     Parameters
     ----------
-    corners
-        a list of corners of a rectangle
+    corners : list[Point3D]
+        A list of corners of a rectangle.
 
     Returns
     -------
     tuple[Point3D, Vector3D, Vector3D, float, float]
-        centre, basis vectors, width and height of a rectangle
+        Tuple of centre, basis vectors, width and height of a rectangle.
     """
     centre = Point3D(
         np.mean([corner.x for corner in corners]),

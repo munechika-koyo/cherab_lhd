@@ -9,6 +9,3 @@ py.install_sources(
   python_sources,
   subdir: 'cherab/lhd/observer/bolometer',
 )
-
-# import data as resources
-subdir('data')

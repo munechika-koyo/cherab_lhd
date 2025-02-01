@@ -1,5 +1,5 @@
-"""
-The following emitters and integrators are used in ray transfer objects.
+"""The following emitters and integrators are used in ray transfer objects.
+
 Note that these emitters support other integrators as well, however high performance
 with other integrators is not guaranteed.
 """
@@ -26,9 +26,9 @@ cdef class Discrete3DMeshRayTransferIntegrator(RayTransferIntegrator):
     Parameters
     ----------
     step : float
-        integration step, by default 0.001.
+        Integration step, by default 0.001.
     min_samples : int
-        number of minimum samples of integration, by default 2.
+        Number of minimum samples of integration, by default 2.
     """
     def __init__(self, double step=0.001, int min_samples=2):
         super().__init__(step=step, min_samples=min_samples)
@@ -107,11 +107,13 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
     Parameters
     ----------
     index_function : callable
-        callable objects taking 3 positional arguments :math:`(X, Y, Z)`.
+        Callable objects taking 3 positional arguments :math:`(X, Y, Z)`.
+    bins : int
+        Number of bins for the spectral array, by default 0.
     integration_step : float, optional
         The length of line integration step, by default 0.01.
     integrator : :obj:`~raysect.optical.material.emitter.inhomogeneous.VolumeIntegrator`, optional
-        Volume integrator, by default :obj:`.Discrete3DMeshRayTransferIntegrator(integration_step)`
+        Volume integrator, by default `.Discrete3DMeshRayTransferIntegrator(integration_step)`.
 
     Examples
     --------
@@ -128,7 +130,7 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
             elif 1 < hypot(x, y) <= 2:
                 return 1
             else:
-                return -1  # must be set -1 ouside meshes.
+                return -1  # must be set -1 outside meshes.
 
         world = World()
         bins = 2  # Note that bins must be same as the number of meshes.
@@ -172,7 +174,7 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
     @property
     def bins(self):
         """
-        number of raytransfer meshes which must not exceed the maximum of `index_function`
+        Number of raytransfer meshes which must not exceed the maximum of `index_function`.
 
         :rtype: int
         """

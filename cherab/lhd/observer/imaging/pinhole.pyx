@@ -1,5 +1,4 @@
-"""
-Module to define :obj:`.PinholeCamera` class
+"""Module to define :obj:`.PinholeCamera` class
 """
 from raysect.optical cimport AffineMatrix3D, Point3D, Ray, Vector3D, new_point3d, translate
 from raysect.optical.observer.imaging.ccd cimport CCDArray

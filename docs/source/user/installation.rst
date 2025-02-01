@@ -9,7 +9,7 @@ Installation
 .. note::
 
     Currently (07/07/2023), cherab-lhd requires some specific version of dependencies (`raysect`_
-    and `cherab`_ ) because cherab-lhd handles some new features (like `TetraMesh` class)
+    and `cherab`_ ) because cherab-lhd handles some new features (like `TetraMeshData` class)
     which have not merged to released branch yet.
     These dependencies has already listed in ``pyproject.toml`` in source directory,
     so those who are curious about it should look into the file.
@@ -31,7 +31,7 @@ Installing for Developper
 ==========================
 If you plan to make any modifications to do any development work on CHERAB-LHD,
 and want to be able to edit the source code without having to run the setup script again
-to have your changes take effect, you can install CHERAB-LHD on eidtable mode.
+to have your changes take effect, you can install CHERAB-LHD on editable mode.
 
 Manually downloading source
 ---------------------------

@@ -1,4 +1,5 @@
 """This module offers the helper function to easily set raytransfer material."""
+
 from __future__ import annotations
 
 from raysect.core.math import translate
@@ -33,25 +34,24 @@ ZONES = [
 def load_rte(
     parent: World, zones: list[str] = ZONES, index_type: str = "cell", verbose: bool = True
 ) -> list[Cylinder]:
-    """Helper function of loding RayTransfer Emitter using :obj:`.Discrete3DMeshRayTransferEmitter`.
-
+    """Helper function of loading RayTransfer Emitter using `.Discrete3DMeshRayTransferEmitter`.
 
     Parameters
     ----------
-    parent
-        raysect world Node
-    zones
-        zones of EMC3-EIRENE mesh
-    index_type
-        type of indexing EMC3 grids. The index data must be created in advance using
-        :obj:`~cherab.lhd.emc3.indices.create_new_index`
-    verbose
-        if True, show progress spinner
+    parent : World
+        Raysect world Node.
+    zones : list[str]
+        Zones of EMC3-EIRENE mesh.
+    index_type : {"cell", "physics", "coarse"}, optional
+        Type of indexing EMC3 grids, by default "cell".
+        The index data must be created in advance using `.create_new_index`.
+    verbose : bool, optional
+        Whether to show progress bar, by default True.
 
     Returns
     -------
-    list[:obj:`~raysect.primitive.cylinder.Cylinder`]
-        list of primitives of cylinder
+    list[`~raysect.primitive.cylinder.Cylinder`]
+        List of primitives of cylinder.
     """
 
     emitters = []

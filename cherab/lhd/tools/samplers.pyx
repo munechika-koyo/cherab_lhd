@@ -1,45 +1,51 @@
-"""
-This module provides a set of sampling functions for rapidly generating samples
-of a 3D functions with cylindrical coords.
+"""This module provides a set of sampling functions for rapidly generating samples of a 3D functions
+with cylindrical coords.
 
-These functions use C calls when sampling Function3D
-objects and are therefore considerably faster than the equivalent Python code.
+These functions use C calls when sampling Function3D objects and are therefore considerably faster
+than the equivalent Python code.
 """
 from numpy import cos, empty, linspace, sin
 
 cimport cython
 from libc.math cimport M_PI
 from numpy cimport float64_t, ndarray
-from raysect.core.math.function.float cimport Function3D, autowrap_function3d
+from raysect.core.math.function.float cimport Function2D, Function3D, autowrap_function3d
+from cherab.core.math.samplers cimport sample2d
 
-__all__ = ["sample3d_rz"]
+__all__ = ["sample3d_rz", "sample_xy_plane"]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.initializedcheck(False)
-@cython.cdivision(True)
 cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double phi=0.0):
-    """
-    Samples a 3D function over the specified range with r - z coords
-    at a certain toroidal angle
+    """Sample a 3D function with a specified toroidal angle and a certain range of R-Z coordinates
 
-    :param function3d: a Python function or Function3D object
-    :type function3d: Callable[[float, float, float], float]
-    :param r_range: the r sample range: (r_min, r_max, r_samples)
-    :type r_range: tuple[float, float, int]
-    :param z_range: the z sample range: (z_min, z_max, z_samples)
-    :type z_range: tuple[float, float, int]
-    :param phi: toroidal angle in degree, by default 0.0 [deg]
-    :type phi: float
+    Paramerters
+    -----------
+    function3d : Callable[[double, double, double], double]
+        Python function or `Function3D` object.
+    r_range : tuple[double, double, int]
+        R-axis sampling range: :math:`(R_\\text{min}, R_\\text{max}, N)`, where :math:`N` is the
+        number of samples.
+    z_range : tuple[double, double, int]
+        Z-axis sampling range: :math:`(Z_\\text{min}, Z_\\text{max}, M)`, where :math:`M` is the
+        number of samples.
+    phi : double, optional
+        Toroidal angle in degree, by default 0.0 [deg].
 
-    :return: sampled values (r_points, z_points, function_samples)
-    :rtype: tuple[ndarray, ndarray, ndarray]
+    Returns
+    -------
+    r_points : (N, ) array_like
+        R-axis sample points.
+    z_points : (M, ) array_like
+        Z-axis sample points.
+    function_samples : (N, M) array_like
+        Sampled function values.
 
+    Examples
+    --------
     .. prompt:: python >>> auto
 
-       >>> from cherab.lhd.tools import sample3d_rz
-       >>>
        >>> def f1(x, y, z):
        >>>     return x**3 + y**2 + z
        >>>
@@ -107,3 +113,83 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
             v_view[i, j] = f3d.evaluate(x_view[i], y_view[i], z_view[j])
 
     return (r, z, v)
+
+
+cdef class XYplane(Function2D):
+    """Wrapper class for a 3D function to allow it to be sampled in the X-Y plane.
+
+    This class is not intended to be used directly, use the `.sample_xy_plane` function instead.
+
+    Parameters
+    ----------
+    func : callable
+        A Python function or Function3D object.
+    z : float
+        Z-axis value to evaluate the function, by default 0.0.
+    """
+
+    cdef:
+        Function3D func
+        double z
+
+    def __init__(self, object func, double z = 0.0):
+        self.func = autowrap_function3d(func)
+        self.z = z
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef double evaluate(self, double x, double y) except? -1e999:
+        return self.func.evaluate(x, y, self.z)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(object func, tuple x_range, tuple y_range, double z = 0.0):
+    """Sample a 3D function over the specified range with X-Y coords at a certain Z-axis value.
+
+    Parameters
+    ----------
+    func : Callable[[double, double, double], double]
+        Python function or `Function3D` object.
+    x_range : tuple[double, double, int]
+        X-axis sampling range: :math:`(X_\\text{min}, X_\\text{max}, N)`, where :math:`N` is the
+        number of samples.
+    y_range : tuple[double, double, int]
+        Y-axis sampling range: :math:`(Y_\\text{min}, Y_\\text{max}, M)`, where :math:`M` is the
+        number of samples.
+    z : double, optional
+        Z-axis value to evaluate the function, by default 0.0.
+
+    Returns
+    -------
+    x_points : (N, ) array_like
+        X-axis sample points.
+    y_points : (M, ) array_like
+        Y-axis sample points.
+    function_samples : (N, M) array_like
+        Sampled function values.
+
+    Examples
+    --------
+    .. prompt:: python >>> auto
+
+        >>> def f1(x, y, z):
+        >>>     return x**3 + y**2 + z
+        >>>
+        >>> x_pts, y_pts, f_vals = sample_xy_plane(f1, (1, 3, 3), (1, 3, 3), 0.0)
+        >>> x_pts
+        array([1., 2., 3.])
+        >>> y_pts
+        array([1., 2., 3.])
+        >>> f_vals
+        array([[ 2.,  5., 10.],
+               [ 9., 12., 17.],
+               [28., 31., 36.]])
+    """
+
+    cdef:
+        ndarray x_pts, y_pts, samples
+
+    x_pts, y_pts, samples = sample2d(XYplane(func, z=z), x_range, y_range)
+
+    return x_pts, y_pts, samples

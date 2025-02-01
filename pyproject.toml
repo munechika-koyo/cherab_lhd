@@ -1,18 +1,21 @@
 [build-system]
 requires = [
-    "wheel",
-    "numpy",
     "meson-python >= 0.13",
     "cython >= 3.0",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
-    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
+    "numpy",
+    "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
+    "cherab",
+    "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
 
 [project]
 name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
+version = "0.1.0.dev"
 readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE.md" }
 authors = [
     { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
 ]
@@ -28,53 +31,25 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Cython",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
     "plotly",
     "h5py",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@feature/tetrahedra_mesh",
-    "cherab @ git+https://github.com/munechika-koyo/core.git@raysect-0.8-compat",
-]
-dynamic = ["version"]
-license = { file = "LICENSE.md" }
-
-[project.optional-dependencies]
-docs = [
-    "docutils",
-    "ipykernel",
-    "ipywidgets",
-    "nbconvert >= 7.3",
-    "nbsphinx",
-    "pillow",
-    "pygments >= 2.11.0",
-    "sphinx",
-    "sphinx-prompt",
-    "sphinx-copybutton",
-    "pydata-sphinx-theme < 0.15",
-    "sphinx-design",
-    "pandoc",
-    "sphinx-codeautolink",
-    "sphinx-github-style",
-]
-dev = [
-    "ipython",
-    "black",
-    "ruff",
-    "mypy",
-    "rich-click",
-    "cython-lint",
-    "pre-commit",
-    "cython >= 3.0",
-    "meson-python >= 0.13",
-    "setuptools",      # added untill meson-python comes to allow the editable install
-    "pytest",
+    # "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
+    # "cherab",
+    "cherab-inversion",
+    "rich",
+    "pooch",
+    "paramiko",
+    "tqdm",
 ]
 
 [project.urls]
@@ -82,55 +57,193 @@ Homepage = "https://cherab-lhd.netlify.app/"
 documentation = "https://cherab-lhd.netlify.app/"
 repository = "https://github.com/munechika-koyo/cherab_lhd"
 
+# -----------------------
+# === Cov/Test config ===
+# -----------------------
+[tool.coverage.run]
+source_pkgs = ["cherab", "tests"]
+branch = true
+parallel = true
+
+[tool.coverage.paths]
+tests = ["tests", "*/test/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov=cherab_lhd --cov-report term-missing --no-cov-on-fail"
+
+# --------------------------
+# === Lint/Format config ===
+# --------------------------
 [tool.cython-lint]
 max-line-length = 140
 ignore = ["E741"]
 
-[tool.black]
-line-length = 100
-
 [tool.ruff]
 line-length = 100
+target-version = "py311"
 
-# Enable Pyflakes `E` and `F` codes by default.
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "NPY"]
-ignore = ["E501", "N806"]
+ignore = [
+    "E501", # line too long (allow for docstrings)
+    "N806", # variable in function should be lowercase
+]
 
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["E", "F", "W", "I", "B", "NPY"]
-unfixable = ["E501"]
-
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-# Assume Python 3.10
-target-version = "py310"
-
-# namespace package setting
-namespace-packages = ["cherab/lhd"]
-
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
+"**/*.ipynb" = ["W292"] # no newline at end of file
 "cherab/lhd/emc3/grid.py" = ["E741"]
 "cherab/lhd/emc3/barycenters.py" = ["E741"]
 "cherab/lhd/emc3/curvilinear.py" = ["E741"]
 "cherab/lhd/emc3/inversion/derivative.py" = ["E741"]
-
-[tool.ruff.mccabe]
-# Unlike Flake8, default to a complexity level of 10.
-max-complexity = 10
-
-
-[tool.mypy]
-follow-imports = "silent"
-ignore-missing-imports = true
-show-column-numbers = true
-no-pretty = true
-
-[tool.setuptools.dynamic]
-version = { attr = "cherab.lhd.__version__" }
 
 [tool.docformatter]
 recursive = true
 wrap-summaries = 100
 wrap-descriptions = 100
 blank = false
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_untyped_defs = true
+
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks, except the below
+    "GL01", # Docstring text (summary) should start in the line immediately
+    "EX01", # No examples section found
+    "SA01", # See Also section not found
+    "ES01", # No extended summary found
+    "GL08", # The object does not have a docstring
+    "RT01", # No Returns section found
+    "PR01", # Parameters {missing_params} not documented
+    "SS06", # Summary should fit in a single line
+]
+# remember to use single quotes for regex in TOML
+exclude = [ # don't report on objects that match any of these regex
+    '\.__repr__$',
+]
+override_SS05 = ['^Process ', '^Assess ', '^Access ']
+
+# -------------------
+# === Pixi config ===
+# -------------------
+[tool.pixi.project]
+channels = ["https://prefix.dev/conda-forge", "https://repo.prefix.dev/koyo-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.build-dependencies]
+c-compiler = "*"
+
+[tool.pixi.host-dependencies]
+python = "3.12.*"
+meson-python = "*"
+tomli = "*"  # if python_version < 3.11
+cython = "*"
+raysect = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
+cherab = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
+
+[tool.pixi.target.osx-arm64.host-dependencies]
+llvm-openmp = "*"
+
+[tool.pixi.dependencies]
+numpy = "*"
+scipy = "*"
+cherab-inversion = "*"
+matplotlib = "*"
+plotly = "*"
+h5py = "*"
+rich = ">=13.9.4,<14"
+pooch = ">=1.8.2,<2"
+paramiko = ">=3.5.0,<4"
+tqdm = ">=4.67.1,<5"
+# For development
+ipython = "*"
+
+[tool.pixi.pypi-dependencies]
+cherab-lhd = { path = ".", editable = true }
+
+[tool.pixi.pypi-options]
+no-build-isolation = ["cherab-lhd"]
+
+[tool.pixi.feature.lab.dependencies]
+ipykernel = "*"
+ipywidgets = "*"
+jupyterlab = "*"
+
+[tool.pixi.feature.lab.tasks]
+lab = { cmd = [
+    "jupyter",
+    "lab",
+    "--notebook-dir",
+    "docs/notebooks",
+], description = "🚀 Start JupyterLab" }
+
+[tool.pixi.feature.docs.dependencies]
+ipykernel = "*"
+ipywidgets = "*"
+nbconvert = "*"
+nbsphinx = "*"
+numpydoc = "*"
+pillow = "*"
+pygments = ">2.11.0"
+sphinx = "*"
+sphinx-prompt = "*"
+sphinx-copybutton = "*"
+pydata-sphinx-theme = "*"
+sphinx-design = "*"
+pandoc = "*"
+sphinx-codeautolink = "*"
+
+[tool.pixi.feature.docs.pypi-dependencies]
+sphinx-github-style = "*"
+
+[tool.pixi.feature.docs.tasks]
+doc-build = { cmd = [
+    "sphinx-build",
+    "-b",
+    "html",
+    "docs/source",
+    "docs/build/html",
+], description = "📝 Build the docs" }
+doc-clean = { cmd = [
+    "rm -rf",
+    "docs/build",
+    "docs/source/_api",
+], description = "🔥 Clean the docs build & api directory" }
+
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+
+[tool.pixi.feature.test.tasks]
+test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
+
+[tool.pixi.feature.lint.dependencies]
+ruff = "*"
+mypy = "*"
+pre-commit = "<4"  # docformatter issue: https://github.com/PyCQA/docformatter/pull/287
+
+[tool.pixi.feature.lint.tasks]
+lint = { cmd = ["ruff", "check"], description = "🧹 Lint the code" }
+format = { cmd = ["ruff", "format"], description = "🧹 Format the code" }
+pre-commit-run = { cmd = [
+    "pre-commit",
+    "run",
+    "--all-files",
+], description = "🩺 Run pre-commit hooks for all files", depends-on = [
+    "pre-commit-install",
+] }
+pre-commit-install = { cmd = [
+    "pre-commit",
+    "install",
+], description = "🔗 Install pre-commit hooks" }
+
+[tool.pixi.environments]
+lab = { features = ["lab"], solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }
+lint = { features = ["lint"], no-default-feature = true }

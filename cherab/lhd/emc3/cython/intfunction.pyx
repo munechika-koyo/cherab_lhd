@@ -1,5 +1,4 @@
-"""
-Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
+"""Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
 """
 import numbers
 from libc.limits cimport INT_MIN
@@ -38,6 +37,58 @@ cdef class IntegerFunction3D:
 
     def __repr__(self):
         return 'IntegerFunction3D()'
+
+    def __add__(self, object b):
+        if is_callable(b):
+            # a() + b()
+            return AddFunction3D(self, b)
+        elif isinstance(b, int):
+            # a() + B -> B + a()
+            return AddScalar3D(<int> b, self)
+        return NotImplemented
+
+    def __radd__(self, object a):
+        return self.__add__(a)
+
+
+cdef class AddFunction3D(IntegerFunction3D):
+    """
+    A IntegerFunction3D class that implements the addition of the results of two IntegerFunction3D
+    objects: f1() + f2()
+
+    This class is not intended to be used directly, but rather returned as the result of an
+    __add__() call on a IntegerFunction3D object.
+
+    :param function1: A IntegerFunction3D object.
+    :param function2: A IntegerFunction3D object.
+    """
+
+    def __init__(self, object function1, object function2):
+        self._function1 = autowrap_intfunction3d(function1)
+        self._function2 = autowrap_intfunction3d(function2)
+
+    cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
+        return self._function1.evaluate(x, y, z) + self._function2.evaluate(x, y, z)
+
+
+cdef class AddScalar3D(IntegerFunction3D):
+    """
+    A IntegerFunction3D class that implements the addition of scalar and the result of a
+    IntegerFunction3D object: K + f()
+
+    This class is not intended to be used directly, but rather returned as the result of an
+    __add__() call on a IntegerFunction3D object.
+
+    :param value: A int value.
+    :param function: A IntegerFunction3D object or Python callable.
+    """
+
+    def __init__(self, int value, object function):
+        self._value = value
+        self._function = autowrap_intfunction3d(function)
+
+    cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
+        return self._value + self._function.evaluate(x, y, z)
 
 
 cdef class IntegerConstant3D(IntegerFunction3D):
