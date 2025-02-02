@@ -22,15 +22,16 @@ REGISTRIES = {
     "observer/IRVB.json": "a46010c1d67bbe71c0bf71c203447cb984c5622e63e10d20f5ee8b8d2cf93248",
     "observer/RB.json": "bffd237b98bc6a158fb4f4875d1d79d6571fe4770561f8e18fd1da72a63bcae2",
     # raysect machine mesh data
-    "machine/divertor.rsm": "38335249c9bc38d0ddec8e40a575d10780202cee99e36476c8849450bb628ae0",
-    "machine/plasma.rsm": "3198a722c28906bb5d59e77d190a0b91498ca5725ddf3bf7184e4441faf062d5",
-    "machine/plasma_cut.rsm": "a91c6099e0be68e49e17202508aff4e6bb947756a143799a711c5dc27794cf8f",
-    "machine/plates.rsm": "139a01f7615144adeae469e39f8b4c6e8727363b42fc30739a60457f944fc23c",
-    "machine/port_65l.rsm": "443e5755d2cc159d588a8ea29e69293132b31eb7539d103e1ebe908058f6ec14",
-    "machine/port_65u.rsm": "fa67308aac39c2dd09dfd8a5d9fc666568ab9f9d07af8970d3158d35992a2230",
-    "machine/vessel.rsm": "4080d48e2af1365c8b1b52009b550de242815131a335530cf6061d727f24cca4",
+    "machine/divertor.rsm": "6ae9b4b50139818b7e600a247bb4fc3d1260bac28a60234a60fbd6c1aebdc1ca",
+    "machine/plasma.rsm": "ae950c8d787fad3ebccbfef12f2282cd927d15a6cc9554db28c9d39a4f7eda38",
+    "machine/plasma_cut.rsm": "10fb5fc23ccc490b265a12e8e77b962a3cd4c8b899608bb30de6ce0753d45ea0",
+    "machine/plates.rsm": "d479746123d071c5070b5942ca3a5d53fbe07dda73d7651e64e951c04fbf33c7",
+    "machine/port_65l.rsm": "cd0debab846d86d097d3b66007496e13b7b8fc76896c102b758a4f47478e3adb",
+    "machine/port_65u.rsm": "46ad570bd222b7ceae8f2098c65ad2a45d53ef95845b4ac75be221acf60b057c",
+    "machine/vessel.rsm": "ad90ab5b596c317a329cb7820d46da2f54fcb844476bae1abe0203dc383a89bf",
+    "machine/calcam_cad.ccm": "a93db1a11d16357ccbfe797bf71d7d78aaf008a9e95e6c0aa15a7bb1207cb528",
     # machine wall outline data
-    "machine/wall_outline.hdf5": "f82cdc636d6874a2a292ddf1d4e3077690d1c06b53c4d9fb7a7c210e358bf790",
+    "machine/wall_outline.hdf5": "7f9cdd2c4deaded154f29d9d694a6f03f9a66600624218c0ff378eba2d81aaaf",
     # material data
     "material/sus316L.json": "0f473be0d3f9efc88d11d3cbacbc5a8596ff2b39dcb2dbd561d0fa116de5f301",
     # EMC3-EIRENE-related data
