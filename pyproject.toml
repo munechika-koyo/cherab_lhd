@@ -173,6 +173,7 @@ no-build-isolation = ["cherab-lhd"]
 ipykernel = "*"
 ipywidgets = "*"
 jupyterlab = "*"
+python-kaleido = "*"
 
 [tool.pixi.feature.lab.tasks]
 lab = { cmd = [
