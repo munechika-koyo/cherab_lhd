@@ -25,6 +25,7 @@ REGISTRIES = {
     "machine/divertor.rsm": "6ae9b4b50139818b7e600a247bb4fc3d1260bac28a60234a60fbd6c1aebdc1ca",
     "machine/plasma.rsm": "ae950c8d787fad3ebccbfef12f2282cd927d15a6cc9554db28c9d39a4f7eda38",
     "machine/plasma_cut.rsm": "10fb5fc23ccc490b265a12e8e77b962a3cd4c8b899608bb30de6ce0753d45ea0",
+    "machine/plasma_quarter.rsm": "d517d96e690fd458e90379d0e9e6e06e4da8793986f28d636817d59b1eb9171d",
     "machine/plates.rsm": "d479746123d071c5070b5942ca3a5d53fbe07dda73d7651e64e951c04fbf33c7",
     "machine/port_65l.rsm": "cd0debab846d86d097d3b66007496e13b7b8fc76896c102b758a4f47478e3adb",
     "machine/port_65u.rsm": "46ad570bd222b7ceae8f2098c65ad2a45d53ef95845b4ac75be221acf60b057c",
