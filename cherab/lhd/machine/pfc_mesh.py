@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+import numpy as np
 from plotly import graph_objects as go
 from plotly.graph_objects import Figure
 from raysect.optical import World, rotate_z
@@ -17,7 +18,6 @@ from rich.console import Console, Group
 from rich.live import Live
 from rich.progress import Progress
 from rich.table import Table
-from scipy.spatial.transform import Rotation
 
 from ..tools.fetch import fetch_file
 from .material import RoughSUS316L
@@ -228,8 +228,8 @@ def visualize_pfc_meshes(
         for mesh in mesh_list:
             # Rotate mesh by its transform matrix
             transform = mesh.to_root()
-            r = Rotation.from_matrix([[transform[i, j] for j in range(3)] for i in range(3)])
-            x, y, z = r.apply(mesh.data.vertices).T
+            rotation = np.array([[transform[i, j] for j in range(3)] for i in range(3)])
+            x, y, z = rotation @ mesh.data.vertices.T
             i, j, k = mesh.data.triangles.T
 
             # Create Mesh3d object
