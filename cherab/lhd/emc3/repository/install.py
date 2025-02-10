@@ -1,66 +1,73 @@
-"""Module to provide useful functions around Install EMC3-related data."""
+"""Module to provide useful functions around Installing EMC3-related data."""
 
 from __future__ import annotations
 
 import re
 from math import ceil
 from pathlib import Path
+from typing import Literal
 
-import h5py
 import numpy as np
+import xarray as xr
 
+from ...tools.fetch import PATH_TO_STORAGE, fetch_file
 from ...tools.spinner import Spinner
 from .parse import DataParser
-from .utility import DEFAULT_HDF5_PATH, exist_path_validate, path_validate
+from .utility import exist_path_validate, path_validate
 
 __all__ = ["install_grids", "install_cell_indices", "install_physical_cell_indices", "install_data"]
 
 
 def install_grids(
     path: Path | str,
-    hdf5_path: Path | str = DEFAULT_HDF5_PATH,
-    update: bool = False,
+    mode: Literal["w", "a"] = "a",
+    save_dir: Path | str = PATH_TO_STORAGE / "emc3",
 ) -> None:
-    """Install EMC3-EIRENE grid data into a HDF5 file.
+    """Install EMC3-EIRENE grid into netCDF file.
 
-    Default EMC3 grid data is written in a text file, so they should be relocated into
-    the HDF5 file.
-    The value of :math:`R` coordinates of the magnetic axis is parsed from the filename of
-    the text fil. e.g. ``grid-360.text`` means $R = 3.6$ m. :math:`Z` is always regarded as 0.
+    EMC3-EIRENE grid data is stored in a text file originally.
+    This function parses the text file and save the grid data into a netCDF file.
+
+    The value of :math:`R_\\mathrm{ax}` coordinates of the magnetic axis is parsed from a filename
+    (e.g. ``grid-360.text`` means $R = 3.6$ m). :math:`Z_\\mathrm{ax}` is always regarded as 0.0.
+    The name of the saved file is the same as the name of the file to be loaded
+    (e.g. ``grid-360.nc``).
 
     Parameters
     ----------
     path : Path | str
         Path to the original text file written about grid coordinates at each zone.
-    hdf5_path : Path | str, optional
-        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
-    update : bool, optional
-        Whether or not to update/override dataset, by default False.
+    mode : {"w", "a"}, optional
+        Mode to open the netCDF file, by default "a".
+        - "w": write mode (overwrite if exists)
+        - "a": append mode (create if not exists)
+    save_dir : Path | str, optional
+        Directory path to save the netCDF file, by default ``cherab/lhd/emc3/`` under the user's
+        cache directory.
     """
-    # validate paths
+    # Validate paths
     path = exist_path_validate(path)
-    hdf5_path = path_validate(hdf5_path)
 
-    # parse file name and extract magnetic axis
+    # Create a directory to save netCDF files
+    save_dir = path_validate(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Parse file name and extract magnetic axis
     filename = path.stem
     magnetic_axis_r = float(filename.split("grid-")[1]) * 1.0e-2
 
-    # start spinner and open HDF5 and raw grid data file
+    # Open raw grid text data file
     with (
         Spinner(text=f"install grid data from {path.name}...") as sp,
-        h5py.File(hdf5_path, mode="w") as h5file,
         path.open(mode="r") as file,
     ):
-        # create grid group
-        grid_group = h5file.create_group(f"{path.stem}")
-
         # Load each zone area
         zones = [f"zone{i}" for i in range(0, 21 + 1)]
 
         # parse grid coords for each zone
         for zone in zones:
-            # create zone group
-            zone_group = grid_group.create_group(zone)
+            # Define stored dataset
+            ds = xr.Dataset()
 
             # parse grid resolution
             line = file.readline()
@@ -73,8 +80,9 @@ def install_grids(
             if zone in {"zone0", "zone11"}:
                 L += 1
 
-            # define grid array (4 dimension array)
-            grid = np.zeros((L, M, N, 3), dtype=np.float64)
+            # define grid array (4 dimensional array)
+            grid = np.zeros((L, M, N, 2), dtype=np.float64)
+            angles = np.zeros(N, dtype=np.float64)
 
             for n in range(N):
                 # parse toroidal angle
@@ -106,25 +114,52 @@ def install_grids(
                 # store coordinates into 4-D ndarray)
                 grid[:, :, n, 0] = np.reshape(r_coords, (L, M), order="F")
                 grid[:, :, n, 1] = np.reshape(z_coords, (L, M), order="F")
-                grid[:, :, n, 2] = np.full((L, M), toroidal_angle)
+                angles[n] = toroidal_angle
 
-            # save grid data as dataset
-            if update is True and "grids" in zone_group:
-                sp.write(f"update {zone_group.name}/grids")
-                del zone_group["grids"]
-            dset = zone_group.create_dataset(name="grids", data=grid)
-
-            # store grid config
-            dset.attrs["L"] = L
-            dset.attrs["M"] = M
-            dset.attrs["N"] = N
-            dset.attrs["num_cells"] = (L - 1) * (M - 1) * (N - 1)
-            dset.attrs["shape description"] = (
-                "radial index, poloidal index, toroidal index, (r, z, phi) coordinates"
+            # Assign values and coords
+            ds = ds.assign(
+                dict(
+                    grid=(
+                        ["rho", "theta", "zeta", "RZ"],
+                        grid,
+                        dict(units="m", long_name="grid coordinates"),
+                    ),
+                    angles=(
+                        ["zeta"],
+                        angles,
+                        dict(units="deg", long_name="toroidal angle"),
+                    ),
+                ),
+            )
+            ds = ds.assign_coords(
+                rho=(["rho"], np.arange(L), dict(long_name="radial index")),
+                theta=(["theta"], np.arange(M), dict(long_name="poloidal index")),
+                zeta=(["zeta"], np.arange(N), dict(long_name="toroidal index")),
+                RZ=(["RZ"], ["R", "Z"], dict(long_name="R-Z coordinates")),
             )
 
-        # add attribution
-        grid_group.attrs["magnetic axis (R, Z) [m]"] = (magnetic_axis_r, 0)
+            # Assign attributes
+            ds = ds.assign_attrs(
+                dict(num_cells=(L - 1) * (M - 1) * (N - 1), description=f"grid data for {zone}"),
+            )
+
+            # save grid data
+            ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode, group=zone)
+
+        # save common variables for all zones
+        ds = xr.Dataset(
+            data_vars=dict(
+                magnetic_axis=(
+                    ["RZ"],
+                    np.array([magnetic_axis_r, 0.0]),
+                    dict(units="m", long_name="magnetic axis coordinates"),
+                ),
+            ),
+            coords=dict(
+                RZ=(["RZ"], ["R", "Z"], dict(long_name="R-Z coordinates")),
+            ),
+        )
+        ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode)
 
         sp.ok()
 
