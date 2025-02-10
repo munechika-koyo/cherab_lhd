@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 
-import re
 from math import ceil
 from pathlib import Path
 from typing import Literal
 
+import h5py  # noqa: F401
 import numpy as np
 import xarray as xr
+from rich.progress import Progress
 
-from ...tools.fetch import PATH_TO_STORAGE, fetch_file
-from ...tools.spinner import Spinner
+from ...tools.fetch import PATH_TO_STORAGE
 from .parse import DataParser
 from .utility import exist_path_validate, path_validate
 
 __all__ = ["install_grids", "install_cell_indices", "install_physical_cell_indices", "install_data"]
+
+# Define zone labels
+ZONES = [f"zone{i}" for i in range(0, 21 + 1)]
 
 
 def install_grids(
@@ -56,16 +59,17 @@ def install_grids(
     filename = path.stem
     magnetic_axis_r = float(filename.split("grid-")[1]) * 1.0e-2
 
+    # Define progress bar
+    progress = Progress()
+    task_id = progress.add_task("Installing grid...", total=len(ZONES) + 1)
+
     # Open raw grid text data file
     with (
-        Spinner(text=f"install grid data from {path.name}...") as sp,
+        progress,
         path.open(mode="r") as file,
     ):
-        # Load each zone area
-        zones = [f"zone{i}" for i in range(0, 21 + 1)]
-
         # parse grid coords for each zone
-        for zone in zones:
+        for zone in ZONES:
             # Define stored dataset
             ds = xr.Dataset()
 
@@ -143,10 +147,13 @@ def install_grids(
                 dict(num_cells=(L - 1) * (M - 1) * (N - 1), description=f"grid data for {zone}"),
             )
 
-            # save grid data
+            # Save grid data
             ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode, group=zone)
 
-        # save common variables for all zones
+            # Advance progress
+            progress.advance(task_id=task_id)
+
+        # Save common variables for all zones
         ds = xr.Dataset(
             data_vars=dict(
                 magnetic_axis=(
@@ -161,14 +168,13 @@ def install_grids(
         )
         ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode)
 
-        sp.ok()
+        # Advance progress
+        progress.advance(task_id=task_id)
 
 
 def install_physical_cell_indices(
     path: Path | str,
-    hdf5_path: Path | str = DEFAULT_HDF5_PATH,
-    grid_group_name: str = "grid-360",
-    update: bool = False,
+    grid_file: Path | str = PATH_TO_STORAGE / "emc3" / "grid-360.nc",
 ) -> None:
     """Reconstruct physical cell indices and install it to a HDF5 file.
 
@@ -180,60 +186,47 @@ def install_physical_cell_indices(
     Parameters
     ----------
     path : Path | str
-        Path to the raw text file: e.g. ``CELL_GEO``.
-    hdf5_path : Path | str, optional
-        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
-    grid_group_name : str, optional
-        Name of grid group in the HDF5 file, by default ``grid-360``.
-    update : bool, optional
-        Whether or not to update/override dataset, by default False.
+        Path to the raw text file (e.g. ``CELL_GEO``).
+    grid_file : Path | str, optional
+        Path to the grid netCDF file, by default ``cherab/lhd/emc3/grid-360.nc``.
     """
     # validate parameters
     path = exist_path_validate(path)
-    hdf5_path = path_validate(hdf5_path)
+    grid_file = exist_path_validate(grid_file)
+
+    # Define progress bar
+    progress = Progress()
+    task_id = progress.add_task("Installing physical cell indices...", total=len(ZONES) + 1)
 
     # start spinner and open HDF5 file
-    with (
-        Spinner(text=f"install physical cell indices data from {path.stem}...") as sp,
-        h5py.File(hdf5_path, mode="r+") as h5file,
-    ):
-        # obtain grid group
-        grid_group = h5file.get(grid_group_name)
-        if grid_group is None:
-            raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
-
+    with progress:
         # Load cell index from text file starting from zero for c language index format
         indices_raw = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
 
-        # extract and sort zone keys
-        zones = [key for key in grid_group.keys() if "zone" in key]
-        zones = sorted(zones, key=lambda s: int(re.search(r"\d+", s).group()))
-
         start = 0
-        for zone in zones:
-            zone_group = grid_group.get(zone)
-            num_cells: int = zone_group["grids"].attrs["num_cells"]
-            L: int = zone_group["grids"].attrs["L"]
-            M: int = zone_group["grids"].attrs["M"]
-            N: int = zone_group["grids"].attrs["N"]
+        for zone in ZONES:
+            # Open grid dataset
+            ds_grid = xr.open_dataset(grid_file, group=zone)
 
-            # create index group
-            if "index" not in zone_group:
-                index_group = zone_group.create_group("index")
-            else:
-                index_group = zone_group.get("index")
+            # Retrieve grid data
+            num_cells: int = ds_grid.attrs["num_cells"]
+            L = ds_grid["rho"].size
+            M = ds_grid["theta"].size
+            N = ds_grid["zeta"].size
+
+            ds_grid.close()
 
             if zone in {"zone0", "zone11"}:
                 L -= 1
                 num_cells = (L - 1) * (M - 1) * (N - 1)
 
-                # extract indices for each zone and reshape it to 3-D array
+                # Extract indices for each zone and reshape it to 3-D array
                 indices_temp = indices_raw[start : start + num_cells].reshape(
                     (L - 1, M - 1, N - 1), order="F"
                 )
 
-                # insert dummy indices for around magnetic axis region.
-                # inserted indices are duplicated from the first index of radial direction.
+                # Insert dummy indices for around magnetic axis region.
+                # Inserted indices are duplicated from the first index of radial direction.
                 indices = np.concatenate(
                     (indices_temp[0, ...][np.newaxis, :, :], indices_temp), axis=0
                 )
@@ -246,26 +239,44 @@ def install_physical_cell_indices(
                 )
                 start += num_cells
 
-            if update is True and "physics" in index_group:
-                sp.write(f"update {index_group.name}/physics")
-                del index_group["physics"]
-            ds = index_group.create_dataset(name="physics", data=indices)
+            # Create stored dataset
+            ds = xr.Dataset(
+                data_vars=dict(
+                    physics=(
+                        ["rho", "theta", "zeta"],
+                        indices,
+                        dict(units="", long_name="physical cell index"),
+                    ),
+                ),
+                coords=dict(
+                    rho=(["rho"], np.arange(L - 1), dict(long_name="radial index")),
+                    theta=(["theta"], np.arange(M - 1), dict(long_name="poloidal index")),
+                    zeta=(["zeta"], np.arange(N - 1), dict(long_name="toroidal index")),
+                ),
+                attrs=dict(
+                    num_cells=num_cells,
+                    description=f"Index for each cell in {zone}",
+                ),
+            )
 
-            # save attribution information
-            ds.attrs["description"] = "for EMC3-calculated data"
-            ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
-            ds.attrs["L"] = L - 1
-            ds.attrs["M"] = M - 1
-            ds.attrs["N"] = N - 1
+            # Save physical cell indices
+            ds.to_netcdf(grid_file, mode="a", group=f"{zone}/index")
+
+            # Advance progress
+            progress.advance(task_id=task_id)
 
         # save number of cells data
         with path.open(mode="r") as file:
             num_total, num_plasma, num_plasma_vac = list(map(int, file.readline().split()))
-        grid_group.attrs["num_total"] = num_total
-        grid_group.attrs["num_plasma"] = num_plasma
-        grid_group.attrs["num_plasma_vac"] = num_plasma_vac
-
-        sp.ok()
+        ds = xr.Dataset(
+            attrs=dict(
+                num_total=num_total,
+                num_plasma=num_plasma,
+                num_plasma_vac=num_plasma_vac,
+            ),
+        )
+        ds.to_netcdf(grid_file, mode="a")
+        progress.advance(task_id=task_id)
 
 
 def install_cell_indices(
