@@ -5,11 +5,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import h5py
 import numpy as np
+import xarray as xr
 from numpy.typing import NDArray
 
-from .utility import DEFAULT_HDF5_PATH, exist_path_validate, path_validate
+from .utility import path_validate
 
 __all__ = ["DataParser"]
 
@@ -23,17 +23,15 @@ class DataParser:
     ----------
     directory_path : str | pathlib.Path
         Path to the directory storing EMC3-calculated data.
-    hdf5_path : str | pathlib.Path
-        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
-    grid_group_name : str
-        Name of grid group in the HDF5 file, by default ``grid-360``.
+    grid_file : str | pathlib.Path
+        Path to the grid file.
 
     Example
     -------
     .. prompt:: python >>> auto
 
         >>> from cherab.lhd.emc3.repository.parse import DataParser
-        >>> parser = DataParser("path/to/the/data/directory")
+        >>> parser = DataParser("path/to/the/data/directory", "path/to/the/grid/file.nc")
         >>> parser.plasma_radiation()
         array([0.000e+00, 0.000e+00, 0.000e+00, ..., 9.450e-33, 4.922e-33,
                2.659e-33])
@@ -49,23 +47,21 @@ class DataParser:
     def __init__(
         self,
         directory_path: Path | str,
-        hdf5_path: Path | str = DEFAULT_HDF5_PATH,
-        grid_group_name: str = "grid-360",
+        grid_file: Path | str,
     ) -> None:
         # parameter validation
         self.directory_path = path_validate(directory_path)
-        self.hdf5_path = exist_path_validate(hdf5_path)
+        grid_file = path_validate(grid_file)
 
         # compiled regular expressions for pattern matching
         self.pattern_index = re.compile(r"\s+\d+\n")
         self.pattern_value = re.compile(r" -?\d\.\d{4}E[+-]\d{2}")  # e.g.) -1.2345E+12
 
-        # load number of plasma cells
-        with h5py.File(self.hdf5_path, mode="r") as h5file:
-            grid_group = h5file.get(grid_group_name)
-            self.num_total = grid_group.attrs["num_total"]
-            self.num_plasma = grid_group.attrs["num_plasma"]
-            self.num_plasma_vac = grid_group.attrs["num_plasma_vac"]
+        # Load grid dataset
+        ds = xr.open_dataset(grid_file)
+        self.num_total = ds.attrs["num_total"]
+        self.num_plasma = ds.attrs["num_plasma"]
+        self.num_plasma_vac = ds.attrs["num_plasma_vac"]
 
     def plasma_radiation(self, filename: str = "RADIATION_1") -> NDArray[np.float64]:
         """Load plasma radiation data.
