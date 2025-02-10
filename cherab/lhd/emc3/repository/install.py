@@ -176,12 +176,12 @@ def install_physical_cell_indices(
     path: Path | str,
     grid_file: Path | str = PATH_TO_STORAGE / "emc3" / "grid-360.nc",
 ) -> None:
-    """Reconstruct physical cell indices and install it to a HDF5 file.
+    """Reconstruct physical cell indices and install it to a netCDF file.
 
     EMC3-EIRENE has numerous geometric cells, each of which forms a cubic-like shape with 8 vetices
     in each zones. Several integrated cells, what is called ``physical cell``, are defined where the
     same physical quantities are calculated.
-    Here such indices are parsed from text file and save them into an HDF5 file in each zone group.
+    Here such indices are parsed from text file and save them into a grid netCDF file.
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ def install_physical_cell_indices(
     progress = Progress()
     task_id = progress.add_task("Installing physical cell indices...", total=len(ZONES) + 1)
 
-    # start spinner and open HDF5 file
+    # Start Reading and Saving
     with progress:
         # Load cell index from text file starting from zero for c language index format
         indices_raw = np.loadtxt(path, dtype=np.uint32, skiprows=1) - 1
@@ -233,7 +233,7 @@ def install_physical_cell_indices(
                 L += 1
                 start += num_cells
             else:
-                # extract indices for each zone and reshape it to 3-D array
+                # Extract indices for each zone and reshape it to 3-D array
                 indices = indices_raw[start : start + num_cells].reshape(
                     (L - 1, M - 1, N - 1), order="F"
                 )
@@ -280,87 +280,88 @@ def install_physical_cell_indices(
 
 
 def install_cell_indices(
-    hdf5_path: Path | str = DEFAULT_HDF5_PATH,
-    grid_group_name: str = "grid-360",
-    update: bool = False,
+    grid_file: Path | str = PATH_TO_STORAGE / "emc3" / "grid-360.nc",
 ) -> None:
-    """Create EMC3-EIRENE geometry cell indices and install it to a HDF5 file.
+    """Create EMC3-EIRENE geometry cell indices and install it to a netCDF file.
 
     EMC3-EIRENE has numerous geometric cells, each of which forms a cubic-like shape with 8 vetices
     in each zones.
     To identify each cell, an index number is allocated to each cell.
     Each number of an index is uneaque in all zones where plasma exists, so targeted zone labels are
     ``zone0`` - ``zone4`` and ``zone11`` - ``zone15``.
-    The index data is saved into an HDF5 file in each zone group.
+    The index data is saved in a grid netCDF file.
 
     Parameters
     ----------
-    hdf5_path : Path | str, optional
-        Path to the stored HDF5 file, by default `DEFAULT_HDF5_PATH`.
-    grid_group_name : str, optional
-        Name of grid group in the HDF5 file, by default ``grid-360``.
-    update : bool, optional
-        Whether or not to update/override dataset, by default False.
+    grid_file : Path | str, optional
+        Path to the grid netCDF file, by default ``cherab/lhd/emc3/grid-360.nc``.
     """
-    # validate parameters
-    hdf5_path = path_validate(hdf5_path)
+    # Define zones
+    zones = [
+        "zone0",
+        "zone1",
+        "zone2",
+        "zone3",
+        "zone4",
+        "zone11",
+        "zone12",
+        "zone13",
+        "zone14",
+        "zone15",
+    ]
 
-    # start spinner and open HDF5 file
-    with (
-        Spinner(text="create and install cell indices...") as sp,
-        h5py.File(hdf5_path, mode="r+") as h5file,
-    ):
-        # obtain grid group
-        grid_group = h5file.get(grid_group_name)
-        if grid_group is None:
-            raise ValueError(f"{grid_group_name} does not exist in {hdf5_path}.")
+    # Validate parameters
+    grid_file = path_validate(grid_file)
 
-        # define zones
-        zones = [
-            "zone0",
-            "zone1",
-            "zone2",
-            "zone3",
-            "zone4",
-            "zone11",
-            "zone12",
-            "zone13",
-            "zone14",
-            "zone15",
-        ]
+    # Define progress bar
+    progress = Progress()
+    task_id = progress.add_task("Installing cell indices...", total=len(zones))
 
+    # Start Reading and Saving
+    with progress:
         start = 0
         for zone in zones:
-            zone_group = grid_group.get(zone)
-            num_cells: int = zone_group["grids"].attrs["num_cells"]
-            L: int = zone_group["grids"].attrs["L"]
-            M: int = zone_group["grids"].attrs["M"]
-            N: int = zone_group["grids"].attrs["N"]
+            # Open grid dataset
+            ds_grid = xr.open_dataset(grid_file, group=zone)
 
-            # create index group
-            if "index" not in zone_group:
-                index_group = zone_group.create_group("index")
-            else:
-                index_group = zone_group.get("index")
+            # Retrieve grid data
+            num_cells: int = ds_grid.attrs["num_cells"]
+            L = ds_grid["rho"].size
+            M = ds_grid["theta"].size
+            N = ds_grid["zeta"].size
 
-            # create cell index array
+            ds_grid.close()
+
+            # Create cell index array
             indices = np.arange(start, start + num_cells, dtype=np.uint32).reshape(
                 (L - 1, M - 1, N - 1), order="F"
             )
 
-            if update is True and "cell" in index_group:
-                sp.write(f"update {index_group.name}/cell")
-                del index_group["cell"]
-            ds = index_group.create_dataset(name="cell", data=indices)
+            # Create stored dataset
+            ds = xr.Dataset(
+                data_vars=dict(
+                    cell=(
+                        ["rho", "theta", "zeta"],
+                        indices,
+                        dict(units="", long_name="cell index"),
+                    ),
+                ),
+                coords=dict(
+                    rho=(["rho"], np.arange(L - 1), dict(long_name="radial index")),
+                    theta=(["theta"], np.arange(M - 1), dict(long_name="poloidal index")),
+                    zeta=(["zeta"], np.arange(N - 1), dict(long_name="toroidal index")),
+                ),
+                attrs=dict(
+                    num_cells=num_cells,
+                    description=f"Index for each cell in {zone}",
+                ),
+            )
 
-            # save attribution information
-            ds.attrs["description"] = "fine cell index"
-            ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
-            ds.attrs["L"] = L - 1
-            ds.attrs["M"] = M - 1
-            ds.attrs["N"] = N - 1
+            # Save physical cell indices
+            ds.to_netcdf(grid_file, mode="a", group=f"{zone}/index")
 
-        sp.ok()
+            # Advance progress
+            progress.advance(task_id=task_id)
 
 
 def install_data(
