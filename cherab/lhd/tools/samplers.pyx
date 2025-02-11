@@ -20,8 +20,8 @@ __all__ = ["sample3d_rz", "sample_xy_plane"]
 cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double phi=0.0):
     """Sample a 3D function with a specified toroidal angle and a certain range of R-Z coordinates
 
-    Paramerters
-    -----------
+    Parameters
+    ----------
     function3d : Callable[[double, double, double], double]
         Python function or `Function3D` object.
     r_range : tuple[double, double, int]
