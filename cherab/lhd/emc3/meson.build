@@ -25,7 +25,7 @@ python_sources = [
     '__init__.py',
     'barycenters.pxd',
     'curvilinear.py',
-    'grid.pxd',
+    'grid.py',
     'plasma.py'
 ]
 

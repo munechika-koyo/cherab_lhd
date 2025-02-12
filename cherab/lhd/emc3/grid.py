@@ -1,48 +1,44 @@
 """Module to deal with EMC3-EIRENE-defined grids."""
-cimport numpy as np
-cimport cython
-from libc.math cimport cos, sin, M_PI
-from raysect.primitive.mesh cimport TetraMeshData
 
-import warnings
 from pathlib import Path
 from types import EllipsisType
 
-import h5py
 import numpy as np
+import xarray as xr
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
-from numpy.typing import NDArray
-
-from .cython.tetrahedralization cimport tetrahedralize
+from numpy.typing import ArrayLike, NDArray
+from raysect.primitive.mesh import TetraMeshData
 
 from ..machine.wall import adjacent_toroidal_angles, periodic_toroidal_angle
+from ..tools.fetch import PATH_TO_STORAGE, fetch_file
 from ..tools.spinner import Spinner
-from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
+from ..tools.visualization import add_inner_title
+from .cython.tetrahedralization import tetrahedralize
+from .repository.utility import path_validate
 
-__all__ = ["Grid", "plot_grids_rz", "install_tetra_meshes"]
+__all__ = ["Grid", "install_tetra_meshes"]
 
-cdef list ZONES = [
+ZONES: list = [
     ["zone0", "zone1", "zone2", "zone3", "zone4"],  # zone_type = 1
     ["zone11", "zone12", "zone13", "zone14", "zone15"],  # zone_type 2
 ]
 # Const.
-cdef:
-    double RMIN = 2.0  # [m]
-    double RMAX = 5.5
-    double ZMIN = -1.6
-    double ZMAX = 1.6
+RMIN = 2.0  # [m]
+RMAX = 5.5
+ZMIN = -1.6
+ZMAX = 1.6
 
 # Plotting config.
-cdef dict LINE_STYLE = {"color": "black", "linewidth": 0.5}
+LINE_STYLE: dict = {"color": "black", "linewidth": 0.5}
 
 
-cdef class Grid:
+class Grid:
     """Class for dealing with grid coordinates defined by EMC3-EIRENE.
 
-    This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z, \\varphi)`,
+    This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z)`,
     and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
     their indices, which a **cell** means a cubic-like mesh with 8 vertices.
     Using these data, procedure of generating a `~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
@@ -53,16 +49,12 @@ cdef class Grid:
     | M: Poloidal grid resolution
     | N: Toroidal grid resolution.
 
-
     Parameters
     ----------
-    zone : str
+    zone : {"zone0", ..., "zone21"}
         Name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
-    grid_group : str, optional
-        Name of grid group corresponding to magnetic axis configuration, by default ``grid-360``.
-    hdf5_path : str or pathlib.Path, optional
-        Path to the HDF5 file storing grid dataset, by default `.DEFAULT_HDF5_PATH`.
-
+    dataset : str, optional
+        Name of dataset, by default ``"emc3/grid-360.nc"``.
 
     Examples
     --------
@@ -70,161 +62,116 @@ cdef class Grid:
 
         >>> grid = Grid("zone0")
         >>> grid
-        Grid(zone='zone0', grid_group='grid-360')
         >>> str(grid)
         'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
-    def __init__(
-        self, zone: str, grid_group: str = "grid-360", hdf5_path: Path | str = DEFAULT_HDF5_PATH
-    ) -> None:
-        cdef:
-            object file
-            object dset
+    def __init__(self, zone: str, dataset: str = "emc3/grid-360.nc", **kwargs) -> None:
+        # Fetch grid data
+        path = fetch_file(dataset, **kwargs)
 
-        # === Parameters validation ================================================================
-        # set and validate hdf5_path
-        if isinstance(hdf5_path, (Path, str)):
-            self._hdf5_path = Path(hdf5_path)
-        else:
-            raise TypeError("hdf5_path must be a string or a pathlib.Path instance.")
-        if not self._hdf5_path.exists():
-            raise FileNotFoundError(f"{self._hdf5_path.name} file does not exist.")
-
-        # set properties
+        # Load grid dataset
         self._zone = zone
-        self._grid_group = grid_group
-
-        # === Load grid data from HDF5 file
-        with h5py.File(self._hdf5_path, mode="r") as file:
-            # load grid dataset
-            dset = file[grid_group][zone]["grids"]
-
-            # Load grid configuration
-            self._config = GridConfig(
-                L=dset.attrs["L"],
-                M=dset.attrs["M"],
-                N=dset.attrs["N"],
-                num_cells=dset.attrs["num_cells"],
-            )
-
-            # Load grid coordinates data
-            self._grid_data = dset[:]
+        self._path = path
+        self._ds = xr.open_dataset(path, group=zone)
+        self._grid_da = self._ds["grid"]
 
         # set shape
-        self._shape = self._config.L, self._config.M, self._config.N
+        self._shape = self._grid_da.shape[0], self._grid_da.shape[1], self._grid_da.shape[2]
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(zone={self.zone!r}, grid_group={self.grid_group!r})"
+        return f"{self.__class__.__name__}(zone={self._zone!r}, dataset={self._path!r})"
 
     def __str__(self) -> str:
         L, M, N, num_cells = (
-            self._config.L,
-            self._config.M,
-            self._config.N,
-            self._config.num_cells
+            *self._shape,
+            self._ds.attrs["num_cells"],
         )
         return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
 
     def __getitem__(
         self, key: int | slice | EllipsisType | tuple[int | slice | EllipsisType, ...] | NDArray
-    ) -> NDArray[np.float64] | float:
-        """Return grid coordinates indexed by (l, m, n, rzphi).
+    ) -> xr.DataArray:
+        """Return grid coordinates indexed by (l, m, n, RZ).
 
-        Returned grid coordinates are in :math:`(R, Z, \\varphi)` which can be specified by
-        ``l``: radial, ``m``: poloidal, ``n``: torodial indices.
+        Returned grid coordinates are in :math:`(R, Z)` which can be specified by ``l``: radial,
+        ``m``: poloidal, ``n``: torodial index.
 
         Examples
         --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
-            >>> grid[0, 0, 0, :]  # (l=0, m=0, n=0)
-            array([3.593351e+00, 0.000000e+00, 0.000000e+00])  # (R, Z, phi) coordinates
+            >>> grid[0, 0, 0, :].data  # (l=0, m=0, n=0)
+            array([3.593351e+00, 0.000000e+00])  # (R, Z) coordinates
 
-            >>> grid[:, -10, 0, :]  # (radial coords at m=-10, n=0)
-            array([[3.600000e+00, 0.000000e+00, 0.000000e+00],
-                   [3.593494e+00, 3.076000e-03, 0.000000e+00],
-                   [3.560321e+00, 1.875900e-02, 0.000000e+00],
+            >>> grid[:, -10, 0, :].data  # (radial coords at m=-10, n=0)
+            array([[3.600000e+00, 0.000000e+00],
+                   [3.593494e+00, 3.076000e-03],
+                   [3.560321e+00, 1.875900e-02],
                    ...,
-                   [3.267114e+00, 1.573770e-01, 0.000000e+00]])
+                   [3.267114e+00, 1.573770e-01]])
         """
-        return self._grid_data[key]
-
-    @property
-    def hdf5_path(self) -> Path:
-        """`~pathlib.Path`: HDF5 dataset file path."""
-        return self._hdf5_path
+        return self._grid_da[key]
 
     @property
     def zone(self) -> str:
-        """str: Name of zone."""
+        """Name of zone."""
         return self._zone
 
     @property
-    def grid_group(self) -> str:
-        """str: Name of grid group."""
-        return self._grid_group
+    def path(self) -> str:
+        """Path to dataset."""
+        return self._path
+
+    @property
+    def dataset(self) -> xr.Dataset:
+        """Dataset instance."""
+        return self._ds
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        """tuple[int, int, int]: Shape of grid (L, M, N)."""
+        """Shape of grid (L, M, N)."""
         return self._shape
 
     @property
-    def config(self) -> dict[str, int]:
-        """dict[str, int]: Configuration dictionary containing grid resolutions and number of cells.
-
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> grid.config
-            {'L': 82, 'M': 601, 'N': 37, 'num_cells': 1749600}
-        """
-        return {
-            "L": self._config.L,
-            "M": self._config.M,
-            "N": self._config.N,
-            "num_cells": self._config.num_cells
-        }
-
-    @property
     def grid_data(self) -> NDArray[np.float64]:
-        """numpy.ndarray: Raw Grid coordinates data array.
+        """Raw Grid coordinates data array.
 
-        The dimension of array is 4 dimension, shaping ``(L, M, N, 3)``.
-        The coordinate is :math:`(R, Z, \\phi)`. :math:`\\phi` is in [degree].
+        The dimension of array is 4 dimension, shaping ``(L, M, N, 2)``.
+        The coordinate is :math:`(R, Z)`.
 
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
             >>> grid.grid_data.shape
-            (82, 601, 37, 3)
+            (82, 601, 37, 2)
             >>> grid.grid_data
-            array([[[[ 3.600000e+00,  0.000000e+00,  0.000000e+00],
-                     [ 3.600000e+00,  0.000000e+00,  2.500000e-01],
-                     [ 3.600000e+00,  0.000000e+00,  5.000000e-01],
+            array([[[[ 3.600000e+00,  0.000000e+00],
+                     [ 3.600000e+00,  0.000000e+00],
+                     [ 3.600000e+00,  0.000000e+00],
                     ...
-                     [ 3.096423e+00, -7.012100e-02,  8.500000e+00],
-                     [ 3.087519e+00, -6.796400e-02,  8.750000e+00],
-                     [ 3.078508e+00, -6.543900e-02,  9.000000e+00]]]])
+                     [ 3.096423e+00, -7.012100e-02],
+                     [ 3.087519e+00, -6.796400e-02],
+                     [ 3.078508e+00, -6.543900e-02]]]])
         """
-        return self._grid_data
+        return self._grid_da.data
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
-    cpdef np.ndarray generate_vertices(self):
-        """Generate grid vertices array. A `grid_data` array is converted to 2D
-        array which represents a vertex in :math:`(X, Y, Z)` coordinates.
+    def generate_vertices(self) -> NDArray[np.float64]:
+        """Generate grid vertices array. A `grid_data` array is converted to 2D array which
+        represents a vertex in :math:`(X, Y, Z)` coordinates.
 
         The vertices array is stacked in the order of `(L, M, N)`.
 
         Returns
         -------
         `~numpy.ndarray`
-            Vertices (L x N x M, 3) 2D array
+            Vertices (L x N x M, 3) 2D array.
 
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
@@ -240,28 +187,19 @@ cdef class Grid:
                    [ 3.04083165,  0.48162042, -0.065452  ],
                    [ 3.04060646,  0.48158475, -0.065439  ]])
         """
-        cdef:
-            int L, M, N
-            np.ndarray[np.float64_t, ndim=4] vertices
-            np.float64_t[:, :, :, ::1] grid_mv
-            float phi
-
         L, M, N = self._shape
         vertices = np.zeros((L, M, N, 3), dtype=np.float64)
-        grid_mv = self._grid_data
+        radians = self._ds["ζ"].values * np.pi / 180.0
+        grid_data = self._grid_da.data
 
-        for n in range(N):
-            phi = grid_mv[0, 0, n, 2] * M_PI / 180.0
-            vertices[:, :, n, 0] = self._grid_data[:, :, n, 0] * cos(phi)
-            vertices[:, :, n, 1] = self._grid_data[:, :, n, 0] * sin(phi)
-            vertices[:, :, n, 2] = self._grid_data[:, :, n, 1]
+        for n, phi in enumerate(radians):
+            vertices[..., n, 0] = grid_data[..., n, 0] * np.cos(phi)
+            vertices[..., n, 1] = grid_data[..., n, 0] * np.sin(phi)
+            vertices[..., n, 2] = grid_data[..., n, 1]
 
         return vertices.reshape((L * M * N, 3), order="F")
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.initializedcheck(False)
-    cpdef np.ndarray generate_cell_indices(self):
+    def generate_cell_indices(self) -> NDArray[np.uint32]:
         """Generate cell indices array.
 
         One row of cell indices array represents one cubic-like mesh with 8 vertices.
@@ -272,7 +210,8 @@ cdef class Grid:
         `~numpy.ndarray`
             Cell indices ((L-1) x (M-1) x (N-1), 8) 2D array.
 
-
+        Examples
+        --------
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
@@ -289,29 +228,21 @@ cdef class Grid:
                    [1774068, 1774069, 1774151, ..., 1823351, 1823433, 1823432]],
                   dtype=uint32)
         """
-        cdef:
-            int L, M, N
-            np.ndarray[np.uint32_t, ndim=2] cells
-            np.uint32_t[:, ::1] cells_mv
-            int i = 0
-            int l, m, n
-
         L, M, N = self._shape
         cells = np.zeros(((L - 1) * (M - 1) * (N - 1), 8), dtype=np.uint32)
         cells_mv = cells
 
-        for n in range(0, N - 1):
-            for m in range(0, M - 1):
-                for l in range(0, L - 1):
-                    cells_mv[i, 0] = M * L * n + L * m + l
-                    cells_mv[i, 1] = M * L * n + L * m + l + 1
-                    cells_mv[i, 2] = M * L * n + L * (m + 1) + l + 1
-                    cells_mv[i, 3] = M * L * n + L * (m + 1) + l
-                    cells_mv[i, 4] = M * L * (n + 1) + L * m + l
-                    cells_mv[i, 5] = M * L * (n + 1) + L * m + l + 1
-                    cells_mv[i, 6] = M * L * (n + 1) + L * (m + 1) + l + 1
-                    cells_mv[i, 7] = M * L * (n + 1) + L * (m + 1) + l
-                    i += 1
+        i = 0
+        for n, m, l in np.ndindex(N - 1, M - 1, L - 1):
+            cells_mv[i, 0] = M * L * n + L * m + l
+            cells_mv[i, 1] = M * L * n + L * m + l + 1
+            cells_mv[i, 2] = M * L * n + L * (m + 1) + l + 1
+            cells_mv[i, 3] = M * L * n + L * (m + 1) + l
+            cells_mv[i, 4] = M * L * (n + 1) + L * m + l
+            cells_mv[i, 5] = M * L * (n + 1) + L * m + l + 1
+            cells_mv[i, 6] = M * L * (n + 1) + L * (m + 1) + l + 1
+            cells_mv[i, 7] = M * L * (n + 1) + L * (m + 1) + l
+            i += 1
         return cells
 
     def plot(
@@ -319,10 +250,15 @@ cdef class Grid:
         fig: Figure | None = None,
         ax: Axes | None = None,
         n_phi: int = 0,
-        rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
+        rz_range: tuple[float, float, float, float] | None = None,
+        show_phi: bool = True,
+        indices_radial: ArrayLike | slice | None = None,
+        indices_poloidal: ArrayLike | slice | None = None,
         **kwargs,
-    ) -> tuple[Figure, Axes]:
-        """Plotting EMC3-EIRENE-defined grids in :math:`r - z` plane.
+    ) -> tuple[Figure | None, Axes]:
+        """Plotting EMC3-EIRENE-defined grids in :math:`R - Z` plane.
+
+        This method allows users to plot grid lines at a specific discretized toroidal angle.
 
         Parameters
         ----------
@@ -331,18 +267,26 @@ cdef class Grid:
         ax : `~matplotlib.axes.Axes`, optional
             Matplotlib axes object, by default ``ax = fig.add_subplot()``.
         n_phi : int, optional
-            Index of toroidal grid, by default 0.
+            Index of toroidal angle, by default 0.
         rz_range : tuple[float, float, float, float], optional
             Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-            by default ``(2.0, 5.5, -1.6, 1.6)``.
+            by default None.
+        show_phi : bool
+            Show toroidal angle text in the plot, by default True.
+        indices_radial : array_like, slice, optional
+            Specify indices of radial direction, by default None.
+            If None, all radial grids are plotted.
+        indices_poloidal : array_like, slice, optional
+            Specify indices of poloidal direction, by default None.
+            If None, all poloidal grids are plotted.
         **kwargs : dict
             `matplotlib.lines.Line2D` properties, by default
             ``{"color": "black", "linewidth": 0.5}``.
 
         Returns
         -------
-        fig : `~matplotlib.figure.Figure`
-            Matplotlib figure object.
+        fig : `~matplotlib.figure.Figure` | None
+            Matplotlib figure object. If ``fig`` is not specified but ``axis`` is, return None.
         ax : `~matplotlib.axes.Axes`
             Matplotlib axes object.
 
@@ -351,22 +295,37 @@ cdef class Grid:
         .. prompt:: python >>> auto
 
             >>> grid = Grid("zone0")
-            >>> grid.plot()
+            >>> grid.plot(linewidth=0.2)
 
-        .. image:: ../../_static/images/plotting/grid_zone0.png
+        .. image:: ../../_static/images/plotting/grid_coarse_zone0.png
         """
-        cdef:
-            float rmin, rmax, zmin, zmax
-            int L, M, l, m
+        if rz_range is not None:
+            rmin, rmax, zmin, zmax = rz_range
+            if rmin >= rmax or zmin >= zmax:
+                raise ValueError("Invalid rz_range")
 
-        rmin, rmax, zmin, zmax = rz_range
-        if rmin >= rmax or zmin >= zmax:
-            raise ValueError("Invalid rz_range")
+        # Extract grid data with indices
+        if indices_radial is None:
+            indices_radial = slice(0, None)
+        if self._zone in {"zone0", "zone11"}:
+            if indices_poloidal is None:
+                indices_poloidal = slice(0, -1)
+            elif hasattr(indices_poloidal, "__getitem__"):
+                indices_poloidal = indices_poloidal[:-1]
+            else:
+                raise TypeError("indices_poloidal must be an 1-D array-like object.")
+        else:
+            if indices_poloidal is None:
+                indices_poloidal = slice(0, None)
 
-        # set default line style
+        grid_ρ = self._grid_da.isel(θ=indices_poloidal)
+        grid_θ = self._grid_da.isel(ρ=indices_radial)
+
+        # Set default line style
         for key, value in LINE_STYLE.items():
             kwargs.setdefault(key, value)
 
+        # === plotting =============================================================================
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
                 fig, ax = plt.subplots(dpi=200)
@@ -375,68 +334,46 @@ cdef class Grid:
 
         ax.set_aspect("equal")
 
-        L, M, _ = self._shape
-
-        # plot radial line
-        if self.zone in {"zone0", "zone11"}:
-            num_pol = M - 1
-        else:
-            num_pol = M
-        for m in range(num_pol):
-            ax.plot(self._grid_data[:, m, n_phi, 0], self._grid_data[:, m, n_phi, 1], **kwargs)
-        # plot poloidal line
-        for l in range(L):
-            ax.plot(self._grid_data[l, :, n_phi, 0], self._grid_data[l, :, n_phi, 1], **kwargs)
-
-        ax.set_xlim(rmin, rmax)
-        ax.set_ylim(zmin, zmax)
-
-        ax.text(
-            rmin + (rmax - rmin) * 0.02,
-            zmax - (zmax - zmin) * 0.02,
-            f"$\\phi=${self.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
-            fontsize=10,
-            va="top",
-            bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
+        # Plot radial line
+        ax.plot(
+            grid_ρ[..., n_phi, 0],
+            grid_ρ[..., n_phi, 1],
+            **kwargs,
         )
+        # Plot poloidal line
+        ax.plot(
+            grid_θ[..., n_phi, 0].T,
+            grid_θ[..., n_phi, 1].T,
+            **kwargs,
+        )
+
+        if rz_range is not None:
+            ax.set_xlim(rmin, rmax)
+            ax.set_ylim(zmin, zmax)
+
+        if show_phi:
+            add_inner_title(ax, f"$\\phi=${self._ds['ζ'][n_phi]:.2f}°")
         set_axis_properties(ax)
 
         return (fig, ax)
 
-    def plot_coarse(
-        self,
-        fig: Figure | None = None,
-        ax: Axes | None = None,
-        n_phi: int = 0,
-        rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-        **kwargs,
-    ) -> tuple[Figure, Axes]:
+    def plot_coarse(self, **kwargs):
         """Plotting EMC-EIRENE-defined coarse grids in :math:`r - z` plane.
 
-        The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` HDF5
-        group. So this method is available only if they are stored.
-        Creating coarse grid indices is achieved by executing
-        `~cherab.lhd.emc3.indices.create_new_index`.
+        The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` variables.
+        So this method is available only if they are stored.
+
+        Coarse grid indices are created by `.install_indices` function.
 
         Parameters
         ----------
-        fig : `~matplotlib.figure.Figure`, optional
-            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
-        ax : `~matplotlib.axes.Axes`, optional
-            Matplotlib axes object, by default ``ax = fig.add_subplot()``.
-        n_phi : int, optional
-            Index of toroidal grid, by default 0.
-        rz_range : tuple[float, float, float, float], optional
-            Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-            by default ``(2.0, 5.5, -1.6, 1.6)``.
         **kwargs : dict
-            `matplotlib.lines.Line2D` properties, by default
-            ``{"color": "black", "linewidth": 0.5}``.
+            Keyword arguments for `plot` method.
 
         Returns
         -------
-        fig : `~matplotlib.figure.Figure`
-            Matplotlib figure object.
+        fig : `~matplotlib.figure.Figure` | None
+            Matplotlib figure object. If ``fig`` is not specified but ``axis`` is, return None.
         ax : `~matplotlib.axes.Axes`
             Matplotlib axes object.
 
@@ -449,63 +386,10 @@ cdef class Grid:
 
         .. image:: ../../_static/images/plotting/grid_coarse_zone0.png
         """
-        cdef:
-            float rmin, rmax, zmin, zmax
-            int l, m
-            np.ndarray radial_indices
-            np.ndarray poloidal_indices
-
-        rmin, rmax, zmin, zmax = rz_range
-        if rmin >= rmax or zmin >= zmax:
-            raise ValueError("Invalid rz_range")
-
-        # set default line style
-        for key, value in LINE_STYLE.items():
-            kwargs.setdefault(key, value)
-
-        # load coarse grid indices
-        with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
-            try:
-                ds = file["grid-360"][self.zone]["index"]["coarse"]
-                radial_indices = ds.attrs["radial indices"]
-                poloidal_indices = ds.attrs["poloidal indices"]
-
-            except Exception as err:
-                raise ValueError("Cannot load coarse grid attributes") from err
-
-        # === plotting =============================================================================
-        if not isinstance(ax, Axes):
-            if not isinstance(fig, Figure):
-                fig, ax = plt.subplots(dpi=200)
-            else:
-                ax = fig.add_subplot()
-
-        ax.set_aspect("equal")
-
-        if self.zone in {"zone0", "zone11"}:
-            poloidal_indices = poloidal_indices[:-1]
-
-        # plot radial line
-        for m in poloidal_indices:
-            ax.plot(self._grid_data[:, m, n_phi, 0], self._grid_data[:, m, n_phi, 1], **kwargs)
-        # plot poloidal line
-        for l in radial_indices:
-            ax.plot(self._grid_data[l, :, n_phi, 0], self._grid_data[l, :, n_phi, 1], **kwargs)
-
-        ax.set_xlim(rmin, rmax)
-        ax.set_ylim(zmin, zmax)
-
-        ax.text(
-            rmin + (rmax - rmin) * 0.02,
-            zmax - (zmax - zmin) * 0.02,
-            f"$\\phi=${self._grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
-            fontsize=10,
-            va="top",
-            bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-        )
-        set_axis_properties(ax)
-
-        return (fig, ax)
+        ds = xr.open_dataset(self._path, group=f"{self.zone}/index")["coarse"]
+        indices_radial = ds.attrs["indices_radial"]
+        indices_poloidal = ds.attrs["indices_poloidal"]
+        return self.plot(indices_radial=indices_radial, indices_poloidal=indices_poloidal, **kwargs)
 
     def plot_outline(
         self,
@@ -514,7 +398,7 @@ cdef class Grid:
         ax: Axes | None = None,
         show_phi: bool = True,
         **kwargs,
-    ) -> tuple[Figure, Axes]:
+    ) -> tuple[Figure | None, Axes]:
         """Plotting EMC3-EIRENE-defined grid outline in :math:`r - z` plane.
 
         This method allows users to plot grid outline at a specific toroidal angle :math:`\\varphi`.
@@ -537,8 +421,8 @@ cdef class Grid:
 
         Returns
         -------
-        fig : `~matplotlib.figure.Figure`
-            Matplotlib figure object.
+        fig : `~matplotlib.figure.Figure` | None
+            Matplotlib figure object. If ``fig`` is not specified but ``axis`` is, return None.
         ax : `~matplotlib.axes.Axes`
             Matplotlib axes object.
 
@@ -553,27 +437,26 @@ cdef class Grid:
         """
         # === generate interpolated grids ==========================================================
         # put phi in [0, 18) range
-        phi_t, fliped = periodic_toroidal_angle(phi)
+        phi_t, flipped = periodic_toroidal_angle(phi)
+        angles = self._ds["ζ"].values
 
-        phi_range = self._grid_data[0, 0, 0, 2], self._grid_data[0, 0, -1, 2]
+        phi_range = angles[0], angles[-1]
         if phi_t < phi_range[0] or phi_t > phi_range[1]:
             raise ValueError(f"toroidal angle {phi_t} is out of grid range {phi_range}.")
 
         # find adjacent phis
-        phi_left_index, phi_right_index = adjacent_toroidal_angles(
-            phi_t, self._grid_data[0, 0, :, 2]
-        )
+        phi_left_index, phi_right_index = adjacent_toroidal_angles(phi_t, angles)
 
         # define phi_left, phi_right
-        phi_left = self._grid_data[0, 0, phi_left_index, 2]
-        phi_right = self._grid_data[0, 0, phi_right_index, 2]
+        phi_left = angles[phi_left_index]
+        phi_right = angles[phi_right_index]
 
         # load rz grids at adjacent phis
-        grid_left = self._grid_data[:, :, phi_left_index, :2].copy()
-        grid_right = self._grid_data[:, :, phi_right_index, :2].copy()
+        grid_left = self._grid_da[:, :, phi_left_index, :].copy()
+        grid_right = self._grid_da[:, :, phi_right_index, :].copy()
 
-        # fliped value for z axis
-        if fliped:
+        # flipped value for z axis
+        if flipped:
             grid_left[:, :, 1] *= -1
             grid_right[:, :, 1] *= -1
 
@@ -607,226 +490,11 @@ cdef class Grid:
             ax.plot(grid[:, -1, 0], grid[:, -1, 1], **kwargs)
 
         if show_phi:
-            rmin, rmax = ax.get_xlim()
-            zmin, zmax = ax.get_ylim()
+            add_inner_title(ax, f"$\\phi=${phi:.2f}°")
 
-            ax.text(
-                rmin + (rmax - rmin) * 0.02,
-                zmax - (zmax - zmin) * 0.02,
-                f"$\\phi=${phi:.2f}$^\\circ$",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
         set_axis_properties(ax)
 
         return (fig, ax)
-
-
-def plot_grids_rz(
-    fig: Figure | None = None,
-    ax: Axes | None = None,
-    zone_type: int = 1,
-    n_phi: int = 0,
-    rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-    **kwargs,
-) -> tuple[Figure, Axes]:
-    """Plotting EMC-EIRENE-defined grids in :math:`r - z` plane.
-
-    Parameters
-    ----------
-    fig : `~matplotlib.figure.Figure`, optional
-        Matplotlib figure object, by default ``plt.figure(dpi=200)``.
-    ax : `~matplotlib.axes.Axes`, optional
-        Matplotlib axes object, by default ``ax = fig.add_subplot()``.
-    zone_type : int, optional
-        Type of zones collections, by default 1.
-
-        | type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
-        | type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
-    n_phi : int, optional
-        Index of toroidal grid, by default 0.
-    rz_range : tuple[float, float, float, float], optional
-        Sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-        by default ``(2.0, 5.5, -1.6, 1.6)``.
-    **kwargs : dict
-        `matplotlib.lines.Line2D` properties, by default ``{"color": "black", "linewidth": 0.5}``.
-
-    Returns
-    -------
-    fig : `~matplotlib.figure.Figure`
-        Matplotlib figure object.
-    ax : `~matplotlib.axes.Axes`
-        Matplotlib axes object.
-
-    Examples
-    --------
-    .. prompt:: python >>> auto
-
-        >>> plot_grids_rz(zone_type=1, n_phi=10)
-
-    .. image:: ../../_static/images/plotting/plot_grids_rz.png
-    """
-    cdef:
-        float rmin, rmax, zmin, zmax
-        int L, M, l, m
-
-    # validate parameters
-    if zone_type not in {1, 2}:
-        raise ValueError(f"zone_type must be either 1 or 2. (zone_type: {zone_type})")
-    zone_type -= 1
-
-    rmin, rmax, zmin, zmax = rz_range
-    if rmin >= rmax or zmin >= zmax:
-        raise ValueError("Invalid rz_range")
-
-    # set default line style
-    for key, value in LINE_STYLE.items():
-        kwargs.setdefault(key, value)
-
-    # create figure/axes object
-    if not isinstance(ax, Axes):
-        if not isinstance(fig, Figure):
-            fig, ax = plt.subplots(dpi=200)
-        else:
-            ax = fig.add_subplot()
-
-    ax.set_aspect("equal")
-
-    for zone in ZONES[zone_type]:
-        emc = Grid(zone=zone)
-        L, M, _ = emc.shape
-
-        # plot radial line
-        if zone in {"zone0", "zone11"}:
-            num_pol = M - 1
-        else:
-            num_pol = M
-        for m in range(num_pol):
-            ax.plot(emc.grid_data[:, m, n_phi, 0], emc.grid_data[:, m, n_phi, 1], **kwargs)
-        # plot poloidal line
-        for l in range(L):
-            ax.plot(emc.grid_data[l, :, n_phi, 0], emc.grid_data[l, :, n_phi, 1], **kwargs)
-
-    ax.set_xlim(rmin, rmax)
-    ax.set_ylim(zmin, zmax)
-
-    ax.text(
-        rmin + (rmax - rmin) * 0.02,
-        zmax - (zmax - zmin) * 0.02,
-        f"$\\phi=${emc.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
-        fontsize=10,
-        va="top",
-        bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-    )
-    set_axis_properties(ax)
-
-    return (fig, ax)
-
-
-def plot_grids_coarse(
-    fig: Figure | None = None,
-    ax: Axes | None = None,
-    zone_type: int = 1,
-    n_phi: int = 0,
-    rz_range: tuple[float, float, float, float] = (RMIN, RMAX, ZMIN, ZMAX),
-    **kwargs,
-) -> tuple[Figure, Axes]:
-    """Plotting EMC-EIRENE-defined coarse grids in :math:`r - z` plane.
-
-    The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` HDF5 group.
-
-    Parameters
-    ----------
-    fig
-        matplotlib figure object, by default ``plt.figure(dpi=200)``
-    ax
-        matplotlib axes object, by default ``ax = fig.add_subplot()``.
-    zone_type
-        type of zones collections, by default 1
-
-        | type 1 is ``["zone0", "zone1", "zone2", "zone3", "zone4"]``,
-        | type 2 is ``["zone11", "zone12", "zone13", "zone14", "zone15"]``.
-    n_phi
-        index of toroidal grid, by default 0
-    rz_range
-        sampling range : :math:`(R_\\text{min}, R_\\text{max}, Z_\\text{min}, Z_\\text{max})`,
-        by default ``(2.0, 5.5, -1.6, 1.6)``
-    **kwargs: `matplotlib.lines.Line2D` properties, optional
-        *kwargs* are used to specify properties,
-        by default ``{"color": "black", "linewidth": 0.5}``
-
-    Returns
-    -------
-        tuple of matplotlib figure and axes objects
-
-    Examples
-    --------
-    .. prompt:: python >>> auto
-
-        >>> plot_grids_coarse(zone_type=1, n_phi=10)
-
-    .. image:: ../../_static/images/plotting/plot_grids_coarse.png
-    """
-    # validate parameters
-    if zone_type not in {1, 2}:
-        raise ValueError(f"zone_type must be either 1 or 2. (zone_type: {zone_type})")
-    zone_type -= 1
-
-    rmin, rmax, zmin, zmax = rz_range
-    if rmin >= rmax or zmin >= zmax:
-        raise ValueError("Invalid rz_range")
-
-    # set default line style
-    for key, value in LINE_STYLE.items():
-        kwargs.setdefault(key, value)
-
-    if not isinstance(ax, Axes):
-        if not isinstance(fig, Figure):
-            fig, ax = plt.subplots(dpi=200)
-        else:
-            ax = fig.add_subplot()
-
-    ax.set_aspect("equal")
-    for zone in ZONES[zone_type]:
-        # load coarse grid indices
-        with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
-            try:
-                ds = file["grid-360"][zone]["index"]["coarse"]
-                radial_indices: np.ndarray = ds.attrs["radial indices"]
-                poloidal_indices: np.ndarray = ds.attrs["poloidal indices"]
-
-            except Exception:
-                warnings.warn(f"Cannot load coarse grid attributes in {zone}.", stacklevel=2)
-                continue
-
-        emc = Grid(zone=zone)
-
-        # plot radial line
-        if zone in {"zone0", "zone11"}:
-            poloidal_indices = poloidal_indices[:-1]
-
-        # plot radial line
-        for m in poloidal_indices:
-            ax.plot(emc.grid_data[:, m, n_phi, 0], emc.grid_data[:, m, n_phi, 1], **kwargs)
-        # plot poloidal line
-        for l in radial_indices:
-            ax.plot(emc.grid_data[l, :, n_phi, 0], emc.grid_data[l, :, n_phi, 1], **kwargs)
-
-    ax.set_xlim(rmin, rmax)
-    ax.set_ylim(zmin, zmax)
-
-    ax.text(
-        rmin + (rmax - rmin) * 0.02,
-        zmax - (zmax - zmin) * 0.02,
-        f"$\\phi=${emc.grid_data[0, 0, n_phi, 2]:.2f}$^\\circ$",
-        fontsize=10,
-        va="top",
-        bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-    )
-    set_axis_properties(ax)
-
-    return (fig, ax)
 
 
 def set_axis_properties(axes: Axes):
@@ -834,8 +502,8 @@ def set_axis_properties(axes: Axes):
 
     Parameters
     ----------
-    axes
-        matplotlib Axes object
+    axes : `~matplotlib.axes.Axes`
+        Matplotlib Axes object.
     """
     axes.set_xlabel("$R$ [m]")
     axes.set_ylabel("$Z$ [m]")
@@ -846,52 +514,38 @@ def set_axis_properties(axes: Axes):
     axes.tick_params(direction="in", labelsize=10, which="both", top=True, right=True)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef void install_tetra_meshes(
+def install_tetra_meshes(
     zones: list[str] = ZONES[0] + ZONES[1],
-    tetra_mesh_path: Path | str = DEFAULT_TETRA_MESH_PATH,
+    tetra_mesh_path: Path | str = PATH_TO_STORAGE / "emc3/tetra/",
+    dataset: str = "grid-360",
     update: bool = True,
-    grid_group: str = "grid-360",
-    hdf5_path: Path | str = DEFAULT_HDF5_PATH,
 ):
-    """Create `~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files and install them
-    into a repository.
+    """Create `~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files and install them into a
+    repository.
 
-    Default repository is set to `.DEFAULT_TETRA_MESH_PATH`, and automatically created if it does
-    not exist. The file name is determined by each zone name like ``zone0.rsm``.
+    Default repository is set to `.../cherab/lhd/emc3/tetra.`, which is located in the user's
+    cache directory.
+    The directory is created if it does not exist.
+    The file name is determined by each zone name like ``zone0.rsm``.
 
     .. note::
 
-        It takes a lot of time to calculate all TetraMeshData instance because each zone has
+        It takes a lot of time to calculate all `TetraMeshData` instance because each zone has
         numerous number of grids.
 
     Parameters
     ----------
     zones : list[str], optional
-        List of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``
+        List of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``.
     tetra_mesh_path : Path | str, optional
         Path to the directory to save `TetraMeshData` .rsm files,
-        by default `.DEFAULT_TETRA_MESH_PATH`.
+        by default ``PATH_TO_STORAGE / "emc3/tetra/"``.
+    dataset : str, optional
+        Name of grid dataset, by default "grid-360".
     update : bool, optional
-        Whether or not to update existing TetraMeshData .rsm file, by default True.
-    **kwargs : `.Grid` properties, optional
-        `.Grid` properties except for ``zone`` argument.
+        Whether or not to update existing `TetraMeshData` .rsm file, by default True.
     """
-    cdef:
-        str zone
-        object tetra_path
-        Grid emc
-        np.ndarray[np.float64_t] vertices
-        np.ndarray[np.uint32_t] tetrahedra
-        TetraMeshData tetra
-
-    if isinstance(tetra_mesh_path, (Path, str)):
-        tetra_mesh_path = Path(tetra_mesh_path)
-    else:
-        raise TypeError("tetra_mesh_path must be a string or pathlib.Path instance.")
-
-    # make directory
+    tetra_mesh_path = path_validate(tetra_mesh_path)
     tetra_mesh_path.mkdir(parents=True, exist_ok=True)
 
     # populate each zone TetraMeshData instance
@@ -906,7 +560,7 @@ cpdef void install_tetra_meshes(
                 continue
 
             # Load EMC3 grid
-            emc = Grid(zone, grid_group=grid_group, hdf5_path=hdf5_path)
+            emc = Grid(zone, dataset=dataset)
 
             # prepare vertices and tetrahedral indices
             vertices = emc.generate_vertices()
