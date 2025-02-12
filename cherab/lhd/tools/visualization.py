@@ -14,6 +14,8 @@ from matplotlib.axis import XAxis, YAxis
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import AsinhNorm, Colormap, ListedColormap, LogNorm, Normalize, SymLogNorm
 from matplotlib.figure import Figure
+from matplotlib.offsetbox import AnchoredText
+from matplotlib.patheffects import withStroke
 from matplotlib.ticker import (
     AsinhLocator,
     AutoLocator,
@@ -31,7 +33,6 @@ from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
 from cherab.core.math import PolygonMask2D, sample2d
 
 from ..emc3.cython.mapper import Mapper
-from ..emc3.grid import Grid
 from ..machine import wall_outline
 from .samplers import sample3d_rz, sample_xy_plane
 
@@ -42,6 +43,7 @@ __all__ = [
     "set_axis_properties",
     "set_norm",
     "set_axis_format",
+    "add_inner_title",
     "CMAP_RED",
 ]
 
@@ -239,14 +241,7 @@ def show_profile_phi_degs(
 
         # annotation of toroidal angle
         if show_phi:
-            grids[i].text(
-                rmin + (rmax - rmin) * 0.02,
-                zmax - (zmax - zmin) * 0.02,
-                f"$\\phi=${phi_deg:.1f}°",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(grids[i], f"$\\phi=${phi_deg:.1f}°")
 
         # set each axis properties
         set_axis_properties(grids[i])
@@ -483,14 +478,7 @@ def show_profiles_rz_plane(
 
         # annotation of toroidal angle
         if isinstance(labels, Collection) and len(labels) >= len(profiles):
-            grids[i].text(
-                rmin + (rmax - rmin) * 0.02,
-                zmin - (zmax - zmin) * 0.02,
-                f"{labels[i]}",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(grids[i], f"{labels[i]}")
 
         # set each axis properties
         set_axis_properties(grids[i])
@@ -585,6 +573,8 @@ def show_basis_profiles(
         ImageGrid object.
     """
     # set grid object
+    from ..emc3.grid import Grid
+
     grid1, grid2 = Grid("zone0"), Grid("zone11")
 
     # sampling rate
@@ -664,14 +654,7 @@ def show_basis_profiles(
 
         # annotation of toroidal angle
         if show_phi:
-            ax.text(
-                rmin + (rmax - rmin) * 0.02,
-                zmax - (zmax - zmin) * 0.02,
-                f"$\\phi=${phi_degs[i % len(phi_degs)]:.1f}°",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(ax, f"$\\phi=${phi_degs[i % len(phi_degs)]:.1f}°")
 
         # set each axis properties
         set_axis_properties(ax)
@@ -1154,3 +1137,43 @@ def _set_leaner_width(vmin: float, vmax: float) -> float:
         Linear width of asinh/symlog norm.
     """
     return 10 ** (np.trunc(np.log10(max(abs(vmax), abs(vmin)))) - 2)
+
+
+def add_inner_title(
+    ax: Axes,
+    title: str,
+    loc: str = "upper left",
+    size: float = plt.rcParams["legend.fontsize"],
+    borderpad: float = 0.5,
+    **kwargs,
+):
+    """Add inner title to the axes.
+
+    The text is padded by borderpad and has white stroke effect.
+
+    Parameters
+    ----------
+    ax : `~matplotlib.axes.Axes`
+        Matplotlib Axes object.
+    title : str
+        Title text.
+    loc : str, optional
+        Location of the title, by default "upper left".
+    size : int, optional
+        Font size of the title, by default `plt.rcParams["legend.fontsize"]`.
+    borderpad : float, optional
+        Padding of the title, by default 0.5.
+    **kwargs
+        Keyword arguments for `~matplotlib.offsetbox.AnchoredText`.
+
+    Returns
+    -------
+    `~matplotlib.offsetbox.AnchoredText`
+        AnchoredText object.
+    """
+    prop = dict(path_effects=[withStroke(linewidth=3, foreground="w")], size=size)
+    at = AnchoredText(
+        title, loc=loc, prop=prop, pad=0.0, borderpad=borderpad, frameon=False, **kwargs
+    )
+    ax.add_artist(at)
+    return at
