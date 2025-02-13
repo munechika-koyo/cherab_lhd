@@ -61,7 +61,7 @@ class DataParser:
         ds = xr.open_dataset(grid_file)
         self.num_total = ds.attrs["num_total"]
         self.num_plasma = ds.attrs["num_plasma"]
-        self.num_plasma_vac = ds.attrs["num_plasma_vac"]
+        self.num_vacuum = ds.attrs["num_vacuum"]
 
     def plasma_radiation(self, filename: str = "RADIATION_1") -> NDArray[np.float64]:
         """Load plasma radiation data.
@@ -233,12 +233,12 @@ class DataParser:
 
             # validation
             if (
-                density_neutral[atom].size != self.num_plasma_vac
+                density_neutral[atom].size != self.num_vacuum
                 and density_neutral[atom].size != self.num_plasma
             ):
                 raise ValueError(
                     f"The size of {atom} density data ({density_neutral[atom].size}) "
-                    f"must be same as the number of plasma ({self.num_plasma_vac}) with vacuume cells"
+                    f"must be same as the number of plasma ({self.num_vacuum}) with vacuume cells"
                 )
 
         return density_neutral
@@ -296,10 +296,10 @@ class DataParser:
             )
 
             # validation
-            if temperature_neutral[atom].size != self.num_plasma_vac:
+            if temperature_neutral[atom].size != self.num_vacuum:
                 raise ValueError(
                     f"The size of {atom} electron data ({temperature_neutral[atom].size}) "
-                    f"must be same as the number of plasma with vacuume cells ({self.num_plasma_vac})"
+                    f"must be same as the number of plasma with vacuume cells ({self.num_vacuum})"
                 )
 
         return temperature_neutral
