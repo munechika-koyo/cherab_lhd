@@ -272,7 +272,6 @@ def install_indices(
                             description="toroidal angle at the center of each cell",
                         ),
                     ),
-                    RZ=(["RZ"], ["R", "Z"], dict(long_name="R-Z coordinates")),
                 ),
                 attrs=dict(
                     num_cells=num_cells,
