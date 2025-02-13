@@ -55,6 +55,8 @@ class Grid:
         Name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
     dataset : str, optional
         Name of dataset, by default ``"emc3/grid-360.nc"``.
+    **kwargs
+        Keyword arguments to pass to `.fetch_file`.
 
     Examples
     --------
@@ -62,12 +64,13 @@ class Grid:
 
         >>> grid = Grid("zone0")
         >>> grid
+        Grid(zone='zone0', dataset='/path/to/cache/cherab/lhd/emc3/grid-360.nc')
         >>> str(grid)
         'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(self, zone: str, dataset: str = "emc3/grid-360.nc", **kwargs) -> None:
-        # Fetch grid data
+        # Fetch grid dataset
         path = fetch_file(dataset, **kwargs)
 
         # Load grid dataset
