@@ -1,13 +1,9 @@
 _cython_tree = declare_dependency(sources: [
   fs.copyfile('__init__.py'),
-  fs.copyfile('grid.pxd'),
-  fs.copyfile('barycenters.pxd'),
 ])
 
 cython_sources = [
   ['geometry', 'geometry.pyx'],
-  ['grid', 'grid.pyx'],
-  ['barycenters', 'barycenters.pyx'],
 ]
 
 foreach file : cython_sources
@@ -23,7 +19,7 @@ endforeach
 
 python_sources = [
     '__init__.py',
-    'barycenters.pxd',
+    'barycenters.py',
     'curvilinear.py',
     'grid.py',
     'plasma.py'
