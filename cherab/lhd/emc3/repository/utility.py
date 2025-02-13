@@ -4,12 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ...tools.fetch import PATH_TO_STORAGE
-
-__all__ = ["DEFAULT_HDF5_PATH", "DEFAULT_TETRA_MESH_PATH", "exist_path_validate", "path_validate"]
-
-DEFAULT_HDF5_PATH = PATH_TO_STORAGE / "emc3.hdf5"
-DEFAULT_TETRA_MESH_PATH = PATH_TO_STORAGE / "tetra/"
+__all__ = ["exist_path_validate", "path_validate"]
 
 
 def exist_path_validate(path: Path | str) -> Path:
@@ -20,8 +15,13 @@ def exist_path_validate(path: Path | str) -> Path:
 
     Parameters
     ----------
-    path
-        path to a text file
+    path : Path | str
+        Path to a text file.
+
+    Returns
+    -------
+    Path
+        Path to the existing text file.
     """
     path = path_validate(path)
     if not path.exists():
@@ -37,8 +37,13 @@ def path_validate(path: Path | str) -> Path:
 
     Parameters
     ----------
-    path
-        arbitarary path
+    path : Path | str
+        Arbitrary path.
+
+    Returns
+    -------
+    Path
+        Path to the file or directory.
     """
     if isinstance(path, (Path, str)):
         path = Path(path)
