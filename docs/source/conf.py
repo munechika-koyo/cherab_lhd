@@ -57,12 +57,9 @@ autosummary_generate_overwrite = True
 autosummary_imported_members = True
 autosummary_ignore_module_all = False
 
-# napoleon config
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_param = True
-napoleon_use_ivar = False
+# numpydoc config
+numpydoc_show_class_members = False
+numpydoc_xref_param_type = True
 
 # todo config
 todo_include_todos = True

@@ -47,7 +47,7 @@ For Developers
 ==============
 If you want to install from source in order to contribute to develop `cherab-lhd`,
 `Pixi`_ is required for several development tasks, such as building the documentation and running the tests.
-Please install it by following the `Pixi Installation Guide<https://pixi.sh/latest#installation>` in advance.
+Please install it by following the `Pixi Installation Guide <https://pixi.sh/latest#installation>`_ in advance.
 
 Afterwards, you can install `cherab-lhd` by following three steps:
 

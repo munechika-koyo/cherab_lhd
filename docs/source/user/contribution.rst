@@ -20,7 +20,7 @@ the :ref:`installation procedure<installation>`.
 
 `Pixi`_ is required for several development tasks, such as building the documentation and running
 the tests.
-Please install it by following the `Pixi Installation Guide<https://pixi.sh/latest#installation>`
+Please install it by following the `Pixi Installation Guide <https://pixi.sh/latest#installation>`_
 in advance.
 
 .. note::
@@ -71,7 +71,7 @@ in advance.
 
             pixi run ipython
 
-        The IPython shell will be started with the `cherab-inversion` package installed.
+        The IPython shell will be started with the package installed.
 
 
 .. note::
