@@ -8,7 +8,7 @@ import numpy as np
 from scipy.sparse import bmat, csr_matrix, diags, lil_matrix
 
 from ...tools.spinner import Spinner
-from ..barycenters import CenterGrids
+from ..barycenters import CenterGrid
 from ..curvilinear import CurvCoords
 from .polygon import generate_boundary_map
 
@@ -30,8 +30,8 @@ class Derivative:
 
     Parameters
     ----------
-    grid : `.CenterGrids`
-        `.CenterGrids` instance of the EMC3-EIRENE-defined center grids.
+    grid : `.CenterGrid`
+        `.CenterGrid` instance of the EMC3-EIRENE-defined center grids.
     diff_type : {"forward", "central"}, optional
         Numerical differentiation type for radial and poloidal direction.
         The default is "forward", which means the forward difference method is used to calculate
@@ -39,20 +39,20 @@ class Derivative:
     """
 
     def __init__(
-        self, grid: CenterGrids, diff_type: Literal["forward", "central"] = "forward"
+        self, grid: CenterGrid, diff_type: Literal["forward", "central"] = "forward"
     ) -> None:
         self.grid = grid
         self.diff_type = diff_type
 
     @property
-    def grid(self) -> CenterGrids:
+    def grid(self) -> CenterGrid:
         """EMC3-EIRENE-defined center grids."""
         return self._grid
 
     @grid.setter
-    def grid(self, grid: CenterGrids) -> None:
-        if not isinstance(grid, CenterGrids):
-            raise TypeError(f"{grid=} must be an instance of {CenterGrids=}")
+    def grid(self, grid: CenterGrid) -> None:
+        if not isinstance(grid, CenterGrid):
+            raise TypeError(f"{grid=} must be an instance of {CenterGrid=}")
         self._grid = grid
 
     @property
@@ -326,8 +326,8 @@ def create_dmats_pairs_subdomains(
     # generate boundary map
     bmap = generate_boundary_map(zone1, zone2, index_type=index_type).tocsr()
 
-    grid1 = CenterGrids(zone1, index_type=index_type)
-    grid2 = CenterGrids(zone2, index_type=index_type)
+    grid1 = CenterGrid(zone1, index_type=index_type)
+    grid2 = CenterGrid(zone2, index_type=index_type)
 
     deriv1 = Derivative(grid1)
     deriv2 = Derivative(grid2)

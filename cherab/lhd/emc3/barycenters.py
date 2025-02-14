@@ -9,10 +9,10 @@ from numpy.typing import NDArray
 
 from ..tools.fetch import fetch_file
 
-__all__ = ["CenterGrids"]
+__all__ = ["CenterGrid"]
 
 
-class CenterGrids:
+class CenterGrid:
     """Class for center grids of EMC3-EIRENE grids.
 
     One EMC3-based cell is divided to six tetrahedra and the center point of each cell is defined
@@ -40,11 +40,11 @@ class CenterGrids:
     --------
     .. prompt:: python >>> auto
 
-        >>> cgrid = CenterGrids("zone0", index_type="cell")
+        >>> cgrid = CenterGrid("zone0", index_type="cell")
         >>> cgrid
-        CenterGrids(zone='zone0', index_type='cell', dataset='/path/to/cache/cherab/lhd/emc3/grid-360.nc')
+        CenterGrid(zone='zone0', index_type='cell', dataset='/path/to/cache/cherab/lhd/emc3/grid-360.nc')
         >>> str(cgrid)
-        'CenterGrids with cell index_type (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
+        'CenterGrid with cell index_type (zone: zone0, L: 82, M: 601, N: 37)'
     """
 
     def __init__(
@@ -58,14 +58,13 @@ class CenterGrids:
         path = fetch_file(dataset, **kwargs)
 
         # Load center points dataarray
-        self._da = xr.open_dataarray(path, group=f"{zone}/centers/{index_type}")
+        self._da = xr.open_dataset(path, group=f"{zone}/centers/{index_type}")["center_points"]
 
         # Set properties
         self._zone = zone
         self._index_type = index_type
         self._path = path
         self._shape = self._da.shape[0], self._da.shape[1], self._da.shape[2]
-        self._total: int = self._da.attrs["total"]
 
     def __repr__(self) -> str:
         return (
@@ -74,10 +73,10 @@ class CenterGrids:
         )
 
     def __str__(self) -> str:
-        L, M, N, total = (*self._shape, self._total)
+        L, M, N = self._shape
         return (
             f"{self.__class__.__name__} for (zone: {self.zone}, index_type: {self.index_type}, "
-            f"L: {L}, M: {M}, N: {N}, number of cells: {total})"
+            f"L: {L}, M: {M}, N: {N})"
         )
 
     def __getitem__(
@@ -92,7 +91,7 @@ class CenterGrids:
         --------
         .. prompt:: python >>> auto
 
-            >>> cgrid = CenterGrids("zone0")
+            >>> cgrid = CenterGrid("zone0")
             >>> cgrid[0, 0, 0, :]  # (l=0, m=0, n=0)
             array([ 3.59664909e+00,  7.84665944e-03, -5.75750000e-04])  # (x, y, z)
 
@@ -128,11 +127,6 @@ class CenterGrids:
     def shape(self) -> tuple[int, int, int]:
         """Shape of center grids."""
         return self._shape
-
-    @property
-    def total(self) -> int:
-        """Total number of center grids."""
-        return self._total
 
     @property
     def grid_data(self) -> NDArray[np.float64]:

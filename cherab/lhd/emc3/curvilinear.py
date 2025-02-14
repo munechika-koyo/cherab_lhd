@@ -5,7 +5,7 @@ from functools import cached_property
 import numpy as np
 from numpy.typing import NDArray
 
-from .barycenters import CenterGrids
+from .barycenters import CenterGrid
 
 __all__ = ["CurvCoords"]
 
@@ -21,13 +21,13 @@ class CurvCoords:
 
     Parameters
     ----------
-    grid : `.CenterGrids`
-        Instance of `.CenterGrids` class.
+    grid : `.CenterGrid`
+        Instance of `.CenterGrid` class.
     """
 
-    def __init__(self, grid: CenterGrids):
-        if not isinstance(grid, CenterGrids):
-            raise TypeError(f"grid must be a CenterGrids object, not {type(grid)}")
+    def __init__(self, grid: CenterGrid):
+        if not isinstance(grid, CenterGrid):
+            raise TypeError(f"grid must be a CenterGrid object, not {type(grid)}")
 
         self._grid = grid
 
@@ -38,7 +38,7 @@ class CurvCoords:
         return f"{self.__class__.__name__} with {self.grid}"
 
     @property
-    def grid(self) -> CenterGrids:
+    def grid(self) -> CenterGrid:
         """EMC3-EIRENE-defined center grids."""
         return self._grid
 

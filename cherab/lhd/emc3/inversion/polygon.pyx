@@ -8,13 +8,13 @@ from cherab.core.math cimport PolygonMask2D
 from raysect.core.math.random cimport uniform
 from raysect.core.math.function.float cimport Discrete2DMesh
 
-import h5py
 import numpy as np
+import xarray as xr
 from scipy.sparse import lil_matrix
 
 from ..grid import Grid
 from ..indices import create_2d_mesh
-from ..repository.utility import DEFAULT_HDF5_PATH
+from ...tools.fetch import fetch_file
 
 __all__ = ["points_inside_polygon", "generate_boundary_map"]
 
@@ -30,33 +30,33 @@ def points_inside_polygon(
     """Generate random points inside the polygon.
 
     This function is a wrapper of the Cython function
-    ``_points_inside_polygon``.
+    ``._points_inside_polygon``.
 
     The polygon is defined by the vertices of the EMC3 grid.
 
     Parameters
     ----------
     range_l : tuple[int, int]
-        range of radial indices
+        Range of radial indices.
     range_m : tuple[int, int]
-        range of poloidal indices
+        Range of poloidal indices.
     n : int
-        index number of toroidal direction, by default ``-1``
+        Index number of toroidal direction, by default -1.
     num_points : int
-        number of points to generate, by default ``200``
+        Number of points to generate, by default 200.
     zone : str
-        zone name, by default ``zone0``
+        Name of zone, by default ``"zone0"``.
 
     Returns
     -------
-    numpy.ndarray (N, 2)
-        array of points inside the polygon
+    (N, 2) ndarray
+        Array of points inside the polygon.
 
     Examples
     --------
     .. prompt:: python >>> auto
 
-        >>> points_inside = points_inside_polygon((10, 20), (10, 20), n=0, num_points=200, zone="zone0")
+        >>> points_inside = points_inside_polygon((10, 20), (10, 20), n=0, zone="zone0")
         >>> points_inside.shape
         (200, 2)
 
@@ -70,7 +70,7 @@ def points_inside_polygon(
         >>> plt.plot(grid[:, 20, 0, 0], grid[:, 20, 0, 1], "k-")  # plot poloidal lines (m=20)
         >>> plt.plot(grid[10, :, 0, 0], grid[10, :, 0, 1], "k-")  # plot poloidal lines (l=10)
         >>> plt.plot(grid[20, :, 0, 0], grid[20, :, 0, 1], "k-")  # plot poloidal lines (l=20)
-        >>> plt.plot(points_inside[:, 0], points_inside[:, 1], "r.")  # plot points inside the polygon
+        >>> plt.plot(points_inside[:, 0], points_inside[:, 1], "r.")  # plot points inside polygon
         >>> plt.xlim(points_inside[:, 0].min() - 0.1, points_inside[:, 0].max() + 0.1)
         >>> plt.ylim((points_inside[:, 1].min() - 0.1, points_inside[:, 1].max() + 0.1))
         >>> plt.xlabel("R (m)"); plt.ylabel("Z (m)")
@@ -123,20 +123,20 @@ cdef double[:, ::1] _points_inside_polygon(
     Parameters
     ----------
     range_l : tuple[int, int]
-        range of radial indices
+        Range of radial indices.
     range_m : tuple[int, int]
-        range of poloidal indices
+        Range of poloidal indices.
     n : int
-        index number of toroidal direction, by default ``-1``
+        Index number of toroidal direction, by default -1.
     num_points : int
-        number of points to generate, by default ``200``
+        Number of points to generate, by default 200.
     zone : str
-        zone name, by default ``zone0``
+        Name of zone, by default ``"zone0"``.
 
     Returns
     -------
-    MemoryView of numpy.ndarray (N, 2)
-        array of points inside the polygon
+    (N, 2) MemoryView
+        Array of points inside the polygon.
     """
     # Define local variables
     cdef:
@@ -205,7 +205,7 @@ cdef double[:, ::1] _points_inside_polygon(
 @cython.boundscheck(False)
 @cython.initializedcheck(False)
 @cython.wraparound(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 cpdef object generate_boundary_map(
     str zone1, str zone2, int num_points = 200, str index_type = "coarse"
 ):
@@ -214,18 +214,18 @@ cpdef object generate_boundary_map(
     Parameters
     ----------
     zone1 : str
-        zone name
+        Name of forward zone.
     zone2 : str
-        zone name
+        Name of backward zone
     num_points : int
-        number of points to generate, by default ``200``
-    index_type : str, optional
-        index type, by default ``coarse``
+        Number of points to generate, by default 200.
+    index_type : {"coarse", "cell"}
+        Index type, by default ``"coarse"``.
 
     Returns
     -------
-    scipy.sparse.lil_matrix (N, M)
-        boundary map
+    (N, M) scipy.sparse.lil_matrix
+        Array of boundary map between zone1 and zone2.
 
     Examples
     --------
@@ -234,8 +234,7 @@ cpdef object generate_boundary_map(
         >>> vmap = generate_boundary_map("zone0", "zone11", index_type="coarse")
     """
     cdef:
-        object file, ds
-        long[::1] radial_indices_mv, poloidal_indices_mv
+        long[::1] indices_radial_mv, indices_poloidal_mv
         np.uint32_t[:, :, ::1] indices_mv
         Discrete2DMesh mesh
         int bins
@@ -249,11 +248,11 @@ cpdef object generate_boundary_map(
         raise ValueError("Number of points must be positive")
 
     # load index data
-    with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
-        ds = file["grid-360"][zone1]["index"][index_type]
-        radial_indices_mv = ds.attrs["radial indices"]
-        poloidal_indices_mv = ds.attrs["poloidal indices"]
-        indices_mv = ds[:]
+    path = fetch_file("emc3/grid-360.hdf5")
+    groups = xr.open_groups(path)
+    indices_radial_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_radial"]
+    indices_poloidal_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_poloidal"]
+    indices_mv = groups[f"/{zone1}/index"][index_type].data
 
     # create 2D mesh
     mesh, bins = create_2d_mesh(zone2, 0)
@@ -263,15 +262,15 @@ cpdef object generate_boundary_map(
         (indices_mv[indices_mv.shape[0] - 1, indices_mv.shape[1] - 1, 0] + 1, bins),
         dtype=np.float64
     )
-    num_radial_index = radial_indices_mv.shape[0] - 1
+    num_radial_index = indices_radial_mv.shape[0] - 1
 
-    for m in range(0, poloidal_indices_mv.shape[0] - 1):
-        for l in range(0, radial_indices_mv.shape[0] - 1):
+    for m in range(0, indices_poloidal_mv.shape[0] - 1):
+        for l in range(0, indices_radial_mv.shape[0] - 1):
 
             # generate points inside the polygon
             points_inside_mv = _points_inside_polygon(
-                (radial_indices_mv[l], radial_indices_mv[l + 1]),
-                (poloidal_indices_mv[m], poloidal_indices_mv[m + 1]),
+                (indices_radial_mv[l], indices_radial_mv[l + 1]),
+                (indices_poloidal_mv[m], indices_poloidal_mv[m + 1]),
                 n=-1,
                 num_points=num_points,
                 zone=zone1,
