@@ -55,6 +55,9 @@ class Grid:
         Name of grid zone. Users can select only one option of ``"zone0"`` - ``"zone21"``.
     dataset : str, optional
         Name of dataset, by default ``"emc3/grid-360.nc"``.
+    grid_file : Path | str | None, optional
+        Path to the grid file. If specified, the grid dataset is loaded from the file preferentially.
+        Otherwise, the grid file is fetched from the repository.
     **kwargs
         Keyword arguments to pass to `.fetch_file`.
 
@@ -69,9 +72,22 @@ class Grid:
         'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
-    def __init__(self, zone: str, dataset: str = "emc3/grid-360.nc", **kwargs) -> None:
-        # Fetch grid dataset
-        path = fetch_file(dataset, **kwargs)
+    def __init__(
+        self,
+        zone: str,
+        dataset: str = "emc3/grid-360.nc",
+        grid_file: str | Path | None = None,
+        **kwargs,
+    ) -> None:
+        if grid_file is not None:
+            path = path_validate(grid_file)
+            if not path.exists():
+                raise FileNotFoundError(f"{path} does not exist.")
+            if not path.suffix == ".nc":
+                raise ValueError("grid_file must be a path to a NetCDF file.")
+        else:
+            # Fetch grid dataset
+            path = fetch_file(dataset, **kwargs)
 
         # Load grid dataset
         self._zone = zone
