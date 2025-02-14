@@ -12,10 +12,11 @@ import xarray as xr
 from rich.progress import Progress
 
 from ...tools.fetch import PATH_TO_STORAGE
+from ..cython.utility import compute_centers
 from .parse import DataParser
 from .utility import exist_path_validate, path_validate
 
-__all__ = ["install_grids", "install_indices", "install_data"]
+__all__ = ["install_grids", "install_indices", "install_center_points", "install_data"]
 
 # Define zone labels
 ZONES = [f"zone{i}" for i in range(0, 21 + 1)]
@@ -140,7 +141,7 @@ def install_grids(
                     ζ=(
                         ["ζ"],
                         angles,
-                        dict(long_name="toroidal angle", description="toroidal angle"),
+                        dict(units="deg", long_name="toroidal angle", description="toroidal angle"),
                     ),
                     RZ=(["RZ"], ["R", "Z"], dict(long_name="R-Z coordinates")),
                 ),
@@ -155,7 +156,7 @@ def install_grids(
             ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode, group=zone)
 
             # Advance progress
-            progress.advance(task_id=task_id)
+            progress.advance(task_id)
 
         # Save common variables for all zones
         ds = xr.Dataset(
@@ -173,7 +174,7 @@ def install_grids(
         ds.to_netcdf(save_dir / f"{filename}.nc", mode=mode)
 
         # Advance progress
-        progress.advance(task_id=task_id)
+        progress.advance(task_id)
 
 
 def install_indices(
@@ -256,18 +257,25 @@ def install_indices(
                 coords=dict(
                     ρ=(
                         ["ρ"],
-                        np.linspace(0, 1, L - 1, endpoint=True),
-                        dict(long_name="radial axis", description="normalized radial axis"),
+                        np.linspace(0, 1, L * 2 - 1, endpoint=True)[1::2],
+                        dict(
+                            long_name="radial axis",
+                            description="normalized radial axis at the center of each cell",
+                        ),
                     ),
                     θ=(
                         ["θ"],
-                        np.linspace(0, 1, M - 1, endpoint=True),
-                        dict(long_name="poloidal axis", description="normalized poloidal axis"),
+                        np.linspace(0, 1, M * 2 - 1, endpoint=True)[1::2],
+                        dict(
+                            long_name="poloidal axis",
+                            description="normalized poloidal axis at the center of each cell",
+                        ),
                     ),
                     ζ=(
                         ["ζ"],
                         np.linspace(phis[0], phis[-1], phis.size * 2 - 1, endpoint=True)[1::2],
                         dict(
+                            units="deg",
                             long_name="toroidal angle",
                             description="toroidal angle at the center of each cell",
                         ),
@@ -283,7 +291,7 @@ def install_indices(
             ds.to_netcdf(grid_file, mode="a", group=f"{zone}/index")
 
             # Advance progress
-            progress.advance(task_id=task_id)
+            progress.advance(task_id)
 
         # Save number of cells data
         with path.open(mode="r") as file:
@@ -296,7 +304,7 @@ def install_indices(
             ),
         )
         ds.to_netcdf(grid_file, mode="a")
-        progress.advance(task_id=task_id)
+        progress.advance(task_id)
 
 
 def _get_physics_cell_indices(
@@ -355,7 +363,10 @@ def _get_physics_cell_indices(
     return xr.DataArray(
         data=indices,
         dims=["ρ", "θ", "ζ"],
-        attrs=dict(units="", long_name="physical cell index"),
+        attrs=dict(
+            long_name="physical cell index",
+            description="Indices are defined for all zones.",
+        ),
     ), start
 
 
@@ -386,7 +397,7 @@ def _get_geometry_cell_indices(
 
     Returns
     -------
-    xr.DataArray | None
+    DataArray | None
         DataArray containing the geometry cell indices.
         If the zone is not in the valid zone list, return None.
     int
@@ -409,13 +420,16 @@ def _get_geometry_cell_indices(
     indices = np.arange(start, start + num_cells, dtype=np.uint32).reshape(
         (L - 1, M - 1, N - 1), order="F"
     )
-    start += num_cells
+    start = 0  # Reset start index
 
     # Create stored dataset
     return xr.DataArray(
         data=indices,
         dims=["ρ", "θ", "ζ"],
-        attrs=dict(units="", long_name="geometry cell index"),
+        attrs=dict(
+            long_name="geometry cell index",
+            description="Indices are defined only for one zone. The index starts from 0.",
+        ),
     ), start
 
 
@@ -463,13 +477,92 @@ def _get_coarse_indices(
         data=indices,
         dims=["ρ", "θ", "ζ"],
         attrs=dict(
-            units="",
             long_name="coarse cell index",
+            description="Indices are defined only for one zone. The index starts from 0.",
             indices_radial=indices_radial,
             indices_poloidal=indices_poloidal,
             indices_toroidal=indices_toroidal,
         ),
-    ), indices.max() + 1
+    ), 0
+
+
+def install_center_points(
+    grid_file: Path | str = PATH_TO_STORAGE / "emc3" / "grid-360.nc",
+) -> None:
+    from ..grid import Grid
+
+    # TODO: Implement the other zones
+    zones = ["zone0", "zone11"]
+
+    # TODO: Implement the other index types
+    index_types = ["coarse", "cell"]
+
+    # Define progress bar
+    progress = Progress()
+    task_id = progress.add_task("Installing center points...", total=len(zones) * len(index_types))
+
+    with progress:
+        for zone in zones:
+            grid = Grid(zone, grid_file=grid_file)
+            verts = grid.generate_vertices()
+            cells = grid.generate_cell_indices()
+            phis = grid.dataset["ζ"].values
+
+            del grid
+
+            for index_type in index_types:
+                indices = xr.open_dataset(grid_file, group=f"{zone}/index")[index_type].data
+
+                # Compute center points
+                centers = compute_centers(verts, cells, indices)
+
+                # Store center points
+                ds = xr.Dataset(
+                    data_vars=dict(
+                        center_points=(
+                            ["ρ", "θ", "ζ", "ΧΥΖ"],
+                            centers,
+                            dict(units="m", long_name="center points"),
+                        )
+                    ),
+                    coords=dict(
+                        ρ=(
+                            ["ρ"],
+                            np.linspace(0, 1, centers.shape[0] * 2 + 1, endpoint=True)[1::2],
+                            dict(
+                                long_name="radial axis",
+                                description="normalized radial axis at each center point",
+                            ),
+                        ),
+                        θ=(
+                            ["θ"],
+                            np.linspace(0, 1, centers.shape[1] * 2 + 1, endpoint=True)[1::2],
+                            dict(
+                                long_name="poloidal axis",
+                                description="normalized poloidal axis at each center point",
+                            ),
+                        ),
+                        ζ=(
+                            ["ζ"],
+                            np.linspace(phis[0], phis[-1], centers.shape[2] * 2 + 1, endpoint=True)[
+                                1::2
+                            ],
+                            dict(
+                                units="deg",
+                                long_name="toroidal angle",
+                                description="toroidal angle at each center point",
+                            ),
+                        ),
+                        ΧΥΖ=(["ΧΥΖ"], ["X", "Y", "Z"], dict(long_name="X-Y-Z coordinates")),
+                    ),
+                    attrs=dict(
+                        description=f"center points for {zone} with {index_type} index",
+                    ),
+                )
+                ds.to_netcdf(grid_file, mode="a", group=f"{zone}/centers/{index_type}")
+
+                # Advance progress
+                progress.advance(task_id)
 
 
 def install_data(
