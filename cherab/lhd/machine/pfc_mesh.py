@@ -40,10 +40,10 @@ COMPONENTS: dict[str, tuple[str, Material, float | None]] = {
 
 # How many times each PFC element must be copy-pasted
 NCOPY: dict[str, int] = defaultdict(lambda: 1)
-NCOPY["plates"] = 5
-NCOPY["divertor"] = 10
-# NCOPY["port_65u"] = 10
-# NCOPY["port_65l"] = 10
+NCOPY["First Wall"] = 5
+NCOPY["Divertor"] = 10
+# NCOPY["Port 65 Upper"] = 10
+# NCOPY["Port 65 Lower"] = 10
 
 # Offset toroidal angle
 ANG_OFFSET: dict[str, float] = defaultdict(lambda: 0.0)
@@ -187,14 +187,16 @@ def load_pfc_mesh(
 
 
 def visualize_pfc_meshes(
-    fig: Figure | None = None, fig_size: tuple[int, int] = (700, 500)
+    meshes: dict[str, list[Mesh]], fig: Figure | None = None, fig_size: tuple[int, int] = (700, 500)
 ) -> Figure:
     """Visualize plasma facing component meshes.
 
-    Display the mesh geometry set by default.
+    This function allows the user to visualize the plasma facing component meshes using plotly.
 
     Parameters
     ----------
+    meshes : dict[str, list[`~raysect.primitive.mesh.mesh.Mesh`]]
+        Containing mesh name and `~raysect.primitive.mesh.mesh.Mesh` objects.
     fig : `~plotly.graph_objects.Figure`, optional
         Plotly Figure object, by default `~plotly.graph_objects.Figure`.
     fig_size : tuple[int, int], optional
@@ -209,7 +211,13 @@ def visualize_pfc_meshes(
     --------
     .. prompt:: python
 
-        fig = visualize_pfc_meshes(fig_size=(700, 500))
+        from raysect.optical import World
+        from cherab.lhd.machine.pfc_mesh import load_pfc_mesh, visualize_pfc_meshes
+
+        world = World()
+        meshes = load_pfc_mesh(world)
+
+        fig = visualize_pfc_meshes(meshes, fig_size=(700, 500))
         fig.show()
 
     The above codes automatically launch a browser to show the figure when it is executed in
@@ -219,10 +227,6 @@ def visualize_pfc_meshes(
     """
     if fig is None or not isinstance(fig, Figure):
         fig = go.Figure()
-
-    # load meshes
-    world = World()
-    meshes = load_pfc_mesh(world, reflection=False)
 
     for _, mesh_list in meshes.items():
         for mesh in mesh_list:
