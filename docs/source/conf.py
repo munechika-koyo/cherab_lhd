@@ -34,7 +34,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx-prompt",
@@ -44,13 +43,12 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_codeautolink",
     "sphinx_github_style",
+    "numpydoc",
 ]
 
 default_role = "obj"
 
 # autodoc config
-autodoc_typehints = "description"
-autodoc_typehints_format = "short"
 autodoc_member_order = "bysource"
 
 # autosummary config
@@ -154,6 +152,7 @@ html_css_files = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "xarray": ("https://xarray.pydata.org/en/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "raysect": ("http://www.raysect.org", None),
