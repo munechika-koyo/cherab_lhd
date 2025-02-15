@@ -215,7 +215,8 @@ doc-build = { cmd = [
     "docs/build/html",
 ], description = "📝 Build the docs" }
 doc-clean = { cmd = [
-    "rm -rf",
+    "rm",
+    "-rf",
     "docs/build",
     "docs/source/_api",
 ], description = "🔥 Clean the docs build & api directory" }
