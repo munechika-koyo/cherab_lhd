@@ -8,7 +8,7 @@ from raysect.primitive import Cylinder
 
 from cherab.lhd.tools.spinner import DummySpinner, Spinner
 
-from ..indices import create_index_func
+from ..indices import load_index_func
 from .emitters import Discrete3DMeshRayTransferEmitter
 
 __all__ = ["load_rte"]
@@ -61,7 +61,7 @@ def load_rte(
         # Load index function
         for zone in zones:
             sp.text = base_text + f"({zone=}, {index_type=})"
-            index_func, bins = create_index_func(zone=zone, index_type=index_type)
+            index_func, bins = load_index_func(zone=zone, index_type=index_type)
 
             # material as emitter
             material = Discrete3DMeshRayTransferEmitter(index_func, bins, integration_step=0.001)
