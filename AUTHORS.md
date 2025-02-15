@@ -6,3 +6,4 @@ Core Team
 
 Contributors
 ------------
+* Anyone is welcome!!
