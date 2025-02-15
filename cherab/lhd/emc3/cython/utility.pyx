@@ -88,6 +88,11 @@ cpdef np.ndarray compute_centers(
     N_new = np.unique(indices[0, 0, :]).size
     total = L_new * M_new * N_new
 
+    if total < indices.max() + 1:
+        raise ValueError(
+            "The resolution of the new grid is lower than the maximum value of indices."
+        )
+
     # Calculate center of each cell (with specific resolution)
     verts_rec = np.zeros((total, 3), dtype=float)
     verts_rec_mv = verts_rec
