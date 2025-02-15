@@ -1,6 +1,8 @@
-_cython_tree = declare_dependency(sources: [
-  fs.copyfile('__init__.py'),
-])
+_cython_tree = declare_dependency(
+  sources: [
+    fs.copyfile('__init__.py'),
+  ],
+)
 
 cython_sources = [
   ['geometry', 'geometry.pyx'],
@@ -16,20 +18,19 @@ foreach file : cython_sources
   )
 endforeach
 
-
 python_sources = [
-    '__init__.py',
-    'barycenters.py',
-    'curvilinear.py',
-    'grid.py',
-    'plasma.py'
+  '__init__.py',
+  'barycenters.py',
+  'curvilinear.py',
+  'grid.py',
+  'plasma.py',
+  'indices.py',
 ]
 
 py.install_sources(
   python_sources,
   subdir: 'cherab/lhd/emc3',
 )
-
 
 subdir('cython')
 subdir('raytransfer')

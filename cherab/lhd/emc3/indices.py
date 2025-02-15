@@ -1,17 +1,17 @@
 """This module provides functions to create index function for EMC3."""
 
-import h5py
+import h5py  # noqa: F401
 import numpy as np
-from numpy.typing import NDArray
+import xarray as xr
 from raysect.core.math import triangulate2d
 from raysect.core.math.function.float import Discrete2DMesh
 from raysect.primitive.mesh import TetraMeshData
 
+from ..tools.fetch import fetch_file
 from .cython import Discrete3DMesh
 from .grid import Grid
-from .repository.utility import DEFAULT_HDF5_PATH, DEFAULT_TETRA_MESH_PATH
 
-__all__ = ["create_index_func", "create_new_index", "create_2d_mesh"]
+__all__ = ["load_index_func", "create_2d_mesh"]
 
 
 ZONE_MATCH = {
@@ -26,148 +26,73 @@ ZONE_MATCH = {
 }
 
 
-def create_index_func(
-    zone: str, index_type="cell", load_tetra_mesh: bool = True
+def load_index_func(
+    zone: str,
+    index_type: str = "cell",
+    load_tetra_mesh: bool = True,
+    dataset: str = "emc3/grid-360.nc",
+    **kwargs,
 ) -> tuple[Discrete3DMesh, int] | int:
-    """Create index function using :obj:`.Discrete3DMesh`.
-
-    The index data must be stored in ``grid-360`` group in HDF5 file.
+    """Create index function using `.Discrete3DMesh`.
 
     Parameters
     ----------
-    zone : str
+    zone : {"zone0",..., "zone4", "zone11",..., "zone15"}
         Zone name.
     index_type : {"cell", "physics", "coarse"}, optional
         Index type, by default ``"cell"``.
     load_tetra_mesh : bool, optional
         Whether to load tetra mesh, by default True. If False, return only number of indices (bins).
+    dataset : str, optional
+        Dataset name, by default ``"emc3/grid-360.nc"``.
+    **kwargs
+        Keyword arguments to pass to `.fetch_file`.
 
     Returns
     -------
     tuple[Discrete3DMesh, int] | int
         Index function and number of indices (bins) or only number of indices (bins).
     """
-    _create_index = False
-    with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
-        try:
-            indices: NDArray[np.uint32] = file["grid-360"][zone]["index"][index_type][:]
+    # Fetch index data
+    path = fetch_file(dataset, **kwargs)
+    groups = xr.open_groups(path)
 
-        except Exception:
-            _create_index = True
-
-    if _create_index:
-        indices = create_new_index(index_type, zone)
-
-    # load tetra mesh
-    # NOTE: implement rich progress bar
+    # Load tetrahedra mesh
     if load_tetra_mesh:
-        if (rsm_path := DEFAULT_TETRA_MESH_PATH / f"{zone}.rsm").exists():
-            tetra = TetraMeshData.from_file(rsm_path)
-        else:
-            raise FileNotFoundError(f"{rsm_path.name} file does not exist.")
+        path_tetra = fetch_file(f"tetra/{zone}.rsm", **kwargs)
+        tetra = TetraMeshData.from_file(path_tetra)
     else:
-        return indices.max() + 1
+        return groups[f"/{zone}/index"][index_type].data.max() + 1
 
-    # procedure for the specific index type
+    # Procedure for the specific index type
+    indices = groups[f"/{zone}/index"][index_type].data
     if index_type == "physics":
         indices2 = indices
     else:
-        # create indices when phi is out of range [0, 18] in degree
+        # Create indices when phi is out of range [0, 18] in degree
         if zone in {"zone0", "zone11"}:
             indices2 = indices[:, ::-1, :]
         else:
-            # match corresponding zone's indices
-            with h5py.File(DEFAULT_HDF5_PATH, mode="r") as file:
-                zone2 = ZONE_MATCH[zone]
-                indices2: NDArray[np.uint32] = file["grid-360"][zone2]["index"][index_type][:]
+            # Match corresponding zone's indices
+            zone2 = ZONE_MATCH[zone]
+            indices2 = groups[f"/{zone2}/index"][index_type].data
 
-    # vectorize index array
+    # Vectorize index array
     index1_1d = indices.ravel(order="F")
     index2_1d = indices2.ravel(order="F")
 
     return Discrete3DMesh(tetra, index1_1d, index2_1d), indices.max() + 1
 
 
-def create_new_index(index_type: str, zone: str) -> NDArray[np.uint32]:
-    """Create new index array.
-
-    The created index data will be stored in HDF5 file at :obj:`.DEFAULT_HDF5_PATH`.
-
-    Parameters
-    ----------
-    index_type : {"coarse"}
-        Index type. `"coars"` is only supported now.
-    zone : str
-        Zone name.
-
-    Returns
-    -------
-    NDArray[np.uint32]
-        Index array.
-    """
-
-    grid = Grid(zone)
-    L, M, N = grid.shape
-
-    match index_type:
-        case "coarse":
-            # reduce the resolution of the grid
-            # TODO: consider others except for zone0 and zone11
-            radial_slice = [17, 41, L]
-            radial_step = [1, 4, 4]
-            poloidal_step = 6
-            toroidal_step = 4
-            radial_indices = (
-                [i for i in range(0, radial_slice[0], radial_step[0])]
-                + [i for i in range(radial_slice[0], radial_slice[1], radial_step[1])]
-                + [i for i in range(radial_slice[1], radial_slice[2], radial_step[2])]
-            )
-            poloidal_indices = [i for i in range(0, M, poloidal_step)]
-            toroidal_indices = [i for i in range(0, N, toroidal_step)]
-
-            num_radial_index = len(radial_indices) - 1
-            num_poloidal_index = len(poloidal_indices) - 1
-            num_toroidal_index = len(toroidal_indices) - 1
-
-            indices = np.zeros((L - 1, M - 1, N - 1), dtype=np.uint32)
-
-            for i in range(num_radial_index):
-                for j in range(num_poloidal_index):
-                    for k in range(num_toroidal_index):
-                        indices[
-                            radial_indices[i] : radial_indices[i + 1],
-                            poloidal_indices[j] : poloidal_indices[j + 1],
-                            toroidal_indices[k] : toroidal_indices[k + 1],
-                        ] = i + j * num_radial_index + k * num_radial_index * num_poloidal_index
-
-            # save index array as dataset
-            with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
-                index_group = file["grid-360"][zone]["index"]
-                ds = index_group.create_dataset(name=index_type, data=indices)
-
-                # save attribution information
-                ds.attrs["description"] = "coarse grid index"
-                ds.attrs["shape description"] = "radial index, poloidal index, toroidal index"
-                ds.attrs["L"] = L - 1
-                ds.attrs["M"] = M - 1
-                ds.attrs["N"] = N - 1
-                ds.attrs["radial indices"] = radial_indices
-                ds.attrs["poloidal indices"] = poloidal_indices
-                ds.attrs["toroidal indices"] = toroidal_indices
-
-        case _:
-            raise ValueError(f"Invalid index type: {index_type}")
-
-    return indices
-
-
 def create_2d_mesh(
-    zone: str, n_phi: int, index_type="coarse", default_value: int = -1
+    zone: str,
+    n_phi: int,
+    index_type="coarse",
+    dataset: str = "emc3/grid-360.nc",
+    default_value: int = -1,
 ) -> tuple[Discrete2DMesh, int]:
-    """:obj:`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance of
-    the EMC3 poloidal plane.
-
-    The index data must be stored in ``grid-360`` group in HDF5 file.
+    """`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance of the
+    EMC3 poloidal plane.
 
     Parameters
     ----------
@@ -176,7 +101,9 @@ def create_2d_mesh(
     n_phi : int
         Index number of toroidal direction.
     index_type : {"cell", "physics", "coarse"}, optional
-        Index type, by default ``cell``.
+        Index type, by default ``coarse``.
+    dataset : str, optional
+        Dataset name, by default ``"emc3/grid-360.nc"``.
     default_value : int, optional
         Default mesh value, by default ``-1``.
 
@@ -185,67 +112,63 @@ def create_2d_mesh(
     tuple[Discrete2DMesh, int]
         Index function and number of indices.
     """
-    grid = Grid(zone)
+    grid = Grid(zone, dataset=dataset)
+    groups = xr.open_groups(fetch_file(dataset))
 
-    with h5py.File(DEFAULT_HDF5_PATH, mode="r+") as file:
-        try:
-            ds = file["grid-360"][zone]["index"][index_type]
+    match index_type:
+        case "coarse":
+            indices_radial = groups[f"/{zone}/index/coarse"].attrs["indices_radial"]
+            indices_poloidal = groups[f"/{zone}/index/coarse"].attrs["indices_poloidal"]
 
-            match index_type:
-                case "coarse":
-                    radial_indices: np.ndarray = ds.attrs["radial indices"]
-                    poloidal_indices: np.ndarray = ds.attrs["poloidal indices"]
+        case "cell" | "physics":
+            L, M, _ = grid.shape
+            indices_radial = [i for i in range(0, L)]
+            indices_poloidal = [i for i in range(0, M)]
 
-                case _:
-                    L, M, _ = grid.shape
-                    radial_indices: list = [i for i in range(0, L)]
-                    poloidal_indices: list = [i for i in range(0, M)]
-
-        except Exception as err:
-            raise ValueError(f"Invalid index type: {index_type}") from err
+        case _:
+            raise ValueError(f"Invalid index type: {index_type}")
 
     index = 0
-    for m in range(0, len(poloidal_indices) - 1):
-        for l in range(0, len(radial_indices) - 1):  # noqa: E741
-            m0, m1 = poloidal_indices[m], poloidal_indices[m + 1]
-            l0, l1 = radial_indices[l], radial_indices[l + 1]
+    for l, m in np.ndindex(len(indices_radial) - 1, len(indices_poloidal) - 1):  # noqa: E741
+        m0, m1 = indices_poloidal[m], indices_poloidal[m + 1]
+        l0, l1 = indices_radial[l], indices_radial[l + 1]
 
-            # create polygon's vertices
-            # dealing with l0 = 0 (remove coincident points)
-            if l0 == 0:
-                _verts = np.vstack(
-                    (
-                        grid[l0:l1, m0, n_phi, 0:2],
-                        grid[l1, m0:m1, n_phi, 0:2],
-                        grid[l1:l0:-1, m1, n_phi, 0:2],
-                    )
+        # create polygon's vertices
+        # dealing with l0 = 0 (remove coincident points)
+        if l0 == 0:
+            _verts = np.vstack(
+                (
+                    grid[l0:l1, m0, n_phi, 0:2],
+                    grid[l1, m0:m1, n_phi, 0:2],
+                    grid[l1:l0:-1, m1, n_phi, 0:2],
                 )
-            else:
-                _verts = np.vstack(
-                    (
-                        grid[l0:l1, m0, n_phi, 0:2],
-                        grid[l1, m0:m1, n_phi, 0:2],
-                        grid[l1:l0:-1, m1, n_phi, 0:2],
-                        grid[l0, m1:m0:-1, n_phi, 0:2],
-                    )
+            )
+        else:
+            _verts = np.vstack(
+                (
+                    grid[l0:l1, m0, n_phi, 0:2],
+                    grid[l1, m0:m1, n_phi, 0:2],
+                    grid[l1:l0:-1, m1, n_phi, 0:2],
+                    grid[l0, m1:m0:-1, n_phi, 0:2],
                 )
+            )
 
-            # triangulate polygon
-            _triangles = triangulate2d(_verts)
+        # triangulate polygon
+        _triangles = triangulate2d(_verts)
 
-            # set index value to all triangles
-            _data = np.full(_triangles.shape[0], index, dtype=np.int32)
+        # set index value to all triangles
+        _data = np.full(_triangles.shape[0], index, dtype=np.int32)
 
-            if index == 0:
-                verts = _verts.copy()
-                triangles = _triangles.copy()
-                data = _data.copy()
-            else:
-                verts = np.vstack((verts, _verts))
-                triangles = np.vstack((triangles, _triangles + triangles.max() + 1))
-                data = np.hstack((data, _data))
+        if index == 0:
+            verts = _verts.copy()
+            triangles = _triangles.copy()
+            data = _data.copy()
+        else:
+            verts = np.vstack((verts, _verts))
+            triangles = np.vstack((triangles, _triangles + triangles.max() + 1))
+            data = np.hstack((data, _data))
 
-            index += 1
+        index += 1
 
     # create 2d mesh
     mesh = Discrete2DMesh(verts, triangles, data, limit=False, default_value=default_value)
@@ -254,4 +177,4 @@ def create_2d_mesh(
 
 
 if __name__ == "__main__":
-    res = create_index_func("zone0", "cell")
+    res = load_index_func("zone0", "cell")
