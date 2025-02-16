@@ -1,5 +1,5 @@
-"""Module for tetrahedralization
-"""
+"""Module for tetrahedralization."""
+
 import numpy as np
 
 cimport cython
@@ -18,17 +18,18 @@ import_array()
 @cython.initializedcheck(False)
 cpdef ndarray[uint32_t, ndim=2] tetrahedralize(ndarray cells):
     """Generate tetrahedral indices from cell indices array.
+
     One cubic-like cell having 8 vertices is divided to 6 tetrahedra.
 
     Parameters
     ----------
-    cells : :obj:`~numpy.ndarray`
-        cell indices 2D array, the shape of which is :math:`(N, 8)`.
+    cells : (N, 8) ndarray
+        Cell indices 2D array.
 
     Return
     ------
-    :obj:`~numpy.ndarray`
-        tetrahedra indices array, the shape of which is :math:`(6N, 4)`.
+    (6N, 4) ndarray
+        Tetrahedra indices array.
 
     Example
     -------

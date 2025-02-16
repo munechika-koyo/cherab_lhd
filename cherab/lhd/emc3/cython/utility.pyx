@@ -1,4 +1,5 @@
 """Module to provide utility functions for the EMC3 package."""
+
 cimport cython
 cimport numpy as np
 from numpy cimport import_array

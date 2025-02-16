@@ -1,5 +1,5 @@
-"""Module to offer mapping classes
-"""
+"""Module to offer mapping classes."""
+
 import numbers
 
 cimport cython
@@ -12,15 +12,20 @@ __all__ = ["Mapper", "IndexMapper"]
 cdef class Mapper(Function3D):
     """Mapping data array to function retuning its index value.
 
-    This instance is callable function returning the element of 1-D `.data` array, the index of which
-    is given by a Index function defined in 3-D space.
+    This instance is callable function returning the element of 1-D `.data` array,
+    the index of which is given by a Index function defined in 3-D space.
 
     If the index function returns an integer which is out of bounds or negative,
     an instance returns a default value defined by `.default_value`.
 
-    :param IntegerFunction3D index_func: callable returning a index integer.
-    :param array-like data: An 1D array of data.
-    :param double default_value: The value to return outside the data size limits, by default 0.0.
+    Parameters
+    ----------
+    index_func : callable[[float, float, float], int]
+        Callable returning a index integer.
+    data : (N, ) array_like
+        An 1D array of data.
+    default_value : float, optional
+        The value to return outside the data size limits, by default 0.0.
     """
 
     def __init__(self, object index_func not None, object data not None, double default_value=0.0):
@@ -86,20 +91,24 @@ cdef class Mapper(Function3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef bint inside_grids(self, double x, double y, double z):
-        """mask function returning True if Point (x, y, z) in any grids, otherwise False.
+        """Mask function returning True if Point (x, y, z) in any grids, otherwise False.
         """
         return self._index_func(x, y, z) > -1
 
 
 cdef class AddMapper(Mapper):
-    """
-    A Function3D class that implements the addition of the results of two Mapper objects: f1() + f2()
+    """A Function3D class that implements the addition of the results of two Mapper objects:
+    f1() + f2()
 
     This class is not intended to be used directly, but rather returned as the result of an
     __add__() call on a Function3D object.
 
-    :param mapper1: A Mapper object.
-    :param mapper2: A Mapper object.
+    Parameters
+    ----------
+    mapper1 : Mapper
+        A Mapper object
+    mapper2 : Mapper
+        A Mapper object
     """
 
     def __init__(self, object mapper1, object mapper2):
@@ -112,14 +121,18 @@ cdef class AddMapper(Mapper):
 
 
 cdef class AddScalarMapper(Mapper):
-    """
-    A Mapper class that implements the addition of scalar and the result of a Mapper object: K + f()
+    """A Mapper class that implements the addition of scalar and the result of a Mapper object:
+    K + f()
 
     This class is not intended to be used directly, but rather returned as the result of an
     __add__() call on a Mapper object.
 
-    :param value: A double value.
-    :param mapper: A Mapper object.
+    Parameters
+    ----------
+    value : float
+        A double value.
+    mapper : Mapper
+        A Mapper object.
     """
 
     def __init__(self, double value, Mapper mapper):
@@ -140,9 +153,14 @@ cdef class IndexMapper(IntegerFunction3D):
     If the index function returns an integer which is out of bounds or negative,
     an instance returns a default value defined by `.default_value`.
 
-    :param IntegerFunction3D index_func: callable returning an index value.
-    :param array-like indices: An 1D array of indices.
-    :param double default_value: The value to return outside limits, by default -1.
+    Parameters
+    ----------
+    index_func : callable[[float, float, float], int]
+        Callable returning a index integer.
+    indices : (N, ) array_like
+        An 1D array of indices.
+    default_value : int, optional
+        The value to return outside the indices size limits, by default -1.
     """
 
     def __init__(self, object index_func not None, object indices not None, int default_value=-1):
@@ -198,5 +216,5 @@ cdef class IndexMapper(IntegerFunction3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef bint inside_grids(self, double x, double y, double z):
-        """mask function returning True if Point (x, y, z) in any grids, otherwise False."""
+        """Mask function returning True if Point (x, y, z) in any grids, otherwise False."""
         return self._index_func(x, y, z) > -1
