@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import h5py
+import h5py  # noqa: F401
+import xarray as xr
 from matplotlib import pyplot as plt
 from raysect.core import Vector3D, translate
 from raysect.core.math.function.float.function3d.base import Function3D
@@ -18,10 +19,10 @@ from cherab.core.model import Bremsstrahlung, ExcitationLine, RecombinationLine
 from cherab.openadas import OpenADAS
 
 from ..tools import Spinner
+from ..tools.fetch import fetch_file
 from ..tools.visualization import show_profile_phi_degs
 from .cython import Mapper
-from .geometry import PhysIndex
-from .repository.utility import DEFAULT_HDF5_PATH
+from .indices import load_index_func
 
 __all__ = ["import_plasma", "LHDSpecies"]
 
@@ -32,6 +33,20 @@ RMAX = 5.5
 ZMIN = -1.6
 ZMAX = 1.6
 
+# Default Zones
+ZONES = [
+    "zone0",
+    "zone1",
+    "zone2",
+    "zone3",
+    "zone4",
+    "zone11",
+    "zone12",
+    "zone13",
+    "zone14",
+    "zone15",
+]
+
 # Default Distribution Function
 DENSITY = Constant3D(1.0e19)  # [1/m^3]
 TEMPERATURE = Constant3D(1.0e2)  # [eV]
@@ -39,7 +54,13 @@ BULK_V = ConstantVector3D(Vector3D(0, 0, 0))
 
 
 @Spinner(text="Loading Plasma Object...", timer=True)
-def import_plasma(parent: _NodeBase, species: Species | None = None) -> Plasma:
+def import_plasma(
+    parent: _NodeBase,
+    species: Species | None = None,
+    zones: list[str] = ZONES,
+    dataset: str = "emc3/grid-360.nc",
+    **kwargs,
+) -> Plasma:
     """Helper function of generating LHD plasma.
 
     As emissions, Hɑ, Hβ, Hγ, Hδ are applied.
@@ -51,6 +72,10 @@ def import_plasma(parent: _NodeBase, species: Species | None = None) -> Plasma:
     species : `~cherab.core.Species`, optional
         User-defined species object having composition which is a list of `~cherab.core.Species`
         objects and electron distribution function attributes, by default `.LHDSpecies`.
+    zones : list[str], optional
+        List of zone names, by default `["zone0", "zone1", "zone2", "zone3", "zone4", "zone11", "zone12", "zone13", "zone14", "zone15"]`.
+    dataset : str, optional
+        Name of dataset, by default ``"emc3/grid-360.nc"``.
 
     Returns
     -------
@@ -80,7 +105,7 @@ def import_plasma(parent: _NodeBase, species: Species | None = None) -> Plasma:
     plasma.geometry_transform = translate(0, 0, ZMIN)
 
     # apply species to plasma
-    species = species or LHDSpecies()
+    species = species or LHDSpecies(zones=zones, dataset=dataset, **kwargs)
     plasma.composition = species.composition
     plasma.electron_distribution = species.electron_distribution
 
@@ -112,6 +137,15 @@ def import_plasma(parent: _NodeBase, species: Species | None = None) -> Plasma:
 class LHDSpecies:
     """Class representing LHD plasma species.
 
+    Parameters
+    ----------
+    zones : list[str], optional
+        List of zone names, by default `["zone0", "zone1", "zone2", "zone3", "zone4", "zone11", "zone12", "zone13", "zone14", "zone15"]`.
+    dataset : str, optional
+        Name of dataset, by default ``"emc3/grid-360.nc"``.
+    **kwargs
+        Keyword arguments for `.fetch_file`.
+
     Attributes
     ----------
     electron_distribution : `~cherab.core.distribution.Maxwellian`
@@ -121,60 +155,65 @@ class LHDSpecies:
         density_distribution, temperature_distribution, bulk_velocity_distribution.
     """
 
-    def __init__(self):
-        # Load dataset from HDF5 file
-        with h5py.File(DEFAULT_HDF5_PATH, mode="r") as h5file:
-            # load index function
-            func = PhysIndex()
+    def __init__(
+        self, zones: list[str] = ZONES, dataset: str = "emc3/grid-360.nc", **kwargs
+    ) -> None:
+        path = fetch_file(dataset, **kwargs)
 
-            # data group
-            data_group = h5file["grid-360/data/"]
+        # Load index functions
+        funcs = []
+        for zone in zones:
+            func, _ = load_index_func(zone, index_type="physics", dataset=dataset)
+            funcs.append(func)
 
-            bulk_velocity = ConstantVector3D(Vector3D(0, 0, 0))
+        funcs = sum(funcs)
 
-            # set electron distribution assuming Maxwellian
-            self.electron_distribution = Maxwellian(
-                Mapper(func, data_group["density/electron"][:]),
-                Mapper(func, data_group["temperature/electron"][:]),
-                bulk_velocity,
-                electron_mass,
-            )
+        # data group
+        data_tree = xr.open_datatree(path, group="data")
+        bulk_velocity = ConstantVector3D(Vector3D(0, 0, 0))
+        # set electron distribution assuming Maxwellian
+        self.electron_distribution = Maxwellian(
+            Mapper(funcs, data_tree["density/electron"].data),
+            Mapper(funcs, data_tree["temperature/electron"].data),
+            bulk_velocity,
+            electron_mass,
+        )
+        # initialize composition
+        self.composition = []
+        # append species to composition list
+        # H
+        self.set_species(
+            "hydrogen",
+            0,
+            density=Mapper(funcs, data_tree["density/H"].data),
+            temperature=Mapper(funcs, data_tree["temperature/H"].data),
+        )
 
-            # initialize composition
-            self.composition = []
+        # H+
+        self.set_species(
+            "hydrogen",
+            1,
+            density=Mapper(funcs, data_tree["density/H+"].data),
+            temperature=Mapper(funcs, data_tree["temperature/ion"].data),
+        )
 
-            # append species to composition list
-            # H
+        # C1+ - C6+
+        for i in range(1, 7):
             self.set_species(
-                "hydrogen",
-                0,
-                density=Mapper(func, data_group["density/H"]),
-                temperature=Mapper(func, data_group["temperature/H"]),
+                "carbon",
+                i,
+                density=Mapper(funcs, data_tree[f"density/C{i}+"]),
+                temperature=Mapper(funcs, data_tree["temperature/ion"]),
             )
-            # H+
-            self.set_species(
-                "hydrogen",
-                1,
-                density=Mapper(func, data_group["density/H+"]),
-                temperature=Mapper(func, data_group["temperature/ion"]),
-            )
-            # C1+ - C6+
-            for i in range(1, 7):
-                self.set_species(
-                    "carbon",
-                    i,
-                    density=Mapper(func, data_group[f"density/C{i}+"]),
-                    temperature=Mapper(func, data_group["temperature/ion"]),
-                )
 
-            # Ne1+ - Ne10+
-            for i in range(1, 11):
-                self.set_species(
-                    "neon",
-                    i,
-                    density=Mapper(func, data_group[f"density/Ne{i}+"]),
-                    temperature=Mapper(func, data_group["temperature/ion"]),
-                )
+        # Ne1+ - Ne10+
+        for i in range(1, 11):
+            self.set_species(
+                "neon",
+                i,
+                density=Mapper(funcs, data_tree[f"density/Ne{i}+"]),
+                temperature=Mapper(funcs, data_tree["temperature/ion"]),
+            )
 
     def __repr__(self):
         return f"{self.composition}"
@@ -231,7 +270,7 @@ class LHDSpecies:
         # plot electron distribution
         fig, _ = show_profile_phi_degs(
             self.electron_distribution._density,
-            masked="wall",
+            mask="wall",
             clabel="density [1/m$^3$]",
             resolution=res,
         )
@@ -239,7 +278,7 @@ class LHDSpecies:
 
         fig, _ = show_profile_phi_degs(
             self.electron_distribution._temperature,
-            masked="wall",
+            mask="wall",
             clabel="temperature [eV]",
             resolution=res,
         )
@@ -257,7 +296,7 @@ class LHDSpecies:
                 ["density [1/m$^3$]", "temperature [eV]"],
                 strict=True,
             ):
-                fig, _ = show_profile_phi_degs(func, masked="wall", clabel=clabel)
+                fig, _ = show_profile_phi_degs(func, mask="wall", clabel=clabel)
                 fig.suptitle(title, y=0.92)
 
         plt.show()
