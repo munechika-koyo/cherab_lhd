@@ -734,7 +734,7 @@ def install_data(
                             description="An number of this coords corresponds to the physics cell index",
                         ),
                     ),
-                    y=(
+                    v=(
                         ["v"],
                         np.arange(parser.num_vacuum),
                         dict(
