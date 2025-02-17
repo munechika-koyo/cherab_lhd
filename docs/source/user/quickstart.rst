@@ -8,7 +8,7 @@ Quick Start
 
 Only 3 steps to get started with `cherab-lhd` with `Pixi`_.
 Please make sure you have `Pixi`_ installed on your system.
-If not, please follow the `Pixi installation guide <https://pixi.sh/latest#installation>`__.
+If not, please follow the `Pixi installation guide <https://pixi.sh/latest#installation>`_.
 
 1. Download the repository::
 
@@ -32,8 +32,8 @@ If you don't see browser window opened, please find the URL like
    :alt: JupyterLab Window
 
    JupyterLab launched by `pixi run lab` command. You can execute notebooks in
-   :ref:`Example Gallery<example-gallery>`.
+   :ref:`Example Gallery <examples>`.
 
 
 If you want to use the `cherab-lhd` as a library, please follow the
-:ref:`installation guide<installation>`.
+:ref:`installation guide <installation>`.

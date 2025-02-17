@@ -14,6 +14,10 @@ Installation
     These dependencies has already listed in ``pyproject.toml`` in source directory,
     so those who are curious about it should look into the file.
 
+For Users
+=========
+`cherab-lhd` can be installed by many package managers.
+Explore the various methods below to install `cherab-lhd` using your preferred package manager.
 
 .. tab-set::
 
@@ -70,7 +74,7 @@ To use cherab-lhd in interactive mode, launch the Python interpreter by executin
 
 Once the interpreter is running, you can import and use cherab-lhd, for example::
 
-    >>> import cherab.lhd
-    >>> # Begin interactive work with cherab-lhd
+    >>> from cherab.lhd import __version__
+    >>> print(__version__)
 
 Additionally, useful commands for development are shown in the :ref:`contribution` section.
