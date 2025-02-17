@@ -267,15 +267,19 @@ def visualize_pfc_meshes(
             fig.add_trace(mesh3D)
 
     fig.update_layout(
-        paper_bgcolor="rgb(1,1,1)",
+        template="plotly_dark",
         title_text="Device",
         title_x=0.5,
-        font_color="white",
-        hoverlabel_grouptitlefont_color="black",
         width=fig_size[0],
         height=fig_size[1],
         scene_aspectmode="data",
+        scene_camera=dict(
+            up=dict(x=0, y=0, z=1),
+            center=dict(x=0, y=0, z=0),
+            eye=dict(x=1.0, y=1.0, z=0.8),
+        ),
         margin=dict(r=10, l=10, b=10, t=35),
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
         scene_xaxis_visible=False,
         scene_yaxis_visible=False,
         scene_zaxis_visible=False,

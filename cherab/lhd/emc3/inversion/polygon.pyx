@@ -78,7 +78,7 @@ def points_inside_polygon(
         plt.show()
 
     .. image:: ../../_static/images/plotting/points_inside_polygon.png
-        :width: 400
+        :width: 700
         :align: center
         :alt: points_inside_polygon
 
