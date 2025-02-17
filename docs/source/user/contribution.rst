@@ -51,6 +51,10 @@ in advance.
 
             pixi run doc-clean
 
+        If you want to host the documentation locally, you can do so with::
+
+            pixi run doc-host
+
     .. tab-item:: lint/format
 
         To lint the code, you can do so with::
