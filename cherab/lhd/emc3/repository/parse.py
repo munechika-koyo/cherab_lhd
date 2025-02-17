@@ -26,22 +26,21 @@ class DataParser:
     grid_file : str | pathlib.Path
         Path to the grid file.
 
-    Example
-    -------
-    .. prompt:: python >>> auto
-
-        >>> from cherab.lhd.emc3.repository.parse import DataParser
-        >>> parser = DataParser("path/to/the/data/directory", "path/to/the/grid/file.nc")
-        >>> parser.plasma_radiation()
-        array([0.000e+00, 0.000e+00, 0.000e+00, ..., 9.450e-33, 4.922e-33,
-               2.659e-33])
-        >>>
-        >>> parser.density_ions()
-        {'H+': array([3.7917e+19, 3.5602e+19, 3.7012e+19, ..., 4.3626e+16, 1.5922e+16,
-                      1.1246e+16]),
-         'C1+': array([0.0000e+00, 0.0000e+00, 0.0000e+00, ..., 6.6688e+16, 6.2780e+16,
-                       5.0213e+16]), ...
-        }
+    Examples
+    --------
+    >>> from cherab.lhd.emc3.repository.parse import DataParser
+    >>> parser = DataParser("path/to/the/data/directory", "path/to/the/grid/file.nc")
+    >>> parser.plasma_radiation()
+    array([0.000e+00, 0.000e+00, 0.000e+00, ..., 9.450e-33, 4.922e-33,
+           2.659e-33])
+    >>>
+    >>> parser.density_ions()
+    {
+        'H+': array([3.7917e+19, 3.5602e+19, 3.7012e+19, ..., 4.3626e+16, 1.5922e+16,
+                     1.1246e+16]),
+        'C1+': array([0.0000e+00, 0.0000e+00, 0.0000e+00, ..., 6.6688e+16, 6.2780e+16,
+                      5.0213e+16]), ...
+    }
     """
 
     def __init__(

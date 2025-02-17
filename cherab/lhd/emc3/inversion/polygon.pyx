@@ -54,27 +54,28 @@ def points_inside_polygon(
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> points_inside = points_inside_polygon((10, 20), (10, 20), n=0, zone="zone0")
-        >>> points_inside.shape
-        (200, 2)
+    >>> points_inside = points_inside_polygon((10, 20), (10, 20), n=0, zone="zone0")
+    >>> points_inside.shape
+    (200, 2)
 
     Show the points and EMC3 grid at the poloidal cross-section.
 
-    .. prompt:: python >>> auto
+    .. code-block:: python
 
-        >>> from cherab.lhd.emc3 import Grid
-        >>> grid = Grid("zone0")
-        >>> plt.plot(grid[:, 10, 0, 0], grid[:, 10, 0, 1], "k-")  # plot radial lines (m=10)
-        >>> plt.plot(grid[:, 20, 0, 0], grid[:, 20, 0, 1], "k-")  # plot poloidal lines (m=20)
-        >>> plt.plot(grid[10, :, 0, 0], grid[10, :, 0, 1], "k-")  # plot poloidal lines (l=10)
-        >>> plt.plot(grid[20, :, 0, 0], grid[20, :, 0, 1], "k-")  # plot poloidal lines (l=20)
-        >>> plt.plot(points_inside[:, 0], points_inside[:, 1], "r.")  # plot points inside polygon
-        >>> plt.xlim(points_inside[:, 0].min() - 0.1, points_inside[:, 0].max() + 0.1)
-        >>> plt.ylim((points_inside[:, 1].min() - 0.1, points_inside[:, 1].max() + 0.1))
-        >>> plt.xlabel("R (m)"); plt.ylabel("Z (m)")
-        >>> plt.show()
+        from matplotlib import pyplot as plt
+        from cherab.lhd.emc3 import Grid
+        from cherab.lhd.emc3.inversion.polygon import points_inside_polygon
+
+        grid = Grid("zone0")
+        plt.plot(grid[:, 10, 0, 0], grid[:, 10, 0, 1], "k-")  # plot radial lines (m=10)
+        plt.plot(grid[:, 20, 0, 0], grid[:, 20, 0, 1], "k-")  # plot poloidal lines (m=20)
+        plt.plot(grid[10, :, 0, 0], grid[10, :, 0, 1], "k-")  # plot poloidal lines (l=10)
+        plt.plot(grid[20, :, 0, 0], grid[20, :, 0, 1], "k-")  # plot poloidal lines (l=20)
+        plt.plot(points_inside[:, 0], points_inside[:, 1], "r.")  # plot points inside polygon
+        plt.xlim(points_inside[:, 0].min() - 0.1, points_inside[:, 0].max() + 0.1)
+        plt.ylim((points_inside[:, 1].min() - 0.1, points_inside[:, 1].max() + 0.1))
+        plt.xlabel("R (m)"); plt.ylabel("Z (m)")
+        plt.show()
 
     .. image:: ../../_static/images/plotting/points_inside_polygon.png
         :width: 400
@@ -229,9 +230,7 @@ cpdef object generate_boundary_map(
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> vmap = generate_boundary_map("zone0", "zone11", index_type="coarse")
+    >>> vmap = generate_boundary_map("zone0", "zone11", index_type="coarse")
     """
     cdef:
         long[::1] indices_radial_mv, indices_poloidal_mv

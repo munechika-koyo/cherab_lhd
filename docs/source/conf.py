@@ -36,7 +36,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
-    "sphinx-prompt",
     "sphinx_copybutton",
     "nbsphinx",
     "sphinx_design",
@@ -63,6 +62,10 @@ numpydoc_xref_param_type = True
 
 # todo config
 todo_include_todos = True
+
+# sphinx_copybutton config
+copybutton_exclude = ".linenos, .gp"
+copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -123,8 +126,8 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
-    "pygment_light_style": "default",
-    "pygment_dark_style": "native",
+    "pygments_light_style": "default",
+    "pygments_dark_style": "native",
     "switcher": {
         "json_url": json_url,
         "version_match": version_match,
@@ -149,7 +152,7 @@ html_css_files = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "xarray": ("https://xarray.pydata.org/en/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "raysect": ("http://www.raysect.org", None),
@@ -179,7 +182,7 @@ nbsphinx_thumbnails = {
 
 # === sphinx_github_style configuration ============================================
 # get tag name which exists in GitHub
-tag = "master" if version_obj.is_devrelease else f"v{version_obj.public}"
+tag = "main" if version_obj.is_devrelease else f"v{version_obj.public}"
 
 # set sphinx_github_style options
 top_level = "cherab"

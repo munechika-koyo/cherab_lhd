@@ -113,15 +113,13 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> from cherab.lhd.machine import wall_outline
-        >>> rz = wall_outline(15.0, basis="rz")
-        >>> rz
-        array([[ 4.40406713,  1.51311291],
-               [ 4.39645296,  1.42485631],
-               ...
-               [ 4.40406713,  1.51311291]])
+    >>> from cherab.lhd.machine import wall_outline
+    >>> rz = wall_outline(15.0, basis="rz")
+    >>> rz
+    array([[ 4.40406713,  1.51311291],
+           [ 4.39645296,  1.42485631],
+           ...
+           [ 4.40406713,  1.51311291]])
     """
 
     # validate basis parameter
@@ -188,10 +186,8 @@ def plot_lhd_wall_outline(phi: float) -> None:
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> from cherab.lhd.machine import plot_lhd_wall_outline
-        >>> plot_lhd_wall_outline(15.0)
+    >>> from cherab.lhd.machine import plot_lhd_wall_outline
+    >>> plot_lhd_wall_outline(15.0)
 
     .. image:: ../_static/images/plotting/plot_lhd_wall_outline.png
     """

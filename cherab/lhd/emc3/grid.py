@@ -63,13 +63,11 @@ class Grid:
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> grid = Grid("zone0")
-        >>> grid
-        Grid(zone='zone0', dataset='/path/to/cache/cherab/lhd/emc3/grid-360.nc')
-        >>> str(grid)
-        'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
+    >>> grid = Grid("zone0")
+    >>> grid
+    Grid(zone='zone0', dataset='/path/to/cache/cherab/lhd/emc3/grid-360.nc')
+    >>> str(grid)
+    'Grid for (zone: zone0, L: 82, M: 601, N: 37, number of cells: 1749600)'
     """
 
     def __init__(
@@ -120,18 +118,16 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
+        >>> grid = Grid("zone0")
+        >>> grid[0, 0, 0, :].data  # (l=0, m=0, n=0)
+        array([3.593351e+00, 0.000000e+00])  # (R, Z) coordinates
 
-            >>> grid = Grid("zone0")
-            >>> grid[0, 0, 0, :].data  # (l=0, m=0, n=0)
-            array([3.593351e+00, 0.000000e+00])  # (R, Z) coordinates
-
-            >>> grid[:, -10, 0, :].data  # (radial coords at m=-10, n=0)
-            array([[3.600000e+00, 0.000000e+00],
-                   [3.593494e+00, 3.076000e-03],
-                   [3.560321e+00, 1.875900e-02],
-                   ...,
-                   [3.267114e+00, 1.573770e-01]])
+        >>> grid[:, -10, 0, :].data  # (radial coords at m=-10, n=0)
+        array([[3.600000e+00, 0.000000e+00],
+                [3.593494e+00, 3.076000e-03],
+                [3.560321e+00, 1.875900e-02],
+                ...,
+                [3.267114e+00, 1.573770e-01]])
         """
         return self._grid_da[key]
 
@@ -164,19 +160,17 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> grid.grid_data.shape
-            (82, 601, 37, 2)
-            >>> grid.grid_data
-            array([[[[ 3.600000e+00,  0.000000e+00],
-                     [ 3.600000e+00,  0.000000e+00],
-                     [ 3.600000e+00,  0.000000e+00],
-                    ...
-                     [ 3.096423e+00, -7.012100e-02],
-                     [ 3.087519e+00, -6.796400e-02],
-                     [ 3.078508e+00, -6.543900e-02]]]])
+        >>> grid = Grid("zone0")
+        >>> grid.grid_data.shape
+        (82, 601, 37, 2)
+        >>> grid.grid_data
+        array([[[[ 3.600000e+00,  0.000000e+00],
+                 [ 3.600000e+00,  0.000000e+00],
+                 [ 3.600000e+00,  0.000000e+00],
+                 ...
+                 [ 3.096423e+00, -7.012100e-02],
+                 [ 3.087519e+00, -6.796400e-02],
+                 [ 3.078508e+00, -6.543900e-02]]]])
         """
         return self._grid_da.data
 
@@ -193,20 +187,18 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> verts = grid.generate_vertices()
-            >>> verts.shape
-            (1823434, 3)
-            >>> verts
-            array([[ 3.6       ,  0.        ,  0.        ],
-                   [ 3.593351  ,  0.        , -0.        ],
-                   [ 3.559212  ,  0.        , -0.        ],
-                   ...,
-                   [ 3.04105882,  0.4816564 , -0.065465  ],
-                   [ 3.04083165,  0.48162042, -0.065452  ],
-                   [ 3.04060646,  0.48158475, -0.065439  ]])
+        >>> grid = Grid("zone0")
+        >>> verts = grid.generate_vertices()
+        >>> verts.shape
+        (1823434, 3)
+        >>> verts
+        array([[ 3.6       ,  0.        ,  0.        ],
+               [ 3.593351  ,  0.        , -0.        ],
+               [ 3.559212  ,  0.        , -0.        ],
+               ...,
+               [ 3.04105882,  0.4816564 , -0.065465  ],
+               [ 3.04083165,  0.48162042, -0.065452  ],
+               [ 3.04060646,  0.48158475, -0.065439  ]])
         """
         L, M, N = self._shape
         vertices = np.zeros((L, M, N, 3), dtype=np.float64)
@@ -233,21 +225,19 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> cells = grid.generate_cell_indices()
-            >>> cells.shape
-            (1749600, 8)
-            >>> cells
-            array([[      0,       1,      83, ...,   49283,   49365,   49364],
-                   [      1,       2,      84, ...,   49284,   49366,   49365],
-                   [      2,       3,      85, ...,   49285,   49367,   49366],
-                   ...,
-                   [1774066, 1774067, 1774149, ..., 1823349, 1823431, 1823430],
-                   [1774067, 1774068, 1774150, ..., 1823350, 1823432, 1823431],
-                   [1774068, 1774069, 1774151, ..., 1823351, 1823433, 1823432]],
-                  dtype=uint32)
+        >>> grid = Grid("zone0")
+        >>> cells = grid.generate_cell_indices()
+        >>> cells.shape
+        (1749600, 8)
+        >>> cells
+        array([[      0,       1,      83, ...,   49283,   49365,   49364],
+               [      1,       2,      84, ...,   49284,   49366,   49365],
+               [      2,       3,      85, ...,   49285,   49367,   49366],
+               ...,
+               [1774066, 1774067, 1774149, ..., 1823349, 1823431, 1823430],
+               [1774067, 1774068, 1774150, ..., 1823350, 1823432, 1823431],
+               [1774068, 1774069, 1774151, ..., 1823351, 1823433, 1823432]],
+              dtype=uint32)
         """
         L, M, N = self._shape
         cells = np.zeros(((L - 1) * (M - 1) * (N - 1), 8), dtype=np.uint32)
@@ -313,10 +303,8 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> grid.plot(linewidth=0.2)
+        >>> grid = Grid("zone0")
+        >>> grid.plot(linewidth=0.2)
 
         .. image:: ../../_static/images/plotting/grid_zone0.png
         """
@@ -400,10 +388,8 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> grid.plot_coarse()
+        >>> grid = Grid("zone0")
+        >>> grid.plot_coarse()
 
         .. image:: ../../_static/images/plotting/grid_coarse_zone0.png
         """
@@ -449,10 +435,8 @@ class Grid:
 
         Examples
         --------
-        .. prompt:: python >>> auto
-
-            >>> grid = Grid("zone0")
-            >>> grid.plot_outline(4.2)
+        >>> grid = Grid("zone0")
+        >>> grid.plot_outline(4.2)
 
         .. image:: ../../_static/images/plotting/grid_outline_zone0.png
         """

@@ -49,13 +49,11 @@ class IRVBCamera(Node):
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-       >>> from raysect.optical import World
-       >>> from cherab.lhd.observer import IRVBCamera
-       >>>
-       >>> world = World()
-       >>> camera = IRVBCamera(name="MyBolometer", parent=world)
+    >>> from raysect.optical import World
+    >>> from cherab.lhd.observer import IRVBCamera
+    >>>
+    >>> world = World()
+    >>> camera = IRVBCamera(name="MyBolometer", parent=world)
     """
 
     def __init__(

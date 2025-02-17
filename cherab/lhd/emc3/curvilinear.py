@@ -248,6 +248,31 @@ class CurvCoords:
         -------
         array_like
             Metric tensor :math:`g_{ij}` or :math:`g^{ij}`.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from cherab.lhd.emc3 import CenterGrid
+
+        >>> grid = CenterGrid("zone0", index_type="coarse")
+        >>> coords = CurvCoords(grid)
+
+        Let compute the metric temsor: :math:`\\mathbf{b}_\\rho \\cdot \\mathbf{b}^\\rho`.
+        It should be an array of ones.
+
+        >>> g1 = coords.compute_metric(coords.b_rho, coords.b_sup_rho)
+        >>> g1.shape
+        (33, 100, 9)
+        >>> np.allclose(g1, np.ones_like(g1))
+        True
+
+        Let check if the metric tensor: :math:`\\mathbf{b}_\\rho\\cdot\\mathbf{b}_\\rho` is not
+        the same as the before.
+
+        >>> g2 = coords.compute_metric(coords.b_rho, coords.b_rho)
+        >>> np.allclose(g1, g2)
+        False
+        >>> g2[0, 0, 0]
         """
 
         return np.einsum("...i,...i", v1, v2)

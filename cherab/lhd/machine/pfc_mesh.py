@@ -86,7 +86,7 @@ def load_pfc_mesh(
 
     Examples
     --------
-    .. prompt:: python
+    .. code-block:: python
 
         from raysect.optical import World
 
@@ -209,7 +209,7 @@ def visualize_pfc_meshes(
 
     Examples
     --------
-    .. prompt:: python
+    .. code-block:: python
 
         from raysect.optical import World
         from cherab.lhd.machine.pfc_mesh import load_pfc_mesh, visualize_pfc_meshes

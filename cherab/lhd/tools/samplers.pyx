@@ -44,18 +44,16 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-       >>> def f1(x, y, z):
-       >>>     return x**3 + y**2 + z
-       >>>
-       >>> r_pts, z_pts, f_vals = sample3d_rz(f1, (1, 3, 3), (1, 3, 3), 0.0)
-       >>> r_pts
-       array([1., 2., 3.])
-       >>> f_vals
-       array([[ 2.,  3.,  4.],
-              [ 9., 10., 11.],
-              [28., 29., 30.]])
+    >>> def f1(x, y, z):
+    >>>     return x**3 + y**2 + z
+    >>>
+    >>> r_pts, z_pts, f_vals = sample3d_rz(f1, (1, 3, 3), (1, 3, 3), 0.0)
+    >>> r_pts
+    array([1., 2., 3.])
+    >>> f_vals
+    array([[ 2.,  3.,  4.],
+           [ 9., 10., 11.],
+           [28., 29., 30.]])
     """
 
     cdef:
@@ -144,7 +142,12 @@ cdef class XYplane(Function2D):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(object func, tuple x_range, tuple y_range, double z = 0.0):
+cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(
+    object func,
+    tuple x_range,
+    tuple y_range,
+    double z = 0.0,
+):
     """Sample a 3D function over the specified range with X-Y coords at a certain Z-axis value.
 
     Parameters
@@ -171,20 +174,18 @@ cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(object func, tuple x_rang
 
     Examples
     --------
-    .. prompt:: python >>> auto
-
-        >>> def f1(x, y, z):
-        >>>     return x**3 + y**2 + z
-        >>>
-        >>> x_pts, y_pts, f_vals = sample_xy_plane(f1, (1, 3, 3), (1, 3, 3), 0.0)
-        >>> x_pts
-        array([1., 2., 3.])
-        >>> y_pts
-        array([1., 2., 3.])
-        >>> f_vals
-        array([[ 2.,  5., 10.],
-               [ 9., 12., 17.],
-               [28., 31., 36.]])
+    >>> def f1(x, y, z):
+    >>>     return x**3 + y**2 + z
+    >>>
+    >>> x_pts, y_pts, f_vals = sample_xy_plane(f1, (1, 3, 3), (1, 3, 3), 0.0)
+    >>> x_pts
+    array([1., 2., 3.])
+    >>> y_pts
+    array([1., 2., 3.])
+    >>> f_vals
+    array([[ 2.,  5., 10.],
+           [ 9., 12., 17.],
+           [28., 31., 36.]])
     """
 
     cdef:
