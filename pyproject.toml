@@ -219,7 +219,7 @@ doc-clean = { cmd = [
     "docs/build",
     "docs/source/_api",
 ], description = "🔥 Clean the docs build & api directory" }
-doc-host = { cmd = [
+doc-serve = { cmd = [
     "python",
     "-m",
     "http.server",
