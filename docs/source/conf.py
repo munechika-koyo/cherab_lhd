@@ -176,8 +176,7 @@ nbsphinx_prolog = """
     __ https://github.com/munechika-koyo/cherab_lhd/blob/main/docs/{{ docname }}
 """
 nbsphinx_thumbnails = {
-    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png",
-    "notebooks/observer/bolos_config": "_static/images/plotting/bolos_config.png",
+    # "notebooks/path/to/.ipnb": "_static/images/path/to/image.png",
 }
 
 # === sphinx_github_style configuration ============================================
