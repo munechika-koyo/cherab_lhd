@@ -26,13 +26,13 @@ cpdef ndarray[uint32_t, ndim=2] tetrahedralize(ndarray cells):
     cells : (N, 8) ndarray
         Cell indices 2D array.
 
-    Return
-    ------
+    Returns
+    -------
     (6N, 4) ndarray
         Tetrahedra indices array.
 
-    Example
-    -------
+    Examples
+    --------
     .. prompt:: python >>> auto
 
         >>> import numpy as np

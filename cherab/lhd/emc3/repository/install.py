@@ -489,6 +489,18 @@ def _get_coarse_indices(
 def install_center_points(
     grid_file: Path | str = PATH_TO_STORAGE / "emc3" / "grid-360.nc",
 ) -> None:
+    """Install EMC3-EIRENE center points into netCDF file.
+
+    The center points are calculated from the grid data using the `.compute_centers` function.
+    The center points are stored in the same netCDF file as a group named "centers".
+
+    Parameters
+    ----------
+    grid_file : Path | str, optional
+        Path to the grid netCDF file, by default ``cherab/lhd/emc3/grid-360.nc`` under the user's
+        cache directory.
+    """
+
     from ..grid import Grid
 
     # TODO: Implement the other zones
@@ -571,27 +583,32 @@ def install_data(
 ) -> None:
     """Install EMC3-EIRENE calculated data.
 
-    `xr.DataTree` is used to store the data into the same netCDF file as the grid data as a group
-    named "data".
+    `xarray.DataTree` is used to store the data into the same netCDF file as the grid data as a
+    group named "data".
 
     So, the data tree structure looks like as follows:
-    ```
-    /
-    ├── data
-    :   ├── radiation
-        │   ├── plasma
-        │   ├── impurity
-        │   └── total
-        ├── density
-        │   ├── electron
-        │   ├── ions
-        │   └── neutrals
-        └── temperature
-            ├── electron
-            ├── ion
-            └── neutrals
-    ```
-    For example, the radiation group contains one `xarray.Dataset` with three `xarry.DataArray`
+
+    .. code-block:: none
+
+        /
+        ├── data
+        :   ├── radiation
+            │   ├── plasma
+            │   ├── impurity
+            │   └── total
+            ├── density
+            │   ├── electron
+            │   ├── H+
+            |   ├── C1+
+            :   :
+            |   └── Ne
+            └── temperature
+                ├── electron
+                ├── ion
+                ├── H
+                └── H2
+
+    For example, the radiation group contains one `xarray.Dataset` with three `xarray.DataArray`
     variables.
     Shared coordinates are stored in the data group.
 
