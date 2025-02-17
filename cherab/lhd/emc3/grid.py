@@ -80,6 +80,7 @@ class Grid:
         **kwargs,
     ) -> None:
         if grid_file is not None:
+            # Manual input of grid file
             path = path_validate(grid_file)
             if not path.exists():
                 raise FileNotFoundError(f"{path} does not exist.")
@@ -89,13 +90,14 @@ class Grid:
             # Fetch grid dataset
             path = fetch_file(dataset, **kwargs)
 
-        # Load grid dataset
+        # Load grid dataset with specified zone into memory
+        with xr.open_dataset(path, group=zone) as ds:
+            self._ds = ds.load()
+
+        # Set attributes
         self._zone = zone
         self._path = path
-        self._ds = xr.open_dataset(path, group=zone)
         self._grid_da = self._ds["grid"]
-
-        # set shape
         self._shape = self._grid_da.shape[0], self._grid_da.shape[1], self._grid_da.shape[2]
 
     def __repr__(self) -> str:
@@ -316,7 +318,7 @@ class Grid:
             >>> grid = Grid("zone0")
             >>> grid.plot(linewidth=0.2)
 
-        .. image:: ../../_static/images/plotting/grid_coarse_zone0.png
+        .. image:: ../../_static/images/plotting/grid_zone0.png
         """
         if rz_range is not None:
             rmin, rmax, zmin, zmax = rz_range

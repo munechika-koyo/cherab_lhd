@@ -57,8 +57,9 @@ class CenterGrid:
         # Fetch grid dataset
         path = fetch_file(dataset, **kwargs)
 
-        # Load center points dataarray
-        self._da = xr.open_dataset(path, group=f"{zone}/centers/{index_type}")["center_points"]
+        # Load center points dataArray into memory
+        with xr.open_dataset(path, group=f"{zone}/centers/{index_type}") as ds:
+            self._da = ds["center_points"].load()
 
         # Set properties
         self._zone = zone
