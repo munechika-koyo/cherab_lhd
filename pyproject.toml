@@ -141,7 +141,7 @@ platforms = ["linux-64", "osx-arm64"]
 c-compiler = "*"
 
 [tool.pixi.host-dependencies]
-python = "3.12.*"
+python = ">=3.10,<3.13"
 meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
@@ -201,6 +201,7 @@ pydata-sphinx-theme = "*"
 sphinx-design = "*"
 pandoc = "*"
 sphinx-codeautolink = "*"
+python-kaleido = "*"
 
 [tool.pixi.feature.docs.pypi-dependencies]
 sphinx-github-style = "*"
@@ -255,8 +256,21 @@ pre-commit-install = { cmd = [
     "install",
 ], description = "🔗 Install pre-commit hooks" }
 
+# === Python Version Features ===
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
 [tool.pixi.environments]
 lab = { features = ["lab"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 lint = { features = ["lint"], no-default-feature = true }
+
+# For Test on Github actions
+py310 = { features = ["test", "py310"] }
+py311 = { features = ["test", "py311"] }
+py312 = { features = ["test", "py312"] }

@@ -53,7 +53,7 @@ in advance.
 
         If you want to host the documentation locally, you can do so with::
 
-            pixi run doc-host
+            pixi run doc-serve
 
     .. tab-item:: lint/format
 
