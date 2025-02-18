@@ -1,7 +1,7 @@
 """Module to offer wall contour features."""
 
-import h5py
 import numpy as np
+import xarray as xr
 from matplotlib import pyplot as plt
 from numpy import float64, intp
 from numpy.typing import NDArray
@@ -126,16 +126,11 @@ def wall_outline(phi: float, basis: str = "rz") -> NDArray[float64]:
     if basis not in {"rz", "xyz"}:
         raise ValueError("basis parameter must be chosen from 'rz' or 'xyz'.}")
 
-    # Load wall outline data from "wall_outline.hdf5"
-    with (
-        open(fetch_file("machine/wall_outline.hdf5"), "rb") as file,
-        h5py.File(file, "r") as h5file,
-    ):
-        # load toroidal angles
-        phis = h5file["toroidal_angles"][:]
-
-        # load wall outline array
-        outlines = h5file["outlines"][:]
+    # Load wall outline dataset
+    path = fetch_file("machine/wall_outline.nc")
+    da = xr.open_dataarray(path)
+    phis = da["ζ"].values
+    outlines = da.values
 
     # phi -> phi in 0 - 18 deg
     phi_t, flipped = periodic_toroidal_angle(phi)
