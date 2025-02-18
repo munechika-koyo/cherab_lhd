@@ -112,6 +112,21 @@ class IRVBCamera(Node):
         """Regard each pixel as a bolometer foil.
 
         The element is a `BolometerFoil` instance.
+
+        Returns
+        -------
+        `~numpy.ndarray`
+            Array of `BolometerFoil` object instances.
+
+        Examples
+        --------
+        >>> from cherab.lhd.observer.boloneter import load_irvb
+        >>> irvb = load_irvb()
+        >>> irvb.pixels_as_foils
+        array([[<BolometerFoil - IRVB pixel (1,1)>,
+                <BolometerFoil - IRVB pixel (1,2)>,
+                ...
+                <BolometerFoil - IRVB pixel (26,20)>]], dtype=object)
         """
         nx, ny = self.foil_detector.pixels
         width = self.foil_detector.width
@@ -120,29 +135,24 @@ class IRVBCamera(Node):
 
         # Foil pixels are defined in the foil's local coordinate system
         foil_upper_right = Point3D(width * 0.5, height * 0.5, 0)
-        pixels = []
-        for x in range(nx):
-            pixel_column = []
-            for y in range(ny):
-                pixel_centre = (
-                    foil_upper_right
-                    - (x + 0.5) * XAXIS * pixel_pitch
-                    - (y + 0.5) * YAXIS * pixel_pitch
-                )
-                pixel = BolometerFoil(
-                    detector_id="IRVB pixel ({},{})".format(x + 1, y + 1),
-                    centre_point=pixel_centre,
-                    basis_x=XAXIS,
-                    basis_y=YAXIS,
-                    dx=pixel_pitch,
-                    dy=pixel_pitch,
-                    slit=self._slit,
-                    accumulate=False,
-                    parent=self.foil_detector,
-                )
-                pixel_column.append(pixel)
-            pixels.append(pixel_column)
-        return np.asarray(pixels, dtype="object")
+        pixels_array = np.empty((nx, ny), dtype="object")
+        for x, y in np.ndindex(nx, ny):
+            pixel_centre = (
+                foil_upper_right - (x + 0.5) * XAXIS * pixel_pitch - (y + 0.5) * YAXIS * pixel_pitch
+            )
+            pixel = BolometerFoil(
+                detector_id="IRVB pixel ({},{})".format(x + 1, y + 1),
+                centre_point=pixel_centre,
+                basis_x=XAXIS,
+                basis_y=YAXIS,
+                dx=pixel_pitch,
+                dy=pixel_pitch,
+                slit=self._slit,
+                accumulate=False,
+                parent=self.foil_detector,
+            )
+            pixels_array[x, y] = pixel
+        return pixels_array
 
     @property
     def sightline_rays(self) -> ndarray:
