@@ -86,6 +86,7 @@ def show_profile_phi_degs(
     cbar_format: FormatMode | PlotMode | None = None,
     linear_width: float | None = None,
     show_phi: bool = True,
+    parallel: bool = True,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
     """Show EMC3-EIRENE discretized data function in R-Z plane with several toroidal angles.
@@ -136,6 +137,8 @@ def show_profile_phi_degs(
         minimum value of the data.
     show_phi : bool, optional
         If True, toroidal angle is annotated in each axis, by default True.
+    parallel : bool, optional
+        If True, the sampling is parallelized, by default True.
     **kwargs : `~mpl_toolkits.axes_grid1.axes_grid.ImageGrid` properties, optional
         User-specified properties, by default `axes_pad=0.0`, `label_mode="L"` and
         `cbar_mode="single"`.
@@ -189,30 +192,35 @@ def show_profile_phi_degs(
 
     grids = ImageGrid(fig, 111, nrows_ncols, **grid_params)
 
-    # === parallelized sampling ====================================================================
-    manager = Manager()
-    profiles = manager.dict()
-    job_queue = manager.Queue()
+    # === sampling =================================================================================
+    if parallel:
+        manager = Manager()
+        profiles = manager.dict()
+        job_queue = manager.Queue()
 
-    # create tasks
-    for i, phi_deg in enumerate(phi_degs):
-        job_queue.put((i, phi_deg))
+        # create tasks
+        for i, phi_deg in enumerate(phi_degs):
+            job_queue.put((i, phi_deg))
 
-    # produce worker pool
-    pool_size = min(len(phi_degs), cpu_count())
-    workers = [
-        Process(
-            target=_worker1,
-            args=(func, mask, (rmin, rmax, nr), (zmin, zmax, nz), job_queue, profiles),
-        )
-        for _ in range(pool_size)
-    ]
-    for p in workers:
-        p.start()
+        # produce worker pool
+        pool_size = min(len(phi_degs), cpu_count())
+        workers = [
+            Process(
+                target=_worker1,
+                args=(func, mask, (rmin, rmax, nr), (zmin, zmax, nz), job_queue, profiles),
+            )
+            for _ in range(pool_size)
+        ]
+        for p in workers:
+            p.start()
 
-    for p in workers:
-        p.join()
+        for p in workers:
+            p.join()
 
+    else:
+        profiles = {}
+        for i, phi_deg in enumerate(phi_degs):
+            profiles[i] = _sampler(func, phi_deg, mask, (rmin, rmax, nr), (zmin, zmax, nz))
     # ==============================================================================================
 
     # maximum value of all profiles
