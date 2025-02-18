@@ -210,7 +210,7 @@ class Grid:
             vertices[..., n, 1] = grid_data[..., n, 0] * np.sin(phi)
             vertices[..., n, 2] = grid_data[..., n, 1]
 
-        return vertices.reshape((L * M * N, 3), order="F")
+        return np.ascontiguousarray(vertices.reshape((L * M * N, 3), order="F"))
 
     def generate_cell_indices(self) -> NDArray[np.uint32]:
         """Generate cell indices array.
