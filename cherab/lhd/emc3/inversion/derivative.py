@@ -95,45 +95,42 @@ class Derivative:
 
         match self._diff_type:
             case "central":
-                for n in range(N):
-                    for m in range(M):
-                        # calculate length of each segment along to rho direction
-                        length = np.linalg.norm(
-                            self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
-                        )
+                for m, n in np.ndindex(M, N):
+                    # calculate length of each segment along to rho direction
+                    length = np.linalg.norm(
+                        self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
+                    )
 
-                        # TODO: implement connection between other zones
-                        # border condition at l = 0 with forward difference
-                        dmat[index[0, m, n], index[1, m, n]] = 1 / length[0]
-                        dmat[index[0, m, n], index[0, m, n]] = -1 / length[0]
+                    # TODO: implement connection between other zones
+                    # border condition at l = 0 with forward difference
+                    dmat[index[0, m, n], index[1, m, n]] = 1 / length[0]
+                    dmat[index[0, m, n], index[0, m, n]] = -1 / length[0]
 
-                        # border condition at l = L - 1 with dirichlet condition
-                        dmat[index[-1, m, n], index[-2, m, n]] = -0.5
+                    # border condition at l = L - 1 with dirichlet condition
+                    dmat[index[-1, m, n], index[-2, m, n]] = -0.5
 
-                        for l in range(1, L - 1):
-                            denom = length[l - 1] * length[l] * (length[l - 1] + length[l])
-
-                            dmat[index[l, m, n], index[l - 1, m, n]] = -(length[l] ** 2) / denom
-                            dmat[index[l, m, n], index[l + 0, m, n]] = (
-                                length[l] ** 2 - length[l - 1] ** 2
-                            ) / denom
-                            dmat[index[l, m, n], index[l + 1, m, n]] = length[l - 1] ** 2 / denom
+                    for l in range(1, L - 1):
+                        denom = length[l - 1] * length[l] * (length[l - 1] + length[l])
+                        dmat[index[l, m, n], index[l - 1, m, n]] = -(length[l] ** 2) / denom
+                        dmat[index[l, m, n], index[l + 0, m, n]] = (
+                            length[l] ** 2 - length[l - 1] ** 2
+                        ) / denom
+                        dmat[index[l, m, n], index[l + 1, m, n]] = length[l - 1] ** 2 / denom
 
             case "forward":
-                for n in range(N):
-                    for m in range(M):
-                        # calculate length of each segment along to rho direction
-                        length = np.linalg.norm(
-                            self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
-                        )
+                for m, n in np.ndindex(M, N):
+                    # calculate length of each segment along to rho direction
+                    length = np.linalg.norm(
+                        self.grid[1:, m, n, :] - self.grid[0:-1, m, n, :], axis=1
+                    )
 
-                        # border condition at l = L - 1 with dirichlet condition
-                        # TODO: implement connection between other zones
-                        dmat[index[-1, m, n], index[-1, m, n]] = -1 / length[-1]
+                    # border condition at l = L - 1 with dirichlet condition
+                    # TODO: implement connection between other zones
+                    dmat[index[-1, m, n], index[-1, m, n]] = -1 / length[-1]
 
-                        for l in range(0, L - 1):
-                            dmat[index[l, m, n], index[l, m, n]] = -1 / length[l]
-                            dmat[index[l, m, n], index[l + 1, m, n]] = 1 / length[l]
+                    for l in range(0, L - 1):
+                        dmat[index[l, m, n], index[l, m, n]] = -1 / length[l]
+                        dmat[index[l, m, n], index[l + 1, m, n]] = 1 / length[l]
 
         return dmat.tocsr()
 
@@ -152,57 +149,53 @@ class Derivative:
 
         match self._diff_type:
             case "central":
-                for n in range(N):
-                    for l in range(L):
+                for l, n in np.ndindex(L, N):
+                    # connect the last point to the first point
+                    grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
+
+                    # calculate length of each segment along to theta direction
+                    length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
+
+                    # TODO: implement border condition except for zone0 & zone11
+                    for m in range(M):
+                        denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
+
+                        dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
+                        dmat[index[l, m, n], index[l, m + 0, n]] = (
+                            length[m] ** 2 - length[m - 1] ** 2
+                        ) / denom
+
+                        # border condition at m = M - 1
+                        if m == M - 1:
+                            dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
+                        else:
+                            dmat[index[l, m, n], index[l, m + 1, n]] = length[m - 1] ** 2 / denom
+
+            case "forward":
+                for l, n in np.ndindex(L, N):
+                    if self.grid.zone in {"zone0", "zone11"}:
                         # connect the last point to the first point
                         grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
 
                         # calculate length of each segment along to theta direction
                         length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
 
-                        # TODO: implement border condition except for zone0 & zone11
-                        for m in range(M):
-                            denom = length[m - 1] * length[m] * (length[m - 1] + length[m])
+                        # border condition at m = M - 1
+                        dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
+                        dmat[index[l, -1, n], index[l, 0, n]] = 1 / length[-1]
 
-                            dmat[index[l, m, n], index[l, m - 1, n]] = -(length[m] ** 2) / denom
-                            dmat[index[l, m, n], index[l, m + 0, n]] = (
-                                length[m] ** 2 - length[m - 1] ** 2
-                            ) / denom
+                    else:
+                        # calculate length of each segment along to theta direction
+                        length = np.linalg.norm(
+                            self.grid[l, 1:, n, :] - self.grid[l, :-1, n, :], axis=1
+                        )
 
-                            # border condition at m = M - 1
-                            if m == M - 1:
-                                dmat[index[l, m, n], index[l, 0, n]] = length[m - 1] ** 2 / denom
-                            else:
-                                dmat[index[l, m, n], index[l, m + 1, n]] = (
-                                    length[m - 1] ** 2 / denom
-                                )
+                        # border condition at m = M - 1 with dirichlet condition
+                        dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
 
-            case "forward":
-                for n in range(N):
-                    for l in range(L):
-                        if self.grid.zone in {"zone0", "zone11"}:
-                            # connect the last point to the first point
-                            grid = np.vstack((self.grid[l, :, n, :], self.grid[l, 0, n, :]))
-
-                            # calculate length of each segment along to theta direction
-                            length = np.linalg.norm(grid[1:, :] - grid[0:-1, :], axis=1)
-
-                            # border condition at m = M - 1
-                            dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
-                            dmat[index[l, -1, n], index[l, 0, n]] = 1 / length[-1]
-
-                        else:
-                            # calculate length of each segment along to theta direction
-                            length = np.linalg.norm(
-                                self.grid[l, 1:, n, :] - self.grid[l, :-1, n, :], axis=1
-                            )
-
-                            # border condition at m = M - 1 with dirichlet condition
-                            dmat[index[l, -1, n], index[l, -1, n]] = -1 / length[-1]
-
-                        for m in range(0, M - 1):
-                            dmat[index[l, m, n], index[l, m, n]] = -1 / length[m]
-                            dmat[index[l, m, n], index[l, m + 1, n]] = 1 / length[m]
+                    for m in range(0, M - 1):
+                        dmat[index[l, m, n], index[l, m, n]] = -1 / length[m]
+                        dmat[index[l, m, n], index[l, m + 1, n]] = 1 / length[m]
 
         return dmat.tocsr()
 
@@ -219,31 +212,30 @@ class Derivative:
         # memoryview
         index = self.index.view()
 
-        for m in range(M):
-            for l in range(L):
-                # calculate length of each segment along to theta direction
-                length = np.linalg.norm(self.grid[l, m, 1:, :] - self.grid[l, m, 0:-1, :], axis=1)
+        for l, m in np.ndindex(L, M):
+            # calculate length of each segment along to theta direction
+            length = np.linalg.norm(self.grid[l, m, 1:, :] - self.grid[l, m, 0:-1, :], axis=1)
 
-                # connection between subdomains
-                if self.grid.zone in {"zone0", "zone1", "zone2", "zone3", "zone4"}:
-                    # border condition at n = N - 1
-                    # This depends on the connection to the next subdomain, so
-                    # it is done by other function.
-                    pass
+            # connection between subdomains
+            if self.grid.zone in {"zone0", "zone1", "zone2", "zone3", "zone4"}:
+                # border condition at n = N - 1
+                # This depends on the connection to the next subdomain, so
+                # it is done by other function.
+                pass
 
-                elif self.grid.zone in {"zone11", "zone12", "zone13", "zone14", "zone15"}:
-                    # border condition at n = N - 1
-                    # backward difference
-                    dmat[index[l, m, -1], index[l, m, -2]] = -1 / length[-1]
-                    dmat[index[l, m, -1], index[l, m, -1]] = 1 / length[-1]
+            elif self.grid.zone in {"zone11", "zone12", "zone13", "zone14", "zone15"}:
+                # border condition at n = N - 1
+                # backward difference
+                dmat[index[l, m, -1], index[l, m, -2]] = -1 / length[-1]
+                dmat[index[l, m, -1], index[l, m, -1]] = 1 / length[-1]
 
-                else:
-                    raise NotImplementedError("Connection to back subdomains is not implemented.")
+            else:
+                raise NotImplementedError("Connection to back subdomains is not implemented.")
 
-                for n in range(0, N - 1):
-                    # forward difference
-                    dmat[index[l, m, n], index[l, m, n]] = -1 / length[n]
-                    dmat[index[l, m, n], index[l, m, n + 1]] = 1 / length[n]
+            for n in range(0, N - 1):
+                # forward difference
+                dmat[index[l, m, n], index[l, m, n]] = -1 / length[n]
+                dmat[index[l, m, n], index[l, m, n + 1]] = 1 / length[n]
 
         return dmat.tocsr()
 
