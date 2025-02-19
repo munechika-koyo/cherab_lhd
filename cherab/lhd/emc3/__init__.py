@@ -4,6 +4,7 @@ from .barycenters import CenterGrid
 from .curvilinear import CurvCoords
 from .cython.mapper import IndexMapper, Mapper
 from .grid import Grid
+from .indices import load_index_func
 
 __all__ = [
     "Mapper",
@@ -11,4 +12,5 @@ __all__ = [
     "Grid",
     "CenterGrid",
     "CurvCoords",
+    "load_index_func",
 ]
