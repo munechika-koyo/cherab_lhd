@@ -7,7 +7,6 @@ from typing import Literal
 import numpy as np
 from scipy.sparse import bmat, csr_matrix, diags, lil_matrix
 
-from ...tools.spinner import Spinner
 from ..barycenters import CenterGrid
 from ..curvilinear import CurvCoords
 from .polygon import generate_boundary_map
@@ -239,7 +238,6 @@ class Derivative:
 
         return dmat.tocsr()
 
-    @Spinner(text="Creating derivative matrices...", timer=True)
     def create_dmats_pairs(
         self, mode: Literal["strict", "ii", "flux"] = "strict"
     ) -> list[tuple[csr_matrix, csr_matrix]]:
@@ -286,7 +284,6 @@ class Derivative:
         return results
 
 
-@Spinner(text="Creating two subdomain's derivative matrices...", timer=True)
 def create_dmats_pairs_subdomains(
     zone1: str = "zone0",
     zone2: str = "zone11",
