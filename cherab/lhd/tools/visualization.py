@@ -30,9 +30,8 @@ from matplotlib.ticker import (
 )
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
 
-from cherab.core.math import PolygonMask2D, sample2d
+from cherab.core.math import PolygonMask2D, sample2d  # type: ignore
 
-from ..emc3.cython.mapper import Mapper
 from ..machine import wall_outline
 from .samplers import sample3d_rz, sample_xy_plane
 
@@ -716,6 +715,8 @@ def _worker2(
     profiles: dict,
 ) -> None:
     """Worker process to generate sampled & masked profiles."""
+    from ..emc3.cython.mapper import Mapper
+
     while not job_queue.empty():
         try:
             # extract a task
@@ -745,6 +746,8 @@ def _worker3(
     profiles: dict,
 ) -> None:
     """Worker process to generate sampled & masked profiles."""
+    from ..emc3.cython.mapper import Mapper
+
     while not job_queue.empty():
         try:
             # extract a task
