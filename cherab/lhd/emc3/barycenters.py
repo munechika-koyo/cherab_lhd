@@ -117,7 +117,7 @@ class CenterGrid:
 
     @property
     def data_array(self) -> xr.DataArray:
-        """DataArray of center grid coordinates."""
+        """`~.xarray.DataArray` of center grid coordinates."""
         return self._da
 
     @property

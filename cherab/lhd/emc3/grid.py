@@ -90,13 +90,13 @@ class Grid:
 
         # Load grid dataset with specified zone into memory
         with xr.open_dataset(path, group=zone) as ds:
-            self._ds = ds.load()
+            self._num_cells = ds.attrs["num_cells"]
+            self._da = ds["grid"].load()
 
         # Set attributes
         self._zone = zone
         self._path = path
-        self._grid_da = self._ds["grid"]
-        self._shape = self._grid_da.shape[0], self._grid_da.shape[1], self._grid_da.shape[2]
+        self._shape = self._da.shape[0], self._da.shape[1], self._da.shape[2]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(zone={self._zone!r}, dataset={self._path!r})"
@@ -104,9 +104,12 @@ class Grid:
     def __str__(self) -> str:
         L, M, N, num_cells = (
             *self._shape,
-            self._ds.attrs["num_cells"],
+            self._num_cells,
         )
-        return f"{self.__class__.__name__} for (zone: {self.zone}, L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
+        return (
+            f"{self.__class__.__name__} for (zone: {self.zone}, "
+            f"L: {L}, M: {M}, N: {N}, number of cells: {num_cells})"
+        )
 
     def __getitem__(
         self, key: int | slice | EllipsisType | tuple[int | slice | EllipsisType, ...] | NDArray
@@ -129,7 +132,7 @@ class Grid:
                 ...,
                 [3.267114e+00, 1.573770e-01]])
         """
-        return self._grid_da[key]
+        return self._da[key]
 
     @property
     def zone(self) -> str:
@@ -137,14 +140,14 @@ class Grid:
         return self._zone
 
     @property
-    def path(self) -> str:
+    def path(self) -> str | Path:
         """Path to dataset."""
         return self._path
 
     @property
-    def dataset(self) -> xr.Dataset:
-        """Dataset instance."""
-        return self._ds
+    def data_array(self) -> xr.DataArray:
+        """`~xarray.DataArray` instance."""
+        return self._da
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -172,7 +175,7 @@ class Grid:
                  [ 3.087519e+00, -6.796400e-02],
                  [ 3.078508e+00, -6.543900e-02]]]])
         """
-        return self._grid_da.data
+        return self._da.data
 
     def generate_vertices(self) -> NDArray[np.float64]:
         """Generate grid vertices array. A `grid_data` array is converted to 2D array which
@@ -202,8 +205,8 @@ class Grid:
         """
         L, M, N = self._shape
         vertices = np.zeros((L, M, N, 3), dtype=np.float64)
-        radians = self._ds["ζ"].values * np.pi / 180.0
-        grid_data = self._grid_da.data
+        radians = self._da["ζ"].values * np.pi / 180.0
+        grid_data = self._da.data
 
         for n, phi in enumerate(radians):
             vertices[..., n, 0] = grid_data[..., n, 0] * np.cos(phi)
@@ -327,8 +330,8 @@ class Grid:
             if indices_poloidal is None:
                 indices_poloidal = slice(0, None)
 
-        grid_ρ = self._grid_da.isel(θ=indices_poloidal)
-        grid_θ = self._grid_da.isel(ρ=indices_radial)
+        grid_ρ = self._da.isel(θ=indices_poloidal)
+        grid_θ = self._da.isel(ρ=indices_radial)
 
         # Set default line style
         for key, value in LINE_STYLE.items():
@@ -361,7 +364,7 @@ class Grid:
             ax.set_ylim(zmin, zmax)
 
         if show_phi:
-            add_inner_title(ax, f"$\\phi=${self._ds['ζ'][n_phi]:.2f}°")
+            add_inner_title(ax, f"$\\phi=${self._da['ζ'][n_phi]:.2f}°")
         set_axis_properties(ax)
 
         return (fig, ax)
@@ -443,7 +446,7 @@ class Grid:
         # === generate interpolated grids ==========================================================
         # put phi in [0, 18) range
         phi_t, flipped = periodic_toroidal_angle(phi)
-        angles = self._ds["ζ"].values
+        angles = self._da["ζ"].values
 
         phi_range = angles[0], angles[-1]
         if phi_t < phi_range[0] or phi_t > phi_range[1]:
@@ -457,8 +460,8 @@ class Grid:
         phi_right = angles[phi_right_index]
 
         # load rz grids at adjacent phis
-        grid_left = self._grid_da[:, :, phi_left_index, :].copy()
-        grid_right = self._grid_da[:, :, phi_right_index, :].copy()
+        grid_left = self._da[:, :, phi_left_index, :].copy()
+        grid_right = self._da[:, :, phi_right_index, :].copy()
 
         # flipped value for z axis
         if flipped:
