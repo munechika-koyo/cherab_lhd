@@ -45,10 +45,10 @@ def sanitize_dict(attrs: dict[str, object]) -> dict[str, object]:
         "str": "string",
         "int": 1,
         "float": 1.0,
-        "bool": True,
+        "bool": "True",
         "np_int": 1,
         "np_float": 1.0,
-        "np_bool": True,
+        "np_bool": "True",
         "list": "[1, 2, 3]",
         "dict": '{"key": "value"}',
         "none": "None",
@@ -57,9 +57,13 @@ def sanitize_dict(attrs: dict[str, object]) -> dict[str, object]:
     """
 
     def convert_value(value):
-        if isinstance(value, (str, int, float, bool)):
+        if isinstance(value, bool):  # Put first because bool is a subclass of int
+            return str(value)  # Convert bool to string
+        elif isinstance(value, (str, int, float)):
             return value
-        elif isinstance(value, (np.integer, np.floating, np.bool_)):
+        elif isinstance(value, np.bool_):
+            return str(value.item())
+        elif isinstance(value, (np.integer, np.floating)):
             return value.item()  # Convert NumPy types to Python basic types
         elif isinstance(value, list):
             return json.dumps(value)  # Save list as JSON string
