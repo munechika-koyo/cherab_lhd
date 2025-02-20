@@ -208,8 +208,8 @@ def create_2d_mesh(
 
     match index_type:
         case "coarse":
-            indices_radial = groups[f"/{zone}/index/coarse"].attrs["indices_radial"]
-            indices_poloidal = groups[f"/{zone}/index/coarse"].attrs["indices_poloidal"]
+            indices_radial = groups[f"/{zone}/index"]["coarse"].attrs["indices_radial"]
+            indices_poloidal = groups[f"/{zone}/index"]["coarse"].attrs["indices_poloidal"]
 
         case "cell" | "physics":
             L, M, _ = grid.shape
