@@ -17,6 +17,7 @@ python_sources = [
   'spinner.py',
   'fetch.py',
   'visualization.py',
+  'utility.py',
   'registries.json',
 ]
 
