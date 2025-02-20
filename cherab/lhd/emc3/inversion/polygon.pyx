@@ -212,6 +212,16 @@ cpdef object generate_boundary_map(
 ):
     """Generate boundary map.
 
+    This function calculates boundary map between two zones.
+    In case of a pair of "zone0" and "zone11", which are adjoined each other at the 9 degree in
+    toroidal, the map determines which cell of the next (backward) zone the last cell of the
+    previous (forward) zone touches.
+
+    .. note::
+
+        Currently, the pairs "zone0" and "zone11" are assumed and verified.
+        There is no guarantee that the other pairs will work well.
+
     Parameters
     ----------
     zone1 : str
@@ -248,10 +258,10 @@ cpdef object generate_boundary_map(
 
     # load index data
     path = fetch_file("emc3/grid-360.nc")
-    groups = xr.open_groups(path)
-    indices_radial_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_radial"]
-    indices_poloidal_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_poloidal"]
-    indices_mv = groups[f"/{zone1}/index"][index_type].data
+    with xr.open_dataset(path, group=f"/{zone1}/index")[index_type] as da:
+        indices_radial_mv = da.attrs["indices_radial"]
+        indices_poloidal_mv = da.attrs["indices_poloidal"]
+        indices_mv = da.data
 
     # create 2D mesh
     mesh, bins = create_2d_mesh(zone2, 0)
@@ -277,7 +287,7 @@ cpdef object generate_boundary_map(
 
             # find the corresponding mesh index for each point
             for i in range(points_inside_mv.shape[0]):
-                index = <int>mesh(points_inside_mv[i, 0], points_inside_mv[i, 1])
+                index = <int>mesh.evaluate(points_inside_mv[i, 0], points_inside_mv[i, 1])
                 boundary_map[l + m * num_radial_index, index] += 1
 
     # normalize
