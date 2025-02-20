@@ -247,7 +247,7 @@ cpdef object generate_boundary_map(
         raise ValueError("Number of points must be positive")
 
     # load index data
-    path = fetch_file("emc3/grid-360.hdf5")
+    path = fetch_file("emc3/grid-360.nc")
     groups = xr.open_groups(path)
     indices_radial_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_radial"]
     indices_poloidal_mv = groups[f"/{zone1}/index"][index_type].attrs["indices_poloidal"]
