@@ -49,7 +49,7 @@ def sanitize_dict(attrs: dict[str, object]) -> dict[str, object]:
         "np_int": 1,
         "np_float": 1.0,
         "np_bool": "True",
-        "list": "[1, 2, 3]",
+        "list": [1, 2, 3],
         "dict": '{"key": "value"}',
         "none": "None",
         "object": "<object object at 0x...>",
@@ -66,7 +66,7 @@ def sanitize_dict(attrs: dict[str, object]) -> dict[str, object]:
         elif isinstance(value, (np.integer, np.floating)):
             return value.item()  # Convert NumPy types to Python basic types
         elif isinstance(value, list):
-            return json.dumps(value)  # Save list as JSON string
+            return value  # Leave lists as they are
         elif isinstance(value, dict):
             return json.dumps(sanitize_dict(value))  # Recursively sanitize nested dictionaries
         elif value is None:
