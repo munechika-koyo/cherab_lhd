@@ -289,6 +289,8 @@ def create_dmats_pairs_subdomains(
     zone2: str = "zone11",
     index_type: str = "coarse",
     mode: Literal["strict", "ii", "ii+no-metric", "flux"] = "strict",
+    min_points: int = 200,
+    ratio: float = 1.0,
 ) -> list[tuple[csr_matrix, csr_matrix]]:
     """Create derivative matrices for each coordinate pair considering the connection between two
     subdomains.
@@ -306,6 +308,10 @@ def create_dmats_pairs_subdomains(
         Index type, by default "coarse".
     mode : {"strict", "ii", "ii+no-metric", "flux"}, optional
         Derivative matrix mode, by default "strict".
+    min_points : int, optional
+        Minimum number of points to be used for the boundary map, by default 200.
+    ratio : float, optional
+        Ratio of the number of points to be used for the boundary map, by default 1.0.
 
     Returns
     -------
@@ -313,7 +319,9 @@ def create_dmats_pairs_subdomains(
         List of derivative matrices for each coordinate pair.
     """
     # generate boundary map
-    bmap = generate_boundary_map(zone1, zone2, index_type=index_type).tocsr()
+    bmap = generate_boundary_map(
+        zone1, zone2, index_type=index_type, min_points=min_points, ratio=ratio
+    ).tocsr()
 
     grid1 = CenterGrid(zone1, index_type=index_type)
     grid2 = CenterGrid(zone2, index_type=index_type)
