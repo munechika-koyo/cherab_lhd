@@ -234,6 +234,9 @@ doc-serve = { cmd = [
 pytest = "*"
 pytest-cov = "*"
 
+[tool.pixi.feature.test.pypi-dependencies]
+pytest-github-report = "*"
+
 [tool.pixi.feature.test.tasks]
 test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
 
