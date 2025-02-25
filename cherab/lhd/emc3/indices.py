@@ -6,7 +6,6 @@ import h5py  # noqa: F401
 import numpy as np
 import xarray as xr
 from raysect.core.math import triangulate2d
-from raysect.core.math.function.float import Discrete2DMesh
 from raysect.primitive.mesh import TetraMeshData
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -15,7 +14,7 @@ from ..tools.fetch import fetch_file
 from .cython import Discrete3DMesh
 from .grid import Grid
 
-__all__ = ["load_index_func", "create_2d_mesh"]
+__all__ = ["load_index_func", "triangulate"]
 
 INDEX_TYPES = Literal["cell", "physics", "coarse"]
 
@@ -122,7 +121,7 @@ def load_index_func(
             start_index += _max_index
 
         if not load_tetra_mesh:
-            progress.update(task_id, visible=False, advance=1)
+            progress.update(task_id, visible=False, advance=1, refresh=True)
             return dict_index1, dict_num_voxels
 
         # =======================
@@ -166,8 +165,12 @@ def load_index_func(
         index2_1d = np.hstack([dict_index2[zone].ravel(order="F") for zone in zones])
 
         # Finalize progress bar
-        progress.update(task_id, description="[bold green]Loaded index function", advance=1)
-        progress.refresh()
+        progress.update(
+            task_id,
+            description=f"[bold green]Loaded index function[/bold green] ({'+'.join(zones)})",
+            advance=1,
+            refresh=True,
+        )
 
     # TODO: Needs to consider indices3/indices4 for edge zones?
     discrete3d = Discrete3DMesh(tetra_mesh, index1_1d, index2_1d)
@@ -175,41 +178,70 @@ def load_index_func(
     return discrete3d, dict_num_voxels
 
 
-def create_2d_mesh(
-    zone: str,
-    n_phi: int,
-    index_type="coarse",
-    dataset: str = "emc3/grid-360.nc",
-    default_value: int = -1,
-) -> tuple[Discrete2DMesh, int]:
-    """`~raysect.core.math.function.float.function2d.interpolate.Discrete2DMesh` instance of the
-    EMC3 poloidal plane.
+def triangulate(
+    grid: Grid,
+    phi: float | None = None,
+    n_phi: int = 0,
+    index_type: Literal["coarse"] = "coarse",
+):
+    """Triangulate grid data at a specific toroidal angle.
+
+    This method returns vertices and triangles at ploidal plane (R-Z plane) at a specific
+    toroidal angle.
+    The grid is interpolated linearly between two nearest toroidal angles if specifying
+    arbitrary toroidal angle `phi`.
+    Also, indices of triangles are returned according to the index type.
 
     Parameters
     ----------
-    zone : str
-        Zone name.
-    n_phi : int
-        Index number of toroidal direction.
-    index_type : {"cell", "physics", "coarse"}, optional
-        Index type, by default ``coarse``.
-    dataset : str, optional
-        Dataset name, by default ``"emc3/grid-360.nc"``.
-    default_value : int, optional
-        Default mesh value, by default ``-1``.
+    grid : `.Grid`
+        Grid object.
+    phi : float, optional
+        Toroidal angle in [degree], by default None.
+        If specified, the grid is interpolated linearly and prioritized over `n_phi`.
+    n_phi : int, optional
+        Index of toroidal angle, by default 0.
 
     Returns
     -------
-    tuple[Discrete2DMesh, int]
-        Index function and number of indices.
-    """
-    grid = Grid(zone, dataset=dataset)
-    groups = xr.open_groups(fetch_file(dataset))
+    verts : (N, 2) ndarray
+        Vertices at poloidal plane. N is the number of vertices.
+    tri : (M, 3) ndarray
+        Triangles at poloidal plane. M is the number of triangles.
+    indices : (M,) ndarray
+        Indices of triangles.
 
+    Examples
+    --------
+    >>> grid = Grid("zone0")
+    >>> verts, tris, indices = triangulate(grid, phi=4.2)
+    >>> verts.shape
+    (55200, 2)
+    >>> tri.shape
+    (48600, 3)
+    >>> indices.shape
+    (48600,)
+    """
+    if isinstance(phi, (int, float)):
+        angles = grid.data_array["ζ"].data
+        if phi < angles[0] or phi > angles[-1]:
+            raise ValueError(f"Toroidal angle {phi} is out of range. [{angles[0]}, {angles[-1]}]")
+    elif isinstance(n_phi, int):
+        angles = grid.data_array["ζ"].data
+        if n_phi < 0 or n_phi >= len(angles):
+            raise IndexError(f"Index of toroidal angle {n_phi} is out of range. [0, {len(angles)}]")
+    else:
+        raise ValueError("Either `phi` or `n_phi` must be specified.")
+
+    # --------------------------
+    # === Load index dataset ===
+    # --------------------------
+    groups = xr.open_groups(grid.path)
     match index_type:
         case "coarse":
-            indices_radial = groups[f"/{zone}/index"]["coarse"].attrs["indices_radial"]
-            indices_poloidal = groups[f"/{zone}/index"]["coarse"].attrs["indices_poloidal"]
+            ds_index = groups[f"/{grid.zone}/index"]["coarse"]
+            indices_radial = ds_index.attrs["indices_radial"]
+            indices_poloidal = ds_index.attrs["indices_poloidal"]
 
         case "cell" | "physics":
             L, M, _ = grid.shape
@@ -219,49 +251,60 @@ def create_2d_mesh(
         case _:
             raise ValueError(f"Invalid index type: {index_type}")
 
-    index = 0
+    # ------------------------
+    # === Interpolate grid ===
+    # ------------------------
+    if isinstance(phi, (int, float)):
+        grid_rz = grid.data_array.interp(ζ=phi, method="linear")
+        index_rz = ds_index.sel(ζ=phi, method="nearest")
+
+    else:
+        grid_rz = grid.data_array.isel(ζ=n_phi)
+        index_rz = ds_index.isel(ζ=n_phi)
+
+    # ------------------------
+    # === Triangulate grid ===
+    # ------------------------
+    list_verts = []
+    list_tris = []
+    list_indices = []
+
+    start_triangle = 0
     for l, m in np.ndindex(len(indices_radial) - 1, len(indices_poloidal) - 1):  # noqa: E741
         m0, m1 = indices_poloidal[m], indices_poloidal[m + 1]
         l0, l1 = indices_radial[l], indices_radial[l + 1]
 
-        # create polygon's vertices
-        # dealing with l0 = 0 (remove coincident points)
-        if l0 == 0:
+        # Polygon's vertices
+        if l0 == 0:  # Remove coincident points
             _verts = np.vstack(
                 (
-                    grid[l0:l1, m0, n_phi, 0:2],
-                    grid[l1, m0:m1, n_phi, 0:2],
-                    grid[l1:l0:-1, m1, n_phi, 0:2],
+                    grid_rz[l0:l1, m0],
+                    grid_rz[l1, m0:m1],
+                    grid_rz[l1:l0:-1, m1],
                 )
             )
         else:
             _verts = np.vstack(
                 (
-                    grid[l0:l1, m0, n_phi, 0:2],
-                    grid[l1, m0:m1, n_phi, 0:2],
-                    grid[l1:l0:-1, m1, n_phi, 0:2],
-                    grid[l0, m1:m0:-1, n_phi, 0:2],
+                    grid_rz[l0:l1, m0],
+                    grid_rz[l1, m0:m1],
+                    grid_rz[l1:l0:-1, m1],
+                    grid_rz[l0, m1:m0:-1],
                 )
             )
 
-        # triangulate polygon
-        _triangles = triangulate2d(_verts)
+        # Triangulate polygon
+        _tris = triangulate2d(_verts)
 
-        # set index value to all triangles
-        _data = np.full(_triangles.shape[0], index, dtype=np.int32)
+        # Retrieve indices
+        index = index_rz.isel(ρ=l0, θ=m0).item()
 
-        if index == 0:
-            verts = _verts.copy()
-            triangles = _triangles.copy()
-            data = _data.copy()
-        else:
-            verts = np.vstack((verts, _verts))
-            triangles = np.vstack((triangles, _triangles + triangles.max() + 1))
-            data = np.hstack((data, _data))
+        # Store values temporarily
+        list_verts.append(_verts)
+        list_tris.append(_tris + start_triangle)
+        list_indices.append(np.full(_tris.shape[0], index, dtype=np.int32))
 
-        index += 1
+        start_triangle += _verts.shape[0]
 
-    # create 2d mesh
-    mesh = Discrete2DMesh(verts, triangles, data, limit=False, default_value=default_value)
-
-    return mesh, index
+    # Return concatenated values
+    return np.vstack(list_verts), np.vstack(list_tris), np.hstack(list_indices)
