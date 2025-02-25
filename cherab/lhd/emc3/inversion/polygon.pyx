@@ -13,7 +13,7 @@ import xarray as xr
 from scipy.sparse import lil_matrix
 
 from ..grid import Grid
-from ..indices import create_2d_mesh
+from ..indices import triangulate
 from ...tools.fetch import fetch_file
 
 __all__ = ["points_inside_polygon", "generate_boundary_map"]
@@ -24,8 +24,9 @@ def points_inside_polygon(
     range_l: tuple[int, int],
     range_m: tuple[int, int],
     n: cython.int = -1,
-    num_points: cython.int = 200,
     zone: str = "zone0",
+    min_points: cython.int = 200,
+    ratio: cython.float = 0.0,
 ) -> np.ndarray:
     """Generate random points inside the polygon.
 
@@ -42,10 +43,13 @@ def points_inside_polygon(
         Range of poloidal indices.
     n : int
         Index number of toroidal direction, by default -1.
-    num_points : int
-        Number of points to generate, by default 200.
     zone : str
         Name of zone, by default ``"zone0"``.
+    min_points : int
+        Number of points to generate, by default 200.
+    ratio : float
+        Ratio to area of the polygon, by default 0.0.
+        0.0 means that the number of points is always ``min_points``.
 
     Returns
     -------
@@ -56,7 +60,7 @@ def points_inside_polygon(
     --------
     >>> points_inside = points_inside_polygon((10, 20), (10, 20), n=0, zone="zone0")
     >>> points_inside.shape
-    (200, 2)
+    (134, 2)  # The number of points is random
 
     Show the points and EMC3 grid at the poloidal cross-section.
 
@@ -64,7 +68,6 @@ def points_inside_polygon(
 
         from matplotlib import pyplot as plt
         from cherab.lhd.emc3 import Grid
-        from cherab.lhd.emc3.inversion.polygon import points_inside_polygon
 
         grid = Grid("zone0")
         plt.plot(grid[:, 10, 0, 0], grid[:, 10, 0, 1], "k-")  # plot radial lines (m=10)
@@ -87,7 +90,9 @@ def points_inside_polygon(
         np.ndarray points_inside
         double[:, ::1] points_inside_mv
 
-    points_inside_mv = _points_inside_polygon(range_l, range_m, n, num_points, zone)
+    points_inside_mv = _points_inside_polygon(
+        range_l, range_m, n=n, zone=zone, min_points=min_points, ratio=ratio
+    )
     points_inside = np.asarray(points_inside_mv)
 
     return points_inside
@@ -114,8 +119,9 @@ cdef double[:, ::1] _points_inside_polygon(
     (int, int) range_l,
     (int, int) range_m,
     int n = -1,
-    int num_points = 200,
     str zone = "zone0",
+    int min_points = 200,
+    float ratio = 0.0,
 ):
     """Generate random points inside the polygon.
 
@@ -129,10 +135,13 @@ cdef double[:, ::1] _points_inside_polygon(
         Range of poloidal indices.
     n : int
         Index number of toroidal direction, by default -1.
-    num_points : int
-        Number of points to generate, by default 200.
     zone : str
         Name of zone, by default ``"zone0"``.
+    min_points : int
+        Number of minimum points to generate, by default 200.
+    ratio : float
+        Ratio to area of the polygon, by default 0.0.
+        0.0 means that the number of points is always ``min_points``.
 
     Returns
     -------
@@ -144,13 +153,14 @@ cdef double[:, ::1] _points_inside_polygon(
         int l0, l1, m0, m1
         object grid
         double[:, ::1] pol_mv
+        int num_points
         PolygonMask2D mask
         double rmin, rmax, zmin, zmax
-        np.ndarray[np.float64_t, ndim=2] points_inside
+        double area
         double[:, ::1] points_inside_mv
-        int row
         double x, y
         bint inside
+        int count
 
     # Unpack range
     l0, l1 = range_l
@@ -181,24 +191,23 @@ cdef double[:, ::1] _points_inside_polygon(
 
     rmin, rmax = _minmax(pol_mv[:, 0])
     zmin, zmax = _minmax(pol_mv[:, 1])
-    # rmin, rmax = min(pol_mv[:, 0]), max(pol_mv[:, 0])
-    # zmin, zmax = min(pol_mv[:, 1]), max(pol_mv[:, 1])
 
-    # Generate random points within the bounding box
-    points_inside = np.zeros((num_points, 2))
-    points_inside_mv = points_inside
+    # Set number of points based on the polygon area
+    area = _polygon_area(pol_mv)
+    num_points = max(min_points, <int>(area * ratio))
 
-    row = 0
-    while row < num_points:
+    points_inside_mv = np.zeros((num_points, 2))
+    count = 0
+    while count < num_points:
         x = rmin + (rmax - rmin) * uniform()
         y = zmin + (zmax - zmin) * uniform()
 
         # Check if the point is inside the quadrilateral
         inside = <bint>mask.evaluate(x, y)
         if inside:
-            points_inside_mv[row, 0] = x
-            points_inside_mv[row, 1] = y
-            row += 1
+            points_inside_mv[count, 0] = x
+            points_inside_mv[count, 1] = y
+            count += 1
 
     return points_inside_mv
 
@@ -207,8 +216,42 @@ cdef double[:, ::1] _points_inside_polygon(
 @cython.initializedcheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef double _polygon_area(double[:, ::1] vertices) except -1e999:
+    """Generate the area of a polygon given its vertices.
+
+    Parameters
+    ----------
+    vertices : (N, 2) array_like
+        An Nx2 array of (x, y) coordinates of the polygon's vertices.
+
+    Returns
+    -------
+    float
+        The area of the polygon
+    """
+    cdef:
+        int n = vertices.shape[0]
+        double area = 0.0
+        int i, j
+
+    for i in range(n):
+        j = (i + 1) % n
+        area += vertices[i, 0] * vertices[j, 1]
+        area -= vertices[j, 0] * vertices[i, 1]
+
+    return 0.5 * abs(area)
+
+
+def test_polygon_area(vertices):
+    return _polygon_area(vertices)
+
+
+@cython.boundscheck(False)
+@cython.initializedcheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cpdef object generate_boundary_map(
-    str zone1, str zone2, int num_points = 200, str index_type = "coarse"
+    str zone1, str zone2, str index_type = "coarse", int min_points = 200, float ratio = 0.0,
 ):
     """Generate boundary map.
 
@@ -228,10 +271,13 @@ cpdef object generate_boundary_map(
         Name of forward zone.
     zone2 : str
         Name of backward zone
-    num_points : int
-        Number of points to generate, by default 200.
     index_type : {"coarse", "cell"}
         Index type, by default ``"coarse"``.
+    min_points : int
+        Number of minimum points to generate, by default 200.
+    ratio : float
+        Ratio to area of the polygon, by default 0.0.
+        0.0 means that the number of points is always ``min_points``.
 
     Returns
     -------
@@ -246,14 +292,15 @@ cpdef object generate_boundary_map(
         long[::1] indices_radial_mv, indices_poloidal_mv
         np.uint32_t[:, :, ::1] indices_mv
         Discrete2DMesh mesh
-        int bins
-        object boundary_map
+        int index_size
+        object boundary_map, grid, verts, tris, data
         int num_radial_index
         int m, l, i, index
         double[:, ::1] points_inside_mv
+        int num_points
 
     # validation
-    if num_points <= 0:
+    if min_points <= 0:
         raise ValueError("Number of points must be positive")
 
     # load index data
@@ -264,11 +311,14 @@ cpdef object generate_boundary_map(
         indices_mv = da.data
 
     # create 2D mesh
-    mesh, bins = create_2d_mesh(zone2, 0)
+    grid = Grid(zone1)
+    verts, tris, data = triangulate(grid)
+    index_size = max(data) + 1
+    mesh = Discrete2DMesh(verts, tris, data, limit=False, default_value=-1)
 
     # create boundary map sparse matrix
     boundary_map = lil_matrix(
-        (indices_mv[indices_mv.shape[0] - 1, indices_mv.shape[1] - 1, 0] + 1, bins),
+        (indices_mv[indices_mv.shape[0] - 1, indices_mv.shape[1] - 1, 0] + 1, index_size),
         dtype=np.float64
     )
     num_radial_index = indices_radial_mv.shape[0] - 1
@@ -281,16 +331,18 @@ cpdef object generate_boundary_map(
                 (indices_radial_mv[l], indices_radial_mv[l + 1]),
                 (indices_poloidal_mv[m], indices_poloidal_mv[m + 1]),
                 n=-1,
-                num_points=num_points,
+                min_points=min_points,
+                ratio=ratio,
                 zone=zone1,
             )
 
             # find the corresponding mesh index for each point
-            for i in range(points_inside_mv.shape[0]):
+            num_points = points_inside_mv.shape[0]
+            for i in range(num_points):
                 index = <int>mesh.evaluate(points_inside_mv[i, 0], points_inside_mv[i, 1])
                 boundary_map[l + m * num_radial_index, index] += 1
 
-    # normalize
-    boundary_map /= <double>num_points
+            # normalize
+            boundary_map[l + m * num_radial_index, :] /= <double>num_points
 
     return boundary_map
