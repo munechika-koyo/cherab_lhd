@@ -52,6 +52,7 @@ dependencies = [
     "pooch",
     "paramiko",
     "tqdm",
+    "pymupdf>=1.25.3,<2",
 ]
 
 [project.urls]
@@ -63,7 +64,7 @@ repository = "https://github.com/munechika-koyo/cherab_lhd"
 # === Cov/Test config ===
 # -----------------------
 [tool.coverage.run]
-source_pkgs = ["cherab", "tests"]
+source_pkgs = ["cherab.lhd", "tests"]
 branch = true
 parallel = true
 
