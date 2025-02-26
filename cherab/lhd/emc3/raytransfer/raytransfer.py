@@ -5,10 +5,10 @@ from __future__ import annotations
 from raysect.core.math import translate
 from raysect.optical import World
 from raysect.primitive import Cylinder
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from cherab.lhd.tools.spinner import DummySpinner, Spinner
-
-from ..indices import create_index_func
+from ..indices import load_index_func
 from .emitters import Discrete3DMeshRayTransferEmitter
 
 __all__ = ["load_rte"]
@@ -32,54 +32,82 @@ ZONES = [
 
 
 def load_rte(
-    parent: World, zones: list[str] = ZONES, index_type: str = "cell", verbose: bool = True
-) -> list[Cylinder]:
+    parent: World,
+    zones: list[str] = ZONES,
+    integration_step: float = 1.0e-3,
+    quiet: bool = False,
+    **kwargs,
+) -> tuple[Cylinder, int]:
     """Helper function of loading RayTransfer Emitter using `.Discrete3DMeshRayTransferEmitter`.
 
     Parameters
     ----------
-    parent : World
-        Raysect world Node.
+    parent : `~raysect.optical.scenegraph.world.World`
+        Raysect world scene-graph Node.
     zones : list[str]
         Zones of EMC3-EIRENE mesh.
-    index_type : {"cell", "physics", "coarse"}, optional
-        Type of indexing EMC3 grids, by default "cell".
-        The index data must be created in advance using `.create_new_index`.
-    verbose : bool, optional
-        Whether to show progress bar, by default True.
+    integration_step : float, optional
+        Line integral step along the ray, by default 1.0 [mm].
+    quiet : bool, optional
+        Mute status messages, by default False.
+    **kwargs
+        Keyword arguments to pass to `.load_index_func`.
 
     Returns
     -------
-    list[`~raysect.primitive.cylinder.Cylinder`]
-        List of primitives of cylinder.
+    `~raysect.primitive.cylinder.Cylinder`
+        Primitives of cylinder.
+    int
+        Number of voxels.
+
+    Examples
+    --------
+    >>> from raysect.optical import World
+    >>> world = World()
+    >>> rte, bins = load_rte(world, zones=["zone0", "zone11"], index_type="coarse")
     """
+    console = Console(quiet=quiet)
+    progress = Progress(
+        TimeElapsedColumn(),
+        TextColumn("{task.description}"),
+        SpinnerColumn("simpleDots"),
+        console=console,
+    )
+    task_id = progress.add_task("Loading RayTransfer Emitter", total=1)
 
-    emitters = []
-    spinner = Spinner if verbose else DummySpinner
-    base_text = "Loading RayTransfer Emitter "
-    with spinner(text=base_text, timer=True) as sp:
+    with progress:
         # Load index function
-        for zone in zones:
-            sp.text = base_text + f"({zone=}, {index_type=})"
-            index_func, bins = create_index_func(zone=zone, index_type=index_type)
+        progress.update(task_id, description="Loading index function")
+        index_func, dict_num_voxel = load_index_func(zones, quiet=True, **kwargs)
+        bins = sum(dict_num_voxel.values())
 
-            # material as emitter
-            material = Discrete3DMeshRayTransferEmitter(index_func, bins, integration_step=0.001)
+        progress.update(task_id, description="Creating RayTransfer Emitter")
 
-            # primitive using cylinder
-            shift = translate(0, 0, ZMIN)
-            emitter = Cylinder(
-                RMAX,
-                ZMAX - ZMIN,
-                transform=shift,
-                parent=parent,
-                material=material,
-                name=f"RayTransferEmitter-{zone}",
-            )
+        # Create emitter material
+        material = Discrete3DMeshRayTransferEmitter(
+            index_func, bins, integration_step=integration_step
+        )
 
-            emitters.append(emitter)
+        # Create Cylinder primitive
+        shift = translate(0, 0, ZMIN)
+        emitter = Cylinder(
+            RMAX,
+            ZMAX - ZMIN,
+            transform=shift,
+            parent=parent,
+            material=material,
+            name=f"RayTransferEmitter {zones}",
+        )
 
-        sp.text = base_text
-        sp.ok()
+        # Finalize progress
+        progress.update(
+            task_id,
+            description=(
+                "[bold green]RayTransfer Emitter loaded[/bold green] "
+                f"(zones: {'+'.join(zones)}, bins: {bins})"
+            ),
+            advance=1,
+        )
+        progress.refresh()
 
-    return emitters
+    return emitter, bins

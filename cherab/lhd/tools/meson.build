@@ -12,12 +12,13 @@ foreach file : cython_sources
   )
 endforeach
 
-
 python_sources = [
-    '__init__.py',
-    'spinner.py',
-    'fetch.py',
-    'visualization.py',
+  '__init__.py',
+  'spinner.py',
+  'fetch.py',
+  'visualization.py',
+  'utility.py',
+  'registries.json',
 ]
 
 py.install_sources(

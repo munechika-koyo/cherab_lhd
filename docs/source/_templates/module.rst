@@ -1,4 +1,4 @@
-{{ fullname | escape | underline}}
+{{ objname | escape | underline}}
 
 .. automodule:: {{ fullname }}
 
@@ -8,6 +8,7 @@
 .. rubric:: Module Attributes
 .. autosummary::
    :toctree:
+   :template: attribute.rst
 {% for item in attributes %}
    {{ item }}
 {%- endfor %}
@@ -20,6 +21,7 @@
 .. rubric:: Functions
 .. autosummary::
    :toctree:
+   :template: function.rst
 {% for item in functions %}
    {{ item }}
 {%- endfor %}
@@ -61,9 +63,9 @@
    :template: module.rst
    :recursive:
 {% for item in all_modules %}
-{% if not item.endswith("tests") %}
+{%- if not item.endswith("tests") %}
    {{ item.split(".")[-1] }}
-{% endif %}
+{%- endif %}
 {%- endfor %}
 {% endif %}
 {% endblock %}

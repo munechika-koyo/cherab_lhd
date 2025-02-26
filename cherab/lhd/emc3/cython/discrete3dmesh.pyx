@@ -1,5 +1,4 @@
-"""Module to offer Discrete3D interpolation for EMC3-EIRENE in LHD
-"""
+"""Module to offer Discrete3D interpolation for EMC3-EIRENE in LHD."""
 cimport cython
 from libc.limits cimport INT_MIN
 from libc.math cimport M_PI, atan2, cos, hypot, sin
@@ -44,7 +43,7 @@ cdef class Discrete3DMesh(IntegerFunction3D):
     If they are None, `indices3` & `indices4` are referred to `indices1` & `indices2`,
     respectively.
 
-    If the specified point is ouside the defined tetrahedral mesh, this callble always returns -1.
+    If the specified point is outside the defined tetrahedral mesh, this callble always returns -1.
 
     To optimise the lookup of tetrahedra, acceleration structure (a KD-Tree) is used from the
     specified instance of :obj:`~raysect.primitive.mesh.tetra_mesh.TetraMeshData`.
@@ -57,10 +56,10 @@ cdef class Discrete3DMesh(IntegerFunction3D):
         1-D EMC3-EIRENE's cell indices array which is used in [0, 18] degree in toroidal.
     indices2 : ndarray[uint32, ndim=1]
         1-D EMC3-EIRENE's cell indices array which is used in (18, 36] degree in toroidal.
-    indices3 : ndarray[uint32, ndim=1]
+    indices3 : ndarray[uint32, ndim=1], optional
         1-D EMC3-EIRENE's cell indices array which is used in (36, 54] degree in toroidal,
         if None, this is referred to `indices1`
-    indices4 : ndarray[uint32, ndim=1]
+    indices4 : ndarray[uint32, ndim=1], optional
         1-D EMC3-EIRENE's cell indices array which is used in (54, 72] degree in toroidal,
         if None, this is referred to `indices2`
     """
@@ -168,5 +167,5 @@ cdef class Discrete3DMesh(IntegerFunction3D):
             if self._tetra_mesh.is_contained(new_point3d(_x, _y, _z)):
                 return self._indices4_mv[<int>(self._tetra_mesh.tetrahedra_id // 6)]
 
-        # If the point is ouside the mesh
+        # If the point is outside the mesh
         return -1

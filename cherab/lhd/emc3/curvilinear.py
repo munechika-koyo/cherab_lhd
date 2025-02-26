@@ -5,7 +5,7 @@ from functools import cached_property
 import numpy as np
 from numpy.typing import NDArray
 
-from .barycenters import CenterGrids
+from .barycenters import CenterGrid
 
 __all__ = ["CurvCoords"]
 
@@ -21,13 +21,13 @@ class CurvCoords:
 
     Parameters
     ----------
-    grid : `.CenterGrids`
-        Instance of `.CenterGrids` class.
+    grid : `.CenterGrid`
+        Instance of `.CenterGrid` class.
     """
 
-    def __init__(self, grid: CenterGrids):
-        if not isinstance(grid, CenterGrids):
-            raise TypeError(f"grid must be a CenterGrids object, not {type(grid)}")
+    def __init__(self, grid: CenterGrid):
+        if not isinstance(grid, CenterGrid):
+            raise TypeError(f"grid must be a CenterGrid object, not {type(grid)}")
 
         self._grid = grid
 
@@ -38,7 +38,7 @@ class CurvCoords:
         return f"{self.__class__.__name__} with {self.grid}"
 
     @property
-    def grid(self) -> CenterGrids:
+    def grid(self) -> CenterGrid:
         """EMC3-EIRENE-defined center grids."""
         return self._grid
 
@@ -248,6 +248,31 @@ class CurvCoords:
         -------
         array_like
             Metric tensor :math:`g_{ij}` or :math:`g^{ij}`.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from cherab.lhd.emc3 import CenterGrid
+
+        >>> grid = CenterGrid("zone0", index_type="coarse")
+        >>> coords = CurvCoords(grid)
+
+        Let compute the metric temsor: :math:`\\mathbf{b}_\\rho \\cdot \\mathbf{b}^\\rho`.
+        It should be an array of ones.
+
+        >>> g1 = coords.compute_metric(coords.b_rho, coords.b_sup_rho)
+        >>> g1.shape
+        (33, 100, 9)
+        >>> np.allclose(g1, np.ones_like(g1))
+        True
+
+        Let check if the metric tensor: :math:`\\mathbf{b}_\\rho\\cdot\\mathbf{b}_\\rho` is not
+        the same as the before.
+
+        >>> g2 = coords.compute_metric(coords.b_rho, coords.b_rho)
+        >>> np.allclose(g1, g2)
+        False
+        >>> g2[0, 0, 0]
         """
 
         return np.einsum("...i,...i", v1, v2)

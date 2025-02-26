@@ -1,5 +1,5 @@
-"""Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD
-"""
+"""Module to offer cythonized Integer Functions for EMC3-EIRENE in LHD."""
+
 import numbers
 from libc.limits cimport INT_MIN
 from raysect.core.math.function.base cimport Function
@@ -28,10 +28,19 @@ cdef class IntegerFunction3D:
     def __call__(self, double x, double y, double z):
         """ Evaluate the function f(x, y, z)
 
-        :param float x: function parameter x
-        :param float y: function parameter y
-        :param float y: function parameter z
-        :rtype: int
+        Parameters
+        ----------
+        x : float
+            Function parameter x.
+        y : float
+            Function parameter y.
+        z : float
+            Function parameter z.
+
+        Returns
+        -------
+        int
+            The result of the function f(x, y, z).
         """
         return self.evaluate(x, y, z)
 
@@ -59,8 +68,12 @@ cdef class AddFunction3D(IntegerFunction3D):
     This class is not intended to be used directly, but rather returned as the result of an
     __add__() call on a IntegerFunction3D object.
 
-    :param function1: A IntegerFunction3D object.
-    :param function2: A IntegerFunction3D object.
+    Parameters
+    ----------
+    function1 : IntegerFunction3D
+        The first IntegerFunction3D object to be evaluated.
+    function2 : IntegerFunction3D
+        The second IntegerFunction3D object to be evaluated.
     """
 
     def __init__(self, object function1, object function2):
@@ -79,8 +92,12 @@ cdef class AddScalar3D(IntegerFunction3D):
     This class is not intended to be used directly, but rather returned as the result of an
     __add__() call on a IntegerFunction3D object.
 
-    :param value: A int value.
-    :param function: A IntegerFunction3D object or Python callable.
+    Parameters
+    ----------
+    value : int
+        The scalar value to be added to the result of the function.
+    function : IntegerFunction3D
+        The IntegerFunction3D object to be evaluated.
     """
 
     def __init__(self, int value, object function):
@@ -108,9 +125,15 @@ cdef class IntegerConstant3D(IntegerFunction3D):
     determine if it is an instance of IntegerFunction3D. If the object is not a
     IntegerFunction3D object it should be wrapped using this class for internal use.
 
-    See also: autowrap_intfunction3d()
+    Parameters
+    ----------
+    value : int
+        The constant value to be returned by the function.
 
-    :param int value: the constant value to return when called
+
+    See Also
+    --------
+    autowrap_intfunction3d
     """
     def __init__(self, int value):
         self._value = value
@@ -135,7 +158,9 @@ cdef class PythonIntegerFunction3D(IntegerFunction3D):
     determine if it is an instance of IntegerFunction3D. If the object is not a
     IntegerFunction3D object it should be wrapped using this class for internal use.
 
-    See also: autowrap_intfunction3d()
+    See Also
+    --------
+    autowrap_intfunction3d
     """
 
     def __init__(self, object function):

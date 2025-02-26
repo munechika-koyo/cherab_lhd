@@ -34,23 +34,20 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
-    "sphinx-prompt",
     "sphinx_copybutton",
     "nbsphinx",
     "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_codeautolink",
     "sphinx_github_style",
+    "numpydoc",
 ]
 
 default_role = "obj"
 
 # autodoc config
-autodoc_typehints = "description"
-autodoc_typehints_format = "short"
 autodoc_member_order = "bysource"
 
 # autosummary config
@@ -59,15 +56,16 @@ autosummary_generate_overwrite = True
 autosummary_imported_members = True
 autosummary_ignore_module_all = False
 
-# napoleon config
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_use_param = True
-napoleon_use_ivar = False
+# numpydoc config
+numpydoc_show_class_members = False
+numpydoc_xref_param_type = True
 
 # todo config
 todo_include_todos = True
+
+# sphinx_copybutton config
+copybutton_exclude = ".linenos, .gp"
+copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -128,8 +126,8 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
-    "pygment_light_style": "default",
-    "pygment_dark_style": "native",
+    "pygments_light_style": "default",
+    "pygments_dark_style": "native",
     "switcher": {
         "json_url": json_url,
         "version_match": version_match,
@@ -154,6 +152,7 @@ html_css_files = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "raysect": ("http://www.raysect.org", None),
@@ -177,13 +176,12 @@ nbsphinx_prolog = """
     __ https://github.com/munechika-koyo/cherab_lhd/blob/main/docs/{{ docname }}
 """
 nbsphinx_thumbnails = {
-    "notebooks/machine/visualize_LHD_plotly": "_static/images/LHD_machine_thumbnails.png",
-    "notebooks/observer/bolos_config": "_static/images/plotting/bolos_config.png",
+    # "notebooks/path/to/.ipnb": "_static/images/path/to/image.png",
 }
 
 # === sphinx_github_style configuration ============================================
 # get tag name which exists in GitHub
-tag = "master" if version_obj.is_devrelease else f"v{version_obj.public}"
+tag = "main" if version_obj.is_devrelease else f"v{version_obj.public}"
 
 # set sphinx_github_style options
 top_level = "cherab"

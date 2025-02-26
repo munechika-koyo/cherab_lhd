@@ -1,16 +1,19 @@
-"""Module to offer masking features EMC3-EIRENE in LHD
-"""
+"""Module to offer masking features EMC3-EIRENE in LHD."""
+
 cimport cython
 from libc.limits cimport INT_MIN
 
 
 cdef class Mask(IntegerFunction3D):
-    """
-    Masking EMC3-EIRINE grid space to identify whether or not a mesh exists at the point.
+    """Masking EMC3-EIRINE grid space to identify whether or not a mesh exists at the point.
+
     This instance is callable function returning 1 corresponding in
     3D space where EMC3's index function returns a physical index, otherwise 0.
 
-    :param IntegerFunction3D index_func: EMC3's index_funcion returning a physical index.
+    Parameters
+    ----------
+    index_func : callable[[float, float, float], int]
+        EMC3's index_funcion returning a physical index.
     """
 
     def __init__(self, object index_func not None):

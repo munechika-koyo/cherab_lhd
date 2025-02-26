@@ -14,6 +14,7 @@ cython_sources = [
   ['mapper', 'mapper.pyx'],
   ['masking', 'masking.pyx'],
   ['tetrahedralization', 'tetrahedralization.pyx'],
+  ['utility', 'utility.pyx'],
 ]
 
 # compile cython sources to .so modules

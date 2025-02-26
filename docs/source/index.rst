@@ -13,7 +13,7 @@ so this documentation is gradually updated, and welcome your contribution.
 
 **Useful links**:
 `Source Repository`_ |
-`Issue Tracker`_ |
+`Issue`_ |
 :ref:`contribution`
 
 .. toctree::
@@ -34,16 +34,16 @@ so this documentation is gradually updated, and welcome your contribution.
         ^^^^^^^^^^^^^^^
 
         New to CHERAB-LHD? Check out the getting started guide. It contains an
-        installation of CHERAB-LHD and links to additional tutorials.
+        quickstart guide to get you up and running CHERAB-LHD.
 
         +++
 
-        .. button-ref:: user/installation
+        .. button-ref:: user/quickstart
             :expand:
             :color: secondary
             :click-parent:
 
-            To the installation
+            To the quickstart
 
     .. grid-item-card::
         :img-top: _static/images/index-images/user_guide.png
@@ -69,7 +69,7 @@ so this documentation is gradually updated, and welcome your contribution.
         Example Gallery
         ^^^^^^^^^^^^^^^
 
-        Here it containes a collection of examples to experiment
+        Here it contains a collection of examples to experiment
         with CHERAB-LHD source code.
 
         +++

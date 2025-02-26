@@ -13,7 +13,7 @@ __all__ = ["SUS316L"]
 
 class _DataLoader(Conductor):
     def __init__(self, filename):
-        path = fetch_file(f"materials/{filename}.json")
+        path = fetch_file(f"material/{filename}.json")
         with open(path, "r") as f:
             data = json.load(f)
 

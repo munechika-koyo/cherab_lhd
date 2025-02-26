@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+import numpy as np
 from plotly import graph_objects as go
 from plotly.graph_objects import Figure
 from raysect.optical import World, rotate_z
@@ -17,7 +18,6 @@ from rich.console import Console, Group
 from rich.live import Live
 from rich.progress import Progress
 from rich.table import Table
-from scipy.spatial.transform import Rotation
 
 from ..tools.fetch import fetch_file
 from .material import RoughSUS316L
@@ -40,10 +40,10 @@ COMPONENTS: dict[str, tuple[str, Material, float | None]] = {
 
 # How many times each PFC element must be copy-pasted
 NCOPY: dict[str, int] = defaultdict(lambda: 1)
-NCOPY["plates"] = 5
-NCOPY["divertor"] = 10
-# NCOPY["port_65u"] = 10
-# NCOPY["port_65l"] = 10
+NCOPY["First Wall"] = 5
+NCOPY["Divertor"] = 10
+# NCOPY["Port 65 Upper"] = 10
+# NCOPY["Port 65 Lower"] = 10
 
 # Offset toroidal angle
 ANG_OFFSET: dict[str, float] = defaultdict(lambda: 0.0)
@@ -86,7 +86,7 @@ def load_pfc_mesh(
 
     Examples
     --------
-    .. prompt:: python
+    .. code-block:: python
 
         from raysect.optical import World
 
@@ -187,14 +187,16 @@ def load_pfc_mesh(
 
 
 def visualize_pfc_meshes(
-    fig: Figure | None = None, fig_size: tuple[int, int] = (700, 500)
+    meshes: dict[str, list[Mesh]], fig: Figure | None = None, fig_size: tuple[int, int] = (700, 500)
 ) -> Figure:
     """Visualize plasma facing component meshes.
 
-    Display the mesh geometry set by default.
+    This function allows the user to visualize the plasma facing component meshes using plotly.
 
     Parameters
     ----------
+    meshes : dict[str, list[`~raysect.primitive.mesh.mesh.Mesh`]]
+        Containing mesh name and `~raysect.primitive.mesh.mesh.Mesh` objects.
     fig : `~plotly.graph_objects.Figure`, optional
         Plotly Figure object, by default `~plotly.graph_objects.Figure`.
     fig_size : tuple[int, int], optional
@@ -207,9 +209,15 @@ def visualize_pfc_meshes(
 
     Examples
     --------
-    .. prompt:: python
+    .. code-block:: python
 
-        fig = visualize_pfc_meshes(fig_size=(700, 500))
+        from raysect.optical import World
+        from cherab.lhd.machine.pfc_mesh import load_pfc_mesh, visualize_pfc_meshes
+
+        world = World()
+        meshes = load_pfc_mesh(world)
+
+        fig = visualize_pfc_meshes(meshes, fig_size=(700, 500))
         fig.show()
 
     The above codes automatically launch a browser to show the figure when it is executed in
@@ -220,16 +228,12 @@ def visualize_pfc_meshes(
     if fig is None or not isinstance(fig, Figure):
         fig = go.Figure()
 
-    # load meshes
-    world = World()
-    meshes = load_pfc_mesh(world, reflection=False)
-
     for _, mesh_list in meshes.items():
         for mesh in mesh_list:
             # Rotate mesh by its transform matrix
             transform = mesh.to_root()
-            r = Rotation.from_matrix([[transform[i, j] for j in range(3)] for i in range(3)])
-            x, y, z = r.apply(mesh.data.vertices).T
+            rotation = np.array([[transform[i, j] for j in range(3)] for i in range(3)])
+            x, y, z = rotation @ mesh.data.vertices.T
             i, j, k = mesh.data.triangles.T
 
             # Create Mesh3d object
@@ -263,15 +267,19 @@ def visualize_pfc_meshes(
             fig.add_trace(mesh3D)
 
     fig.update_layout(
-        paper_bgcolor="rgb(1,1,1)",
+        template="plotly_dark",
         title_text="Device",
         title_x=0.5,
-        font_color="white",
-        hoverlabel_grouptitlefont_color="black",
         width=fig_size[0],
         height=fig_size[1],
         scene_aspectmode="data",
+        scene_camera=dict(
+            up=dict(x=0, y=0, z=1),
+            center=dict(x=0, y=0, z=0),
+            eye=dict(x=1.0, y=1.0, z=0.8),
+        ),
         margin=dict(r=10, l=10, b=10, t=35),
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
         scene_xaxis_visible=False,
         scene_yaxis_visible=False,
         scene_zaxis_visible=False,

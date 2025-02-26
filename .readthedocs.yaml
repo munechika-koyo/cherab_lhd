@@ -1,0 +1,20 @@
+version: 2
+
+build:
+  os: ubuntu-lts-latest
+  tools:
+    python: latest
+  jobs:
+    create_environment:
+    - asdf plugin add pixi
+    - asdf install pixi latest
+    - asdf global pixi latest
+    install:
+    - pixi install -e docs
+    - pixi list -e docs
+    build:
+      html:
+      - pixi run doc-build
+    post_build:
+    - mkdir -p $READTHEDOCS_OUTPUT/html/
+    - cp -r doc/build/html/* $READTHEDOCS_OUTPUT/html/

@@ -9,10 +9,24 @@ User Guide
 This guide is an overview and explains the important features.
 
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Getting Started
+
+   quickstart
+   installation
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Features
+
+   LHD_PFCs
+
 
 .. toctree::
    :maxdepth: 1
+   :caption: Miscellaneous
 
-   installation
-   LHD_PFCs
    contribution
+   citation

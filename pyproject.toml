@@ -43,6 +43,8 @@ dependencies = [
     "matplotlib",
     "plotly",
     "h5py",
+    "xarray",
+    "netcdf4",
     # "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
     # "cherab",
     "cherab-inversion",
@@ -50,6 +52,7 @@ dependencies = [
     "pooch",
     "paramiko",
     "tqdm",
+    "pymupdf>=1.25.3,<2",
 ]
 
 [project.urls]
@@ -61,7 +64,7 @@ repository = "https://github.com/munechika-koyo/cherab_lhd"
 # === Cov/Test config ===
 # -----------------------
 [tool.coverage.run]
-source_pkgs = ["cherab", "tests"]
+source_pkgs = ["cherab.lhd", "tests"]
 branch = true
 parallel = true
 
@@ -79,7 +82,7 @@ addopts = "--cov=cherab_lhd --cov-report term-missing --no-cov-on-fail"
 # === Lint/Format config ===
 # --------------------------
 [tool.cython-lint]
-max-line-length = 140
+max-line-length = 100
 ignore = ["E741"]
 
 [tool.ruff]
@@ -139,7 +142,7 @@ platforms = ["linux-64", "osx-arm64"]
 c-compiler = "*"
 
 [tool.pixi.host-dependencies]
-python = "3.12.*"
+python = ">=3.10,<3.13"
 meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
@@ -156,6 +159,8 @@ cherab-inversion = "*"
 matplotlib = "*"
 plotly = "*"
 h5py = "*"
+xarray = ">=2025.1.2,<2026"
+netcdf4 = ">=1.7.2,<2"
 rich = ">=13.9.4,<14"
 pooch = ">=1.8.2,<2"
 paramiko = ">=3.5.0,<4"
@@ -173,6 +178,7 @@ no-build-isolation = ["cherab-lhd"]
 ipykernel = "*"
 ipywidgets = "*"
 jupyterlab = "*"
+python-kaleido = "*"
 
 [tool.pixi.feature.lab.tasks]
 lab = { cmd = [
@@ -191,12 +197,12 @@ numpydoc = "*"
 pillow = "*"
 pygments = ">2.11.0"
 sphinx = "*"
-sphinx-prompt = "*"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "*"
 sphinx-design = "*"
 pandoc = "*"
 sphinx-codeautolink = "*"
+python-kaleido = "*"
 
 [tool.pixi.feature.docs.pypi-dependencies]
 sphinx-github-style = "*"
@@ -210,14 +216,26 @@ doc-build = { cmd = [
     "docs/build/html",
 ], description = "📝 Build the docs" }
 doc-clean = { cmd = [
-    "rm -rf",
+    "rm",
+    "-rf",
     "docs/build",
     "docs/source/_api",
 ], description = "🔥 Clean the docs build & api directory" }
+doc-serve = { cmd = [
+    "python",
+    "-m",
+    "http.server",
+    "8000",
+    "--directory",
+    "docs/build/html",
+], description = "🚀 Start a local server for the docs" }
 
 [tool.pixi.feature.test.dependencies]
 pytest = "*"
 pytest-cov = "*"
+
+[tool.pixi.feature.test.pypi-dependencies]
+pytest-github-report = "*"
 
 [tool.pixi.feature.test.tasks]
 test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
@@ -242,8 +260,21 @@ pre-commit-install = { cmd = [
     "install",
 ], description = "🔗 Install pre-commit hooks" }
 
+# === Python Version Features ===
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
 [tool.pixi.environments]
 lab = { features = ["lab"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 lint = { features = ["lint"], no-default-feature = true }
+
+# For Test on Github actions
+py310 = { features = ["test", "py310"] }
+py311 = { features = ["test", "py311"] }
+py312 = { features = ["test", "py312"] }

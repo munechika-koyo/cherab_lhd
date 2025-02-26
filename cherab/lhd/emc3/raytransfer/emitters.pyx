@@ -117,7 +117,7 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
 
     Examples
     --------
-    .. prompt:: python
+    .. code-block:: python
 
         from numpy import hypot
         from raysect.optical import World, translate, Point3D

@@ -14,6 +14,8 @@ from matplotlib.axis import XAxis, YAxis
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import AsinhNorm, Colormap, ListedColormap, LogNorm, Normalize, SymLogNorm
 from matplotlib.figure import Figure
+from matplotlib.offsetbox import AnchoredText
+from matplotlib.patheffects import withStroke
 from matplotlib.ticker import (
     AsinhLocator,
     AutoLocator,
@@ -28,10 +30,8 @@ from matplotlib.ticker import (
 )
 from mpl_toolkits.axes_grid1.axes_grid import ImageGrid
 
-from cherab.core.math import PolygonMask2D, sample2d
+from cherab.core.math import PolygonMask2D, sample2d  # type: ignore
 
-from ..emc3.cython.mapper import Mapper
-from ..emc3.grid import Grid
 from ..machine import wall_outline
 from .samplers import sample3d_rz, sample_xy_plane
 
@@ -42,6 +42,7 @@ __all__ = [
     "set_axis_properties",
     "set_norm",
     "set_axis_format",
+    "add_inner_title",
     "CMAP_RED",
 ]
 
@@ -84,6 +85,7 @@ def show_profile_phi_degs(
     cbar_format: FormatMode | PlotMode | None = None,
     linear_width: float | None = None,
     show_phi: bool = True,
+    parallel: bool = True,
     **kwargs,
 ) -> tuple[Figure, ImageGrid]:
     """Show EMC3-EIRENE discretized data function in R-Z plane with several toroidal angles.
@@ -134,6 +136,8 @@ def show_profile_phi_degs(
         minimum value of the data.
     show_phi : bool, optional
         If True, toroidal angle is annotated in each axis, by default True.
+    parallel : bool, optional
+        If True, the sampling is parallelized, by default True.
     **kwargs : `~mpl_toolkits.axes_grid1.axes_grid.ImageGrid` properties, optional
         User-specified properties, by default `axes_pad=0.0`, `label_mode="L"` and
         `cbar_mode="single"`.
@@ -187,30 +191,35 @@ def show_profile_phi_degs(
 
     grids = ImageGrid(fig, 111, nrows_ncols, **grid_params)
 
-    # === parallelized sampling ====================================================================
-    manager = Manager()
-    profiles = manager.dict()
-    job_queue = manager.Queue()
+    # === sampling =================================================================================
+    if parallel:
+        manager = Manager()
+        profiles = manager.dict()
+        job_queue = manager.Queue()
 
-    # create tasks
-    for i, phi_deg in enumerate(phi_degs):
-        job_queue.put((i, phi_deg))
+        # create tasks
+        for i, phi_deg in enumerate(phi_degs):
+            job_queue.put((i, phi_deg))
 
-    # produce worker pool
-    pool_size = min(len(phi_degs), cpu_count())
-    workers = [
-        Process(
-            target=_worker1,
-            args=(func, mask, (rmin, rmax, nr), (zmin, zmax, nz), job_queue, profiles),
-        )
-        for _ in range(pool_size)
-    ]
-    for p in workers:
-        p.start()
+        # produce worker pool
+        pool_size = min(len(phi_degs), cpu_count())
+        workers = [
+            Process(
+                target=_worker1,
+                args=(func, mask, (rmin, rmax, nr), (zmin, zmax, nz), job_queue, profiles),
+            )
+            for _ in range(pool_size)
+        ]
+        for p in workers:
+            p.start()
 
-    for p in workers:
-        p.join()
+        for p in workers:
+            p.join()
 
+    else:
+        profiles = {}
+        for i, phi_deg in enumerate(phi_degs):
+            profiles[i] = _sampler(func, phi_deg, mask, (rmin, rmax, nr), (zmin, zmax, nz))
     # ==============================================================================================
 
     # maximum value of all profiles
@@ -239,14 +248,7 @@ def show_profile_phi_degs(
 
         # annotation of toroidal angle
         if show_phi:
-            grids[i].text(
-                rmin + (rmax - rmin) * 0.02,
-                zmax - (zmax - zmin) * 0.02,
-                f"$\\phi=${phi_deg:.1f}°",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(grids[i], f"$\\phi=${phi_deg:.1f}°")
 
         # set each axis properties
         set_axis_properties(grids[i])
@@ -483,14 +485,7 @@ def show_profiles_rz_plane(
 
         # annotation of toroidal angle
         if isinstance(labels, Collection) and len(labels) >= len(profiles):
-            grids[i].text(
-                rmin + (rmax - rmin) * 0.02,
-                zmin - (zmax - zmin) * 0.02,
-                f"{labels[i]}",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(grids[i], f"{labels[i]}")
 
         # set each axis properties
         set_axis_properties(grids[i])
@@ -585,6 +580,8 @@ def show_basis_profiles(
         ImageGrid object.
     """
     # set grid object
+    from ..emc3.grid import Grid
+
     grid1, grid2 = Grid("zone0"), Grid("zone11")
 
     # sampling rate
@@ -664,14 +661,7 @@ def show_basis_profiles(
 
         # annotation of toroidal angle
         if show_phi:
-            ax.text(
-                rmin + (rmax - rmin) * 0.02,
-                zmax - (zmax - zmin) * 0.02,
-                f"$\\phi=${phi_degs[i % len(phi_degs)]:.1f}°",
-                fontsize=10,
-                va="top",
-                bbox=dict(boxstyle="square, pad=0.1", edgecolor="k", facecolor="w", linewidth=0.8),
-            )
+            add_inner_title(ax, f"$\\phi=${phi_degs[i % len(phi_degs)]:.1f}°")
 
         # set each axis properties
         set_axis_properties(ax)
@@ -725,6 +715,8 @@ def _worker2(
     profiles: dict,
 ) -> None:
     """Worker process to generate sampled & masked profiles."""
+    from ..emc3.cython.mapper import Mapper
+
     while not job_queue.empty():
         try:
             # extract a task
@@ -754,6 +746,8 @@ def _worker3(
     profiles: dict,
 ) -> None:
     """Worker process to generate sampled & masked profiles."""
+    from ..emc3.cython.mapper import Mapper
+
     while not job_queue.empty():
         try:
             # extract a task
@@ -1154,3 +1148,43 @@ def _set_leaner_width(vmin: float, vmax: float) -> float:
         Linear width of asinh/symlog norm.
     """
     return 10 ** (np.trunc(np.log10(max(abs(vmax), abs(vmin)))) - 2)
+
+
+def add_inner_title(
+    ax: Axes,
+    title: str,
+    loc: str = "upper left",
+    size: float = plt.rcParams["legend.fontsize"],
+    borderpad: float = 0.5,
+    **kwargs,
+):
+    """Add inner title to the axes.
+
+    The text is padded by borderpad and has white stroke effect.
+
+    Parameters
+    ----------
+    ax : `~matplotlib.axes.Axes`
+        Matplotlib Axes object.
+    title : str
+        Title text.
+    loc : str, optional
+        Location of the title, by default "upper left".
+    size : int, optional
+        Font size of the title, by default `plt.rcParams["legend.fontsize"]`.
+    borderpad : float, optional
+        Padding of the title, by default 0.5.
+    **kwargs
+        Keyword arguments for `~matplotlib.offsetbox.AnchoredText`.
+
+    Returns
+    -------
+    `~matplotlib.offsetbox.AnchoredText`
+        AnchoredText object.
+    """
+    prop = dict(path_effects=[withStroke(linewidth=3, foreground="w")], size=size)
+    at = AnchoredText(
+        title, loc=loc, prop=prop, pad=0.0, borderpad=borderpad, frameon=False, **kwargs
+    )
+    ax.add_artist(at)
+    return at
