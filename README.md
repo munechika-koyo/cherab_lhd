@@ -2,8 +2,8 @@
 
 |         |                                                                                                                     |
 | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| CI/CD   | [![pre-commit.ci status][pre-commit-ci-badge]][pre-commit-ci] [![PyPI Publish][PyPI-publish-badge]][PyPi-publish]   |
-| Docs    | [![Documentation Status][Docs-badge]][Docs]                                                                         |
+| CI/CD   | [![pre-commit.ci status][pre-commit-ci-badge]][pre-commit-ci] [![PyPI Publish][PyPI-publish-badge]][PyPi-publish] [![test][test-badge]][test] [![codecov][codecov-badge]][codecov] |
+| Docs    | [![Read the Docs (version)][Docs-dev-badge]][Docs-dev] [![Read the Docs (version)][Docs-release-badge]][Docs-release] |
 | Package | [![PyPI - Version][PyPI-badge]][PyPI] [![Conda][Conda-badge]][Conda] [![PyPI - Python Version][Python-badge]][PyPI] |
 | Meta    | [![DOI][DOI-badge]][DOI] [![License - BSD3][License-badge]][License] [![Pixi Badge][pixi-badge]][pixi-url]          |
 
@@ -11,8 +11,14 @@
 [pre-commit-ci]: https://results.pre-commit.ci/latest/github/munechika-koyo/cherab_lhd/main
 [PyPI-publish-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/deploy-pypi.yml?style=flat-square&label=PyPI%20Publish&logo=github
 [PyPI-publish]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/deploy-pypi.yml
-[Docs-badge]: https://readthedocs.org/projects/cherab-lhd/badge/?version=latest&style=flat-square
-[Docs]: https://cherab-lhd.readthedocs.io/en/latest/?badge=latest
+[test]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/test.yaml
+[test-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/test.yaml?branch=development&style=flat-square&logo=GitHub&label=test
+[codecov]: https://codecov.io/github/munechika-koyo/cherab_lhd
+[codecov-badge]: https://img.shields.io/codecov/c/github/munechika-koyo/cherab_lhd?token=05LZGWUUXA&style=flat-square&logo=codecov
+[Docs-dev-badge]: https://img.shields.io/readthedocs/cherab-lhd/latest?style=flat-square&logo=readthedocs&label=dev%20docs
+[Docs-dev]: https://cherab-lhd.readthedocs.io/en/latest/?badge=latest
+[Docs-release-badge]: https://img.shields.io/readthedocs/cherab-lhd/stable?style=flat-square&logo=readthedocs&label=release%20docs
+[Docs-release]: https://cherab-lhd.readthedocs.io/en/stable/?badge=stable
 [PyPI-badge]: https://img.shields.io/pypi/v/cherab-lhd?label=PyPI&logo=pypi&logoColor=gold&style=flat-square
 [PyPI]: https://pypi.org/project/cherab-lhd/
 [Conda-badge]: https://img.shields.io/conda/vn/conda-forge/cherab-lhd?logo=conda-forge&style=flat-square

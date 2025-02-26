@@ -311,8 +311,8 @@ cpdef object generate_boundary_map(
         indices_mv = da.data
 
     # create 2D mesh
-    grid = Grid(zone1)
-    verts, tris, data = triangulate(grid)
+    grid = Grid(zone2)
+    verts, tris, data = triangulate(grid, index_type=index_type, n_phi=0)
     index_size = max(data) + 1
     mesh = Discrete2DMesh(verts, tris, data, limit=False, default_value=-1)
 
@@ -340,7 +340,8 @@ cpdef object generate_boundary_map(
             num_points = points_inside_mv.shape[0]
             for i in range(num_points):
                 index = <int>mesh.evaluate(points_inside_mv[i, 0], points_inside_mv[i, 1])
-                boundary_map[l + m * num_radial_index, index] += 1
+                if index > -1:
+                    boundary_map[l + m * num_radial_index, index] += 1
 
             # normalize
             boundary_map[l + m * num_radial_index, :] /= <double>num_points
