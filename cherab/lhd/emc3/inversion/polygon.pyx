@@ -311,8 +311,8 @@ cpdef object generate_boundary_map(
         indices_mv = da.data
 
     # create 2D mesh
-    grid = Grid(zone1)
-    verts, tris, data = triangulate(grid)
+    grid = Grid(zone2)
+    verts, tris, data = triangulate(grid, index_type=index_type, n_phi=0)
     index_size = max(data) + 1
     mesh = Discrete2DMesh(verts, tris, data, limit=False, default_value=-1)
 
