@@ -24,8 +24,8 @@
 [Conda-badge]: https://img.shields.io/conda/vn/conda-forge/cherab-lhd?logo=conda-forge&style=flat-square
 [Conda]: https://prefix.dev/channels/conda-forge/packages/cherab-lhd
 [Python-badge]: https://img.shields.io/pypi/pyversions/cherab-lhd?logo=Python&logoColor=gold&style=flat-square
-[DOI-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.10118752.svg
-[DOI]: https://doi.org/10.5281/zenodo.10118752
+[DOI-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.14929182.svg
+[DOI]: https://doi.org/10.5281/zenodo.14929182
 [License-badge]: https://img.shields.io/github/license/munechika-koyo/cherab_lhd?style=flat-square
 [License]: https://opensource.org/licenses/BSD-3-Clause
 [pixi-badge]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json&style=flat-square
