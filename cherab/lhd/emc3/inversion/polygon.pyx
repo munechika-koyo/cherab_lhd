@@ -340,7 +340,8 @@ cpdef object generate_boundary_map(
             num_points = points_inside_mv.shape[0]
             for i in range(num_points):
                 index = <int>mesh.evaluate(points_inside_mv[i, 0], points_inside_mv[i, 1])
-                boundary_map[l + m * num_radial_index, index] += 1
+                if index > -1:
+                    boundary_map[l + m * num_radial_index, index] += 1
 
             # normalize
             boundary_map[l + m * num_radial_index, :] /= <double>num_points
