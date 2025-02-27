@@ -21,7 +21,7 @@ import_array()
 @cython.initializedcheck(False)
 @cython.cdivision(True)
 cpdef np.ndarray compute_centers(
-    double[::1, :] vertices, np.ndarray cells, np.ndarray indices
+    double[:, ::1] vertices, np.ndarray cells, np.ndarray indices
 ):
     """Compute center points of each cell.
 
@@ -50,6 +50,16 @@ cpdef np.ndarray compute_centers(
     (L'', M'', N'', 3) ndarray
         Center points array with new resolution.
         Each axis corresponds to the radial, poloidal, toroidal, and XYZ coordinates, respectively.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> verts = np.array([[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1],
+    ...                   [0, 1, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1]], dtype=float)
+    >>> cells = np.array([[0, 1, 2, 3, 4, 5, 6, 7]], dtype=np.uint32)
+    >>> indices = np.array([[[0]]], dtype=np.uint32)  # shape (1, 1, 1)
+    >>> compute_centers(verts, cells, indices)
+    array([[[[0.5, 0.5, 0.5]]]])
     """
     cdef:
         np.ndarray[np.uint32_t, ndim=2] tetrahedra
@@ -63,7 +73,7 @@ cpdef np.ndarray compute_centers(
     indices_mv = indices
 
     # Create cells and tetrahedra from Grid
-    tetrahedra = tetrahedralize(cells)
+    tetrahedra = tetrahedralize(cells.astype(np.uint32))
     tetrahedra_mv = tetrahedra
 
     num_cell = cells.shape[0]
