@@ -12,7 +12,7 @@ from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike, NDArray
 from raysect.primitive.mesh import TetraMeshData
 
-from ..machine.wall import adjacent_toroidal_angles, periodic_toroidal_angle
+from ..machine.wall import periodic_toroidal_angle
 from ..tools.fetch import PATH_TO_STORAGE, fetch_file
 from ..tools.spinner import Spinner
 from ..tools.visualization import add_inner_title
@@ -136,22 +136,69 @@ class Grid:
 
     @property
     def zone(self) -> str:
-        """Name of zone."""
+        """Name of zone.
+
+        Examples
+        --------
+        >>> grid = Grid("zone0")
+        >>> grid.zone
+        'zone0'
+        """
         return self._zone
 
     @property
     def path(self) -> str | Path:
-        """Path to dataset."""
+        """Path to dataset.
+
+        Examples
+        --------
+        >>> grid = Grid("zone0")
+        >>> grid.path
+        '/path/to/cache/cherab/lhd/emc3/grid-360.nc'
+        """
         return self._path
 
     @property
     def data_array(self) -> xr.DataArray:
-        """`~xarray.DataArray` instance."""
+        """`~xarray.DataArray` instance.
+
+        The data array has 4 dimensions, which are (ρ, θ, ζ, RZ).
+        ρ, θ, ζ are radial, poloidal, toroidal coordinates, respectively.
+        RZ is a coordinate for (R, Z).
+
+        Examples
+        --------
+        >>> grid = Grid("zone0")
+        >>> grid.data_array
+        <xarray.DataArray 'grid' (ρ: 82, θ: 601, ζ: 37, RZ: 2)> Size: 29MB
+        array([[[[ 3.600000e+00,  0.000000e+00],
+                 [ 3.600000e+00,  0.000000e+00],
+                 [ 3.600000e+00,  0.000000e+00],
+                 ...
+                 [ 3.096423e+00, -7.012100e-02],
+                 [ 3.087519e+00, -6.796400e-02],
+                 [ 3.078508e+00, -6.543900e-02]]]])
+        Coordinates:
+            * ρ      (ρ) float64 656B 0.0 0.01235 0.02469 0.03704 ... 0.9753 0.9877 1.0
+            * θ      (θ) float64 5kB 0.0 0.001667 0.003333 0.005 ... 0.9967 0.9983 1.0
+            * ζ      (ζ) float64 296B 0.0 0.25 0.5 0.75 1.0 ... 8.0 8.25 8.5 8.75 9.0
+            * RZ     (RZ) <U1 8B 'R' 'Z'
+        Attributes:
+            units:      m
+            long_name:  grid coordinates
+        """
         return self._da
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        """Shape of grid (L, M, N)."""
+        """Shape of grid (L, M, N).
+
+        Examples
+        --------
+        >>> grid = Grid("zone0")
+        >>> grid.shape
+        (82, 601, 37)
+        """
         return self._shape
 
     @property
@@ -270,14 +317,14 @@ class Grid:
         indices_poloidal: ArrayLike | slice | None = None,
         **kwargs,
     ) -> tuple[Figure | None, Axes]:
-        """Plotting EMC3-EIRENE-defined grids in :math:`R - Z` plane.
+        """Plotting EMC3-EIRENE-defined grids in :math:`R–Z` plane.
 
         This method allows users to plot grid lines at a specific discretized toroidal angle.
 
         Parameters
         ----------
         fig : `~matplotlib.figure.Figure`, optional
-            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
+            Matplotlib figure object, by default ``fig = plt.figure()``.
         ax : `~matplotlib.axes.Axes`, optional
             Matplotlib axes object, by default ``ax = fig.add_subplot()``.
         n_phi : int, optional
@@ -340,7 +387,7 @@ class Grid:
         # === plotting =============================================================================
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
-                fig, ax = plt.subplots(dpi=200)
+                fig, ax = plt.subplots()
             else:
                 ax = fig.add_subplot()
 
@@ -370,7 +417,7 @@ class Grid:
         return (fig, ax)
 
     def plot_coarse(self, **kwargs):
-        """Plotting EMC-EIRENE-defined coarse grids in :math:`r - z` plane.
+        """Plotting EMC-EIRENE-defined coarse grids in :math:`R–Z` plane.
 
         The indices to use as the coarse grid is stored in attributes of `"/index/coarse"` variables.
         So this method is available only if they are stored.
@@ -409,7 +456,7 @@ class Grid:
         show_phi: bool = True,
         **kwargs,
     ) -> tuple[Figure | None, Axes]:
-        """Plotting EMC3-EIRENE-defined grid outline in :math:`r - z` plane.
+        """Plotting EMC3-EIRENE-defined grid outline in :math:`R–Z` plane.
 
         This method allows users to plot grid outline at a specific toroidal angle :math:`\\varphi`.
         The toroidal angle is arbitrary, where the grid outline is calculated by linear interpolation
@@ -420,7 +467,7 @@ class Grid:
         phi : float, optional
             Toroidal grid in [degree], by default 0.0.
         fig : `~matplotlib.figure.Figure`, optional
-            Matplotlib figure object, by default ``fig = plt.figure(dpi=200)``.
+            Matplotlib figure object, by default ``fig = plt.figure()``.
         ax : `~matplotlib.axes.Axes`, optional
             Matplotlib axes object, by default ``ax = fig.add_subplot()``.
         show_phi : bool
@@ -443,59 +490,57 @@ class Grid:
 
         .. image:: ../../_static/images/plotting/grid_outline_zone0.png
         """
-        # === generate interpolated grids ==========================================================
         # put phi in [0, 18) range
         phi_t, flipped = periodic_toroidal_angle(phi)
-        angles = self._da["ζ"].values
+        phi_range = self._da["ζ"].isel(ζ=[0, -1]).data
 
-        phi_range = angles[0], angles[-1]
         if phi_t < phi_range[0] or phi_t > phi_range[1]:
             raise ValueError(f"toroidal angle {phi_t} is out of grid range {phi_range}.")
 
-        # find adjacent phis
-        phi_left_index, phi_right_index = adjacent_toroidal_angles(phi_t, angles)
-
-        # define phi_left, phi_right
-        phi_left = angles[phi_left_index]
-        phi_right = angles[phi_right_index]
-
-        # load rz grids at adjacent phis
-        grid_left = self._da[:, :, phi_left_index, :].copy()
-        grid_right = self._da[:, :, phi_right_index, :].copy()
-
-        # flipped value for z axis
-        if flipped:
-            grid_left[:, :, 1] *= -1
-            grid_right[:, :, 1] *= -1
-
-        # linearly interpolate grid
-        grid = ((phi_t - phi_left) * grid_right + (phi_right - phi_t) * grid_left) / (
-            phi_right - phi_left
-        )
-
-        # === plotting =============================================================================
         # set default line style
         for key, value in LINE_STYLE.items():
             kwargs.setdefault(key, value)
 
         if not isinstance(ax, Axes):
             if not isinstance(fig, Figure):
-                fig, ax = plt.subplots(dpi=200)
+                fig, ax = plt.subplots()
             else:
                 ax = fig.add_subplot()
 
         ax.set_aspect("equal")
 
-        # plot outline (last poloidal line)
-        ax.plot(grid[-1, :, 0], grid[-1, :, 1], **kwargs)
-
         if self.zone not in {"zone0", "zone11"}:
-            # plot first poloidal line
-            ax.plot(grid[0, :, 0], grid[0, :, 1], **kwargs)
+            # Interpolate grid
+            outlines = self._da.interp(ζ=phi_t, method="linear")
 
-            # plot first/last radial lines
-            ax.plot(grid[:, 0, 0], grid[:, 0, 1], **kwargs)
-            ax.plot(grid[:, -1, 0], grid[:, -1, 1], **kwargs)
+            # flipped coords for z axis
+            if flipped:
+                outlines.loc[dict(RZ="Z")] *= -1
+
+            # Plot poloidal line
+            ax.plot(
+                outlines.isel(ρ=[0, -1]).sel(RZ="R").T,
+                outlines.isel(ρ=[0, -1]).sel(RZ="Z").T,
+                **kwargs,
+            )
+
+            # Plot radial lines
+            ax.plot(
+                outlines.isel(θ=[0, -1]).sel(RZ="R"),
+                outlines.isel(θ=[0, -1]).sel(RZ="Z"),
+                **kwargs,
+            )
+
+        else:
+            # Interpolate grid
+            outlines = self._da.isel(ρ=-1).interp(ζ=phi_t, method="linear")
+
+            # flipped coords for z axis
+            if flipped:
+                outlines.loc[dict(RZ="Z")] *= -1
+
+            # plot outline (last poloidal line)
+            ax.plot(outlines.sel(RZ="R"), outlines.sel(RZ="Z"), **kwargs)
 
         if show_phi:
             add_inner_title(ax, f"$\\phi=${phi:.2f}°")

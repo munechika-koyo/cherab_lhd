@@ -39,7 +39,7 @@ class CurvCoords:
 
     @property
     def grid(self) -> CenterGrid:
-        """EMC3-EIRENE-defined center grids."""
+        """`.CenterGrid` instance."""
         return self._grid
 
     @cached_property
