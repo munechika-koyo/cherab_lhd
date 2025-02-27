@@ -1,4 +1,4 @@
-"""Module to define :obj:`.PinholeCamera` class
+"""Module to define `.PinholeCamera` class
 """
 from raysect.optical cimport AffineMatrix3D, Point3D, Ray, Vector3D, new_point3d, translate
 from raysect.optical.observer.imaging.ccd cimport CCDArray
@@ -8,20 +8,28 @@ __all__ = ["PinholeCamera"]
 
 
 cdef class PinholeCamera(CCDArray):
-    """
-    An observer that models an idealised CCD-like imaging sensor with pinhole.
+    """Observer modeling an idealised CCD-like imaging sensor with pinhole.
 
     A ray triggered from each pixel always goes through the arbitrary pinhole point.
     The distance from pinhole and imaging sensor represents focal length.
 
-    :param tuple pixels: A tuple of pixel dimensions for the camera (default= ``(512, 512)`` ).
-    :param float width: The CCD sensor x-width in metres (default=35mm).
-    :param float focal_length: The distance between pinhole and CCD sensor (defalut=24mm).
-    :param tuple pinhole_point: The position of pinhole point from the centre of CCD,
-        which represents as (x, y) coordinate (default= ``(0, 0)`` ).
-    :param list pipelines: The list of pipelines that will process the spectrum measured
-        at each pixel by the camera (default= `RGBPipeline2D` ()).
-    :param kwargs: kwargs and properties from `Observer2D` and `_ObserverBase`.
+    Parameters
+    ----------
+    pixels : tuple[int, int], optional
+        A tuple of pixel dimensions for the camera, by default ``(512, 512)``.
+    width : float, optional
+        The CCD sensor x-width in metres, by default 35 mm.
+    focal_length : float, optional
+        The distance between pinhole and CCD sensor, by default 24 mm.
+    pinhole_point : tuple[float, float], optional
+        The position of pinhole point from the centre of CCD,
+        which represents as (x, y) coordinate, by default ``(0, 0)``.
+    pipelines : list[Pipeline], optional
+        The list of pipelines that will process the spectrum measured
+        at each pixel by the camera, by default ``[RGBPipeline2D()]``.
+    **kwargs
+        kwargs and properties from `~raysect.optical.observer.base.observer.Observer2D` and
+        `~raysect.optical.observer.base.observer._ObserverBase`.
     """
 
     cdef:
@@ -99,7 +107,9 @@ cdef class PinholeCamera(CCDArray):
         origin_points = self.point_sampler.samples(ray_count)
 
         # generate pinhole point in local space
-        pinhole_point = new_point3d(self._pinhole_point[0], self._pinhole_point[1], self._focal_length)
+        pinhole_point = new_point3d(
+            self._pinhole_point[0], self._pinhole_point[1], self._focal_length
+        )
 
         # assemble rays
         rays = []
