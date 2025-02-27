@@ -73,6 +73,7 @@ def load_index_func(
     {'zone0': 29700, 'zone11': 29700}
 
     In case of ``load_tetra_mesh=False``:
+
     >>> index_arrays, bins = load_index_func(["zone0"], index_type="coarse", load_tetra_mesh=False)
     >>> index_arrays
     {'zone0': array([[[    0,     0,     0, ..., 26400, 26400, 26400],
@@ -182,7 +183,7 @@ def triangulate(
     grid: Grid,
     phi: float | None = None,
     n_phi: int = 0,
-    index_type: Literal["coarse"] = "coarse",
+    index_type: INDEX_TYPES = "coarse",
 ):
     """Triangulate grid data at a specific toroidal angle.
 
@@ -201,6 +202,9 @@ def triangulate(
         If specified, the grid is interpolated linearly and prioritized over `n_phi`.
     n_phi : int, optional
         Index of toroidal angle, by default 0.
+        If specified, the grid is not interpolated and used as is.
+    index_type : {"cell", "physics", "coarse"}, optional
+        Index type, by default "coarse".
 
     Returns
     -------
