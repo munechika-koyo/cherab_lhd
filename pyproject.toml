@@ -64,7 +64,7 @@ repository = "https://github.com/munechika-koyo/cherab_lhd"
 # === Cov/Test config ===
 # -----------------------
 [tool.coverage.run]
-source_pkgs = ["cherab.lhd", "tests"]
+source_pkgs = ["cherab.lhd"]
 branch = true
 parallel = true
 
@@ -196,7 +196,7 @@ nbsphinx = "*"
 numpydoc = "*"
 pillow = "*"
 pygments = ">2.11.0"
-sphinx = "*"
+sphinx = "<8.1"  # Issue https://github.com/sphinx-doc/sphinx/issues/13393
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "*"
 sphinx-design = "*"
@@ -212,6 +212,8 @@ doc-build = { cmd = [
     "sphinx-build",
     "-b",
     "html",
+    "-j",
+    "auto",
     "docs/source",
     "docs/build/html",
 ], description = "📝 Build the docs" }
