@@ -40,13 +40,6 @@ repos:
     args: [--fix]
   - id: ruff-format
 
-# lint and format jupyter notebooks by nbqa-ruff
-- repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.9.1
-  hooks:
-  - id: nbqa-ruff
-    args: [--fix, --ignore=E402]
-
 # lint cython codes
 - repo: https://github.com/MarcoGorelli/cython-lint
   rev: v0.16.6
