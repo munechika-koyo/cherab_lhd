@@ -75,3 +75,4 @@ repos:
     additional_dependencies: [tomli]
     args:
     - --ignore-regex=^\s*"image\/(jpeg|png|gif|bmp|tiff)":\s.*
+    - --exclude-file=pixi.lock
