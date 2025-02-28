@@ -49,4 +49,4 @@ from cherab.lhd.emc3.cython.utility import compute_centers
 )
 def test_compute_centers(vertices, cells, indices, expected_centers):
     centers = compute_centers(vertices, cells, indices)
-    assert np.allclose(centers, expected_centers), f"Expected {expected_centers}, but got {centers}"
+    np.testing.assert_allclose(centers, expected_centers)
