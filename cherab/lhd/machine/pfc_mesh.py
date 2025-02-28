@@ -217,13 +217,17 @@ def visualize_pfc_meshes(
         world = World()
         meshes = load_pfc_mesh(world)
 
+        # Drop some meshes
+        meshes.pop("Vacuum Vessel")
+        meshes.pop("Divertor")
+
         fig = visualize_pfc_meshes(meshes, fig_size=(700, 500))
         fig.show()
 
     The above codes automatically launch a browser to show the figure when it is executed in
     the python interpreter like the following picture:
 
-    .. image:: ../_static/images/visualize_pfc_meshes.png
+    .. image:: ../_static/images/visualize_pfc_meshes.webp
     """
     if fig is None or not isinstance(fig, Figure):
         fig = go.Figure()
