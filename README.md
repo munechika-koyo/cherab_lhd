@@ -48,13 +48,13 @@ LHD is a helical magnetic confinement fusion device in the National Institute fo
 We offer some tasks to execute programs in CLI.
 You can see the list of tasks using [pixi](https://pixi.sh) command.
 
-```console
+```shell
 pixi task list
 ```
 
 If you want to execute a task, you can use the following command.
 
-```console
+```shell
 pixi run <task_name>
 ```
 
@@ -62,14 +62,22 @@ pixi run <task_name>
 We provide some notebooks to demonstrate the usage of the CHERAB-NAGDIS code.
 To launch the Jupyter lab server, you can use the following command.
 
-```console
+```shell
 pixi run lab
 ```
 Then, you can access the Jupyter lab server from your web browser.
 
 ## Documentation
-<!-- The [documentation]() is made with GitHub Actions and hosted by [GitHub Pages](https://docs.github.com/pages). -->
-The documentation is currently under preparation.
+The [documentation](https://cherab-lhd.readthedocs.io/) is made with [Sphinx](https://www.sphinx-doc.org/en/master/) and hosted on [Read the Docs](https://readthedocs.org/).
+There are two versions of the documentation:
+- [Development](https://cherab-lhd.readthedocs.io/en/latest/)
+- [Release](https://cherab-lhd.readthedocs.io/en/stable/)
+
+You can build the documentation locally by running the following command.
+
+```shell
+pixi run doc-build
+```
 
 ## License
 `cherab-lhd` is distributed under the terms of the [BSD-3-Clause license](https://opensource.org/licenses/BSD-3-Clause).

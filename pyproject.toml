@@ -56,8 +56,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://cherab-lhd.netlify.app/"
-documentation = "https://cherab-lhd.netlify.app/"
+Homepage = "https://cherab-lhd.readthedocs.io"
+documentation = "https://cherab-lhd.readthedocs.io"
 repository = "https://github.com/munechika-koyo/cherab_lhd"
 
 # -----------------------
