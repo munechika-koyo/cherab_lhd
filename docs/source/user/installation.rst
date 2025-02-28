@@ -40,7 +40,7 @@ Explore the various methods below to install `cherab-lhd` using your preferred p
 
 .. note::
 
-    `cherab-lhd` package does not provide any LHD-related data (Grid, machine mesh, measurement info, etc.)
+    `cherab-lhd` package does not provide any LHD-related data (grid, machine mesh, measurement info, etc.)
     because of the large size.
     When functions requiring data are executed, `pooch` is used to automatically download the data using sftp.
     However, since this involves credential information, authentication is required.
