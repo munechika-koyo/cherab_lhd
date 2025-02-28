@@ -6,14 +6,6 @@
 Installation
 ============
 
-.. note::
-
-    Currently (02/14/2025), cherab-lhd requires some specific version of dependencies (`raysect`_
-    and `cherab`_ ) because cherab-lhd handles some new features (like `TetraMeshData` class)
-    which have not merged to released branch yet.
-    These dependencies has already listed in ``pyproject.toml`` in source directory,
-    so those who are curious about it should look into the file.
-
 For Users
 =========
 `cherab-lhd` can be installed by many package managers.
@@ -45,6 +37,14 @@ Explore the various methods below to install `cherab-lhd` using your preferred p
         ::
 
             pixi add cherab-lhd
+
+.. note::
+
+    `cherab-lhd` package does not provide any LHD-related data (Grid, machine mesh, measurement info, etc.)
+    because of the large size.
+    When functions requiring data are executed, `pooch` is used to automatically download the data using sftp.
+    However, since this involves credential information, authentication is required.
+    Currently, the data is not publicly available, so users who need access to the data should contact the administrator.
 
 
 For Developers

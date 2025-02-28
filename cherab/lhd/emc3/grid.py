@@ -10,12 +10,12 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from numpy.typing import ArrayLike, NDArray
-from raysect.primitive.mesh import TetraMeshData
 
 from ..machine.wall import periodic_toroidal_angle
 from ..tools.fetch import PATH_TO_STORAGE, fetch_file
 from ..tools.spinner import Spinner
 from ..tools.visualization import add_inner_title
+from .cython import TetraMeshData
 from .cython.tetrahedralization import tetrahedralize
 from .repository.utility import path_validate
 
@@ -41,7 +41,7 @@ class Grid:
     This class handles originally defined EMC3-EIRENE grid coordinates in :math:`(R, Z)`,
     and offers methods to produce cell vertices in :math:`(X, Y, Z)` coordinates and
     their indices, which a **cell** means a cubic-like mesh with 8 vertices.
-    Using these data, procedure of generating a `~raysect.primitive.mesh.tetra_mesh.TetraMeshData`
+    Using these data, procedure of generating a `.TetraMeshData`
     instance is also implemented.
 
     | Total number of grids coordinates is L x M x N, each letter of which means:
@@ -573,8 +573,7 @@ def install_tetra_meshes(
     dataset: str = "grid-360",
     update: bool = True,
 ):
-    """Create `~raysect.primitive.mesh.tetra_mesh.TetraMeshData` .rsm files and install them into a
-    repository.
+    """Create `.TetraMeshData` .rsm files and install them into a repository.
 
     Default repository is set to `.../cherab/lhd/emc3/tetra.`, which is located in the user's
     cache directory.
@@ -583,7 +582,7 @@ def install_tetra_meshes(
 
     .. note::
 
-        It takes a lot of time to calculate all `TetraMeshData` instance because each zone has
+        It takes a lot of time to calculate all `.TetraMeshData` instance because each zone has
         numerous number of grids.
 
     Parameters
@@ -591,12 +590,12 @@ def install_tetra_meshes(
     zones : list[str], optional
         List of zone names, by default ``["zone0",..., "zone4", "zone11",..., "zone15"]``.
     tetra_mesh_path : Path | str, optional
-        Path to the directory to save `TetraMeshData` .rsm files,
+        Path to the directory to save `.TetraMeshData` .rsm files,
         by default ``PATH_TO_STORAGE / "emc3/tetra/"``.
     dataset : str, optional
         Name of grid dataset, by default "grid-360".
     update : bool, optional
-        Whether or not to update existing `TetraMeshData` .rsm file, by default True.
+        Whether or not to update existing `.TetraMeshData` .rsm file, by default True.
     """
     tetra_mesh_path = path_validate(tetra_mesh_path)
     tetra_mesh_path.mkdir(parents=True, exist_ok=True)
