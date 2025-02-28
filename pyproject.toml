@@ -3,7 +3,6 @@ requires = [
     "meson-python >= 0.13",
     "cython >= 3.0",
     "numpy",
-    "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
     "cherab",
     "tomli; python_version < '3.11'",
 ]
@@ -45,14 +44,12 @@ dependencies = [
     "h5py",
     "xarray",
     "netcdf4",
-    # "raysect @ git+https://github.com/munechika-koyo/source.git@tmp/tetra+cython3",
-    # "cherab",
+    "cherab",
     "cherab-inversion",
     "rich",
     "pooch",
     "paramiko",
     "tqdm",
-    "pymupdf>=1.25.3,<2",
 ]
 
 [project.urls]
@@ -135,8 +132,8 @@ override_SS05 = ['^Process ', '^Assess ', '^Access ']
 # === Pixi config ===
 # -------------------
 [tool.pixi.project]
-channels = ["https://prefix.dev/conda-forge", "https://repo.prefix.dev/koyo-forge"]
-platforms = ["linux-64", "osx-arm64"]
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
 
 [tool.pixi.build-dependencies]
 c-compiler = "*"
@@ -146,8 +143,7 @@ python = ">=3.10,<3.13"
 meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
-raysect = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
-cherab = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
+cherab = "*"
 
 [tool.pixi.target.osx-arm64.host-dependencies]
 llvm-openmp = "*"
@@ -169,6 +165,7 @@ tqdm = ">=4.67.1,<5"
 ipython = ">=8.32.0,<9"
 
 [tool.pixi.pypi-dependencies]
+pymupdf = ">=1.25.3,<2"
 cherab-lhd = { path = ".", editable = true }
 
 [tool.pixi.pypi-options]

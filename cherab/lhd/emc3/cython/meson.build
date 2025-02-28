@@ -6,6 +6,7 @@ _cython_tree = declare_dependency(sources: [
   fs.copyfile('mapper.pxd'),
   fs.copyfile('masking.pxd'),
   fs.copyfile('tetrahedralization.pxd'),
+  fs.copyfile('tetra_mesh.pxd'),
 ])
 
 cython_sources = [
@@ -15,6 +16,7 @@ cython_sources = [
   ['masking', 'masking.pyx'],
   ['tetrahedralization', 'tetrahedralization.pyx'],
   ['utility', 'utility.pyx'],
+  ['tetra_mesh', 'tetra_mesh.pyx'],
 ]
 
 # compile cython sources to .so modules

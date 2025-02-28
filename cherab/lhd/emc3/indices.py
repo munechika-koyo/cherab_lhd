@@ -6,12 +6,14 @@ import h5py  # noqa: F401
 import numpy as np
 import xarray as xr
 from raysect.core.math import triangulate2d
-from raysect.primitive.mesh import TetraMeshData
+
+# from raysect.primitive.mesh import TetraMeshData
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from ..tools.fetch import fetch_file
 from .cython import Discrete3DMesh
+from .cython.tetra_mesh import TetraMeshData
 from .grid import Grid
 
 __all__ = ["load_index_func", "triangulate"]

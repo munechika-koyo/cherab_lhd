@@ -4,6 +4,7 @@ from .discrete3dmesh import Discrete3DMesh
 from .intfunction import IntegerFunction3D, PythonIntegerFunction3D
 from .mapper import IndexMapper, Mapper
 from .masking import Mask
+from .tetra_mesh import TetraMeshData
 from .tetrahedralization import tetrahedralize
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "IndexMapper",
     "Mask",
     "tetrahedralize",
+    "TetraMeshData",
 ]
