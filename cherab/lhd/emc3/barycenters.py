@@ -102,27 +102,82 @@ class CenterGrid:
 
     @property
     def zone(self) -> str:
-        """Name of zone."""
+        """Name of zone.
+
+        Examples
+        --------
+        >>> cgrid = CenterGrid("zone0", index_type="cell")
+        >>> cgrid.zone
+        'zone0'
+        """
         return self._zone
 
     @property
     def path(self) -> str:
-        """Path to dataset."""
+        """Path to dataset.
+
+        Examples
+        --------
+        >>> cgrid = CenterGrid("zone0", index_type="cell")
+        >>> cgrid.path
+        '/path/to/cache/cherab/lhd/emc3/grid-360.nc'
+        """
         return self._path
 
     @property
     def index_type(self) -> str:
-        """Indexing way of center grids."""
+        """Indexing way of center grids.
+
+        Examples
+        --------
+        >>> cgrid = CenterGrid("zone0", index_type="cell")
+        >>> cgrid.index_type
+        'cell'
+        """
         return self._index_type
 
     @property
     def data_array(self) -> xr.DataArray:
-        """`~.xarray.DataArray` of center grid coordinates."""
+        """`~.xarray.DataArray` of center grid coordinates.
+
+        The data array has 4 dimensions, which are (ρ, θ, ζ, XYZ).
+        ρ, θ, ζ are radial, poloidal, toroidal coordinates, respectively.
+        They are normalized to edge of the grid, so that the range is (0, 1).
+        XYZ are X, Y, Z coordinates [m].
+
+        Examples
+        --------
+        >>> cgrid = CenterGrid("zone0", index_type="coarse")
+        >>> cgrid.data_array
+        <xarray.DataArray 'center_points' (ρ: 33, θ: 100, ζ: 9, ΧΥΖ: 3)> Size: 713kB
+        array([[[[ 3.59639165e+00,  3.13846353e-02, -2.37611806e-03],
+                 [ 3.59458235e+00,  9.41257225e-02, -5.97601736e-03],
+                 [ 3.59100504e+00,  1.56783858e-01, -9.40089757e-03],
+                 ...,
+                 [ 3.16185746e+00,  3.60201716e-01, -2.63552739e-02],
+                 [ 3.12687989e+00,  4.11609016e-01, -2.80624431e-02],
+                 [ 3.08802431e+00,  4.61450838e-01, -2.50325625e-02]]]])
+        Coordinates:
+        * ρ        (ρ) float64 264B 0.01515 0.04545 0.07576 ... 0.9242 0.9545 0.9848
+        * θ        (θ) float64 800B 0.005 0.015 0.025 0.035 ... 0.975 0.985 0.995
+        * ζ        (ζ) float64 72B 0.5 1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5
+        * ΧΥΖ      (ΧΥΖ) <U1 12B 'X' 'Y' 'Z'
+        Attributes:
+            units:      m
+            long_name:  center points
+        """
         return self._da
 
     @property
     def shape(self) -> tuple[int, int, int]:
-        """Shape of center grids."""
+        """Shape of center grids.
+
+        Examples
+        --------
+        >>> cgrid = CenterGrid("zone0", index_type="cell")
+        >>> cgrid.shape
+        (82, 601, 36)
+        """
         return self._shape
 
     @property

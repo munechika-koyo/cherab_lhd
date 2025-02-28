@@ -18,4 +18,4 @@ build:
       - pixi run doc-build
     post_build:
     - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - cp -r doc/build/html/* $READTHEDOCS_OUTPUT/html/
+    - cp -r docs/build/html/* $READTHEDOCS_OUTPUT/html/

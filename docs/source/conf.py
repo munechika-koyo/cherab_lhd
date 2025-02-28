@@ -163,6 +163,8 @@ intersphinx_mapping = {
 intersphinx_timeout = 10
 
 # === NB Sphinx configuration ============================================
+# TODO: enable to execute notebooks in the future
+nbsphinx_execute = "never"
 nbsphinx_allow_errors = True
 nbsphinx_prolog = """
 {% set docname = env.doc2path(env.docname, base=None) %}

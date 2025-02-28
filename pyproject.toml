@@ -12,7 +12,7 @@ build-backend = "mesonpy"
 [project]
 name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
-version = "0.1.0"
+version = "0.1.1.dev"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
@@ -56,15 +56,15 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://cherab-lhd.netlify.app/"
-documentation = "https://cherab-lhd.netlify.app/"
+Homepage = "https://cherab-lhd.readthedocs.io"
+documentation = "https://cherab-lhd.readthedocs.io"
 repository = "https://github.com/munechika-koyo/cherab_lhd"
 
 # -----------------------
 # === Cov/Test config ===
 # -----------------------
 [tool.coverage.run]
-source_pkgs = ["cherab.lhd", "tests"]
+source_pkgs = ["cherab.lhd"]
 branch = true
 parallel = true
 
@@ -153,20 +153,20 @@ cherab = { version = "*", channel = "https://repo.prefix.dev/koyo-forge" }
 llvm-openmp = "*"
 
 [tool.pixi.dependencies]
-numpy = "*"
-scipy = "*"
-cherab-inversion = "*"
-matplotlib = "*"
-plotly = "*"
-h5py = "*"
+numpy = ">=1.26.4,<2"
+scipy = ">=1.15.2,<2"
+cherab-inversion = ">=0.3.1,<0.4"
+matplotlib = ">=3.10.0,<4"
+plotly = ">=6.0.0,<7"
+h5py = ">=3.13.0,<4"
 xarray = ">=2025.1.2,<2026"
 netcdf4 = ">=1.7.2,<2"
 rich = ">=13.9.4,<14"
 pooch = ">=1.8.2,<2"
-paramiko = ">=3.5.0,<4"
+paramiko = ">=3.5.1,<4"
 tqdm = ">=4.67.1,<5"
 # For development
-ipython = "*"
+ipython = ">=8.32.0,<9"
 
 [tool.pixi.pypi-dependencies]
 cherab-lhd = { path = ".", editable = true }
@@ -196,7 +196,7 @@ nbsphinx = "*"
 numpydoc = "*"
 pillow = "*"
 pygments = ">2.11.0"
-sphinx = "*"
+sphinx = "<8.1"  # Issue https://github.com/sphinx-doc/sphinx/issues/13393
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "*"
 sphinx-design = "*"
@@ -212,6 +212,8 @@ doc-build = { cmd = [
     "sphinx-build",
     "-b",
     "html",
+    "-j",
+    "auto",
     "docs/source",
     "docs/build/html",
 ], description = "📝 Build the docs" }
