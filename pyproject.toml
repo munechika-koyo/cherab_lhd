@@ -3,7 +3,7 @@ requires = [
     "meson-python >= 0.13",
     "cython >= 3.0",
     "numpy",
-    "cherab",
+    "cherab >= 1.5,<2.0",
     "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
@@ -44,7 +44,7 @@ dependencies = [
     "h5py",
     "xarray",
     "netcdf4",
-    "cherab",
+    "cherab >=1.5,<2.0",
     # "cherab-inversion",
     "rich",
     "pooch",
