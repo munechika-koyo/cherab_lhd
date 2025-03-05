@@ -133,13 +133,12 @@ override_SS05 = ['^Process ', '^Assess ', '^Access ']
 # --------------------
 [tool.cibuildwheel]
 skip = "pp* *_ppc64le *_i686 *_s390x cp313-*"
-build-frontend = "build[uv]"
+build-frontend = { name = "build[uv]", args = ["--no-isolation"] }
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
 [tool.cibuildwheel.macos]
 before-all = "brew install uv"
-before-build = "brew install libomp"
-environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
+before-build = "brew install llvm"
 
 
 # -------------------
