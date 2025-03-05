@@ -6424,9 +6424,9 @@ packages:
 - pypi: .
   name: cherab-lhd
   version: 0.1.1.dev0
-  sha256: f64cda39b82ab09ae2b9dcbbe6ad4c14b4261d95be98d8e27f918dcb8daa80f6
+  sha256: c0c7effc10d2792e28386cf4137b68052d910d95d5daaef9aafcb84285fad5ed
   requires_dist:
-  - numpy
+  - numpy>=1.14,<2.0
   - scipy
   - matplotlib
   - plotly
