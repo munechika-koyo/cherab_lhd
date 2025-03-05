@@ -137,6 +137,7 @@ build-frontend = "build[uv]"
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
 [tool.cibuildwheel.macos]
+before-all = "brew install uv"
 before-build = "brew install libomp"
 environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
 
