@@ -133,7 +133,7 @@ override_SS05 = ['^Process ', '^Assess ', '^Access ']
 # --------------------
 [tool.cibuildwheel]
 skip = "pp* *_ppc64le *_i686 *_s390x cp313-*"
-build-frontend = { name = "build[uv]", args = ["--no-isolation"] }
+build-frontend = "build[uv]"
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
 [tool.cibuildwheel.macos]
