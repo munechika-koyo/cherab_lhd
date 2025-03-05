@@ -138,7 +138,7 @@ test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
 [tool.cibuildwheel.macos]
 before-all = "brew install uv"
-before-build = "brew install llvm"
+before-build = "brew install llvm libomp"
 
 
 # -------------------
