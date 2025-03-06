@@ -136,9 +136,6 @@ skip = "pp* *_ppc64le *_i686 *_s390x cp313-*"
 build-frontend = "build[uv]"
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
-[tool.cibuildwheel.macos]
-before-all = ["brew install uv libomp"]
-environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
 
 
 # -------------------

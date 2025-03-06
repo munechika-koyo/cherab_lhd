@@ -20,12 +20,43 @@ jobs:
         os: [ubuntu-latest, macos-13, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout LLVM on macOS
+      if: runner.os == 'macOS'
+      uses: actions/checkout@v4
+      with:
+        repository: llvm/llvm-project
+        ref: release/19.x
+        path: llvm-project
+
+    - name: Build OpenMP on macOS
+      if: runner.os == 'macOS'
+      env:
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.os == 'macos-13' && '10.13' || '11.0' }}
+      working-directory: llvm-project
+      run: |
+        cmake \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$(brew --prefix) \
+          -DCMAKE_C_COMPILER=clang \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DLIBOMP_INSTALL_ALIASES=OFF \
+          -S openmp \
+          -B build
+        cmake --build build --parallel
+        cmake --install build
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.22.0
 
-    - uses: actions/upload-artifact@v4
+    - name: Upload wheels
+      uses: actions/upload-artifact@v4
       with:
         name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
         path: ./wheelhouse/*.whl
