@@ -35,7 +35,6 @@ jobs:
       working-directory: llvm-project
       run: |
         cmake \
-          -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$(brew --prefix) \
           -DCMAKE_C_COMPILER=clang \
