@@ -34,9 +34,11 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.os == 'macos-13' && '10.13' || '11.0' }}
       working-directory: llvm-project
       run: |
+        export PREFIX=$(brew --prefix)
         cmake \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=$(brew --prefix) \
+          -DCMAKE_PREFIX_PATH=$PREFIX \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DCMAKE_C_COMPILER=clang \
           -DCMAKE_CXX_COMPILER=clang++ \
           -DLIBOMP_INSTALL_ALIASES=OFF \
