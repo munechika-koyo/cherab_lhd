@@ -3,7 +3,7 @@ requires = [
     "meson-python >= 0.13",
     "cython >= 3.0",
     "numpy",
-    "cherab",
+    "cherab >= 1.5,<2.0",
     "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
@@ -29,23 +29,23 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
     "Programming Language :: Cython",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "numpy",
+    "numpy >=1.14,<2.0",
     "scipy",
     "matplotlib",
     "plotly",
     "h5py",
     "xarray",
     "netcdf4",
-    "cherab",
-    "cherab-inversion",
+    "cherab >=1.5,<2.0",
+    # "cherab-inversion",
     "rich",
     "pooch",
     "paramiko",
@@ -127,6 +127,16 @@ exclude = [ # don't report on objects that match any of these regex
     '\.__repr__$',
 ]
 override_SS05 = ['^Process ', '^Assess ', '^Access ']
+
+# --------------------
+# === Build config ===
+# --------------------
+[tool.cibuildwheel]
+skip = "pp* *_ppc64le *_i686 *_s390x *-musllinux* cp313-*"
+build-frontend = "build[uv]"
+test-requires = ["pytest", "pytest-cov"]
+test-command = "pytest {project}/tests"
+
 
 # -------------------
 # === Pixi config ===

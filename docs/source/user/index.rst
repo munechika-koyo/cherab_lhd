@@ -15,6 +15,7 @@ This guide is an overview and explains the important features.
 
    quickstart
    installation
+   data
 
 
 .. toctree::

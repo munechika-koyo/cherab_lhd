@@ -38,13 +38,14 @@ Explore the various methods below to install `cherab-lhd` using your preferred p
 
             pixi add cherab-lhd
 
-.. note::
+.. attention::
 
     `cherab-lhd` package does not provide any LHD-related data (grid, machine mesh, measurement info, etc.)
     because of the large size.
     When functions requiring data are executed, `pooch` is used to automatically download the data using sftp.
     However, since this involves credential information, authentication is required.
     Currently, the data is not publicly available, so users who need access to the data should contact the administrator.
+    See also :ref:`Data Handling <data>`.
 
 
 For Developers

@@ -251,6 +251,7 @@ def triangulate(
 
         case "cell" | "physics":
             L, M, _ = grid.shape
+            ds_index = groups[f"/{grid.zone}/index"][index_type]
             indices_radial = [i for i in range(0, L)]
             indices_poloidal = [i for i in range(0, M)]
 

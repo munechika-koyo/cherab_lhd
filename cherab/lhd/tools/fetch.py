@@ -9,9 +9,10 @@ from importlib.resources import files
 import pooch
 from pooch import SFTPDownloader
 from rich.console import Console
+from rich.style import Style
 from rich.table import Table
 
-__all__ = ["fetch_file", "show_registries", "PATH_TO_STORAGE"]
+__all__ = ["fetch_file", "get_registries", "show_registries", "PATH_TO_STORAGE"]
 
 
 HOSTNAME = os.environ.get("SSH_RAYTRACE_HOSTNAME", default="sftp://example.com/")
@@ -29,6 +30,15 @@ def get_registries() -> dict[str, str]:
     -------
     dict[str, str]
         Registries of the datasets, where key is the file name and value is the SHA256 hash.
+
+    Examples
+    --------
+    >>> get_registries()
+    {
+        "emc3/grid-360.nc": "...",
+        "machine/divertor.rsm": "...",
+        ...
+    }
     """
     with files("cherab.lhd.tools").joinpath("registries.json").open("r") as file:
         return json.load(file)
@@ -42,7 +52,7 @@ def show_registries() -> None:
 
     for name, sha256 in get_registries().items():
         table.add_row(name, sha256)
-    console = Console()
+    console = Console(style=Style(bgcolor="black"))
     console.print(table)
 
 

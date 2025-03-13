@@ -163,9 +163,8 @@ intersphinx_mapping = {
 
 intersphinx_timeout = 10
 
-# === NB Sphinx configuration ============================================
-# TODO: enable to execute notebooks in the future
-nbsphinx_execute = "never"
+# === NB Sphinx configuration =================================================
+# nbsphinx_execute = "never"
 nbsphinx_allow_errors = True
 nbsphinx_prolog = """
 {% set docname = env.doc2path(env.docname, base=None) %}
@@ -182,7 +181,7 @@ nbsphinx_thumbnails = {
     # "notebooks/path/to/.ipnb": "_static/images/path/to/image.png",
 }
 
-# === sphinx_github_style configuration ============================================
+# === sphinx_github_style configuration =======================================
 # get tag name which exists in GitHub
 tag = "main" if version_obj.is_devrelease else f"v{version_obj.public}"
 
