@@ -14,6 +14,7 @@ project(
   ],
 )
 
+cc = meson.get_compiler('c')
 fs = import('fs')
 py = import('python').find_installation(pure: false)
 
@@ -21,7 +22,10 @@ py = import('python').find_installation(pure: false)
 py_dep = py.dependency()
 
 # OpenMP dependency
-omp_dep = dependency('openmp', required: true)
+omp_dep = dependency('openmp', required: false)
+if omp_dep.found() == false
+  omp_dep = cc.find_library('libomp', dirs: '${prefix}/lib', required: true)
+endif
 
 # NumPy dependency
 incdir_numpy = meson.get_external_property('numpy-include-dir', 'not-given')
