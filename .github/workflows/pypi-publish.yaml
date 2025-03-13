@@ -82,13 +82,20 @@ jobs:
         echo "CIBW_SKIP=$CIBW_SKIP" >> $GITHUB_ENV
         echo "Setting CIBW_SKIP=$CIBW_SKIP"
 
-    - name: Build wheels
+    - name: Build wheels (at Pull Request)
+      if: github.event_name == 'pull_request'
       uses: pypa/cibuildwheel@v2.23.0
       env:
         CIBW_ARCHS: ${{ matrix.arch }}
         CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos }}
-        if: github.event_name == 'pull_request'
         CIBW_SKIP: ${{ env.CIBW_SKIP }}
+
+    - name: Build wheels
+      if: github.event_name != 'pull_request'
+      uses: pypa/cibuildwheel@v2.23.0
+      env:
+        CIBW_ARCHS: ${{ matrix.arch }}
+        CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos }}
 
     - name: Upload wheels
       uses: actions/upload-artifact@v4
