@@ -31,7 +31,7 @@ jobs:
     - name: Build OpenMP on macOS
       if: runner.os == 'macOS'
       env:
-        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.os == 'macos-13' && '10.13' || '11.0' }}
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.os == 'macos-13' && '10.9' || '11.0' }}
       working-directory: llvm-project
       run: |
         export PREFIX=$(brew --prefix)
