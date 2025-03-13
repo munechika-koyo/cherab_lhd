@@ -23,8 +23,14 @@ py_dep = py.dependency()
 
 # OpenMP dependency
 omp_dep = dependency('openmp', required: false)
-if omp_dep.found() == false
-  omp_dep = cc.find_library('libomp', dirs: '${prefix}/lib', required: true)
+if not omp_dep.found()
+  if host_machine.system() == 'darwin'
+    dirs = run_command('brew', ['--prefix'], check: true).stdout().strip() + '/lib'
+    message('Looking for OpenMP in ' + dirs)
+    omp_dep = cc.find_library('libomp', dirs: dirs, required: true)
+  else
+    error('OpenMP is required for this project')
+  endif
 endif
 
 # NumPy dependency
