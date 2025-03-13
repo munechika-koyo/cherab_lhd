@@ -19,14 +19,15 @@ jobs:
         include:
         - os: ubuntu-latest
           arch: x86_64
-        - os: ubuntu-latest
-          arch: aarch64
+        # TODO: Enable aarch64 support
+        # - os: ubuntu-latest
+        #   arch: aarch64
         - os: macos-latest
           arch: arm64
           macos: 11.0
         - os: macos-13
           arch: x86_64
-          macos: 10.9
+          macos: 10.13
 
     steps:
     - name: Checkout LLVM on macOS
