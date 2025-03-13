@@ -9,8 +9,8 @@
 
 [pre-commit-ci-badge]: https://results.pre-commit.ci/badge/github/munechika-koyo/cherab_lhd/main.svg
 [pre-commit-ci]: https://results.pre-commit.ci/latest/github/munechika-koyo/cherab_lhd/main
-[PyPI-publish-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/pypi-publish.yml?style=flat-square&label=PyPI%20Publish&logo=github
-[PyPI-publish]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/pypi-publish.yml
+[PyPI-publish-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/pypi-publish.yaml?style=flat-square&label=PyPI%20Publish&logo=github
+[PyPI-publish]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/pypi-publish.yaml
 [test]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/test.yaml
 [test-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/test.yaml?branch=development&style=flat-square&logo=GitHub&label=test
 [codecov]: https://codecov.io/github/munechika-koyo/cherab_lhd
