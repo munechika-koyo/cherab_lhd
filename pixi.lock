@@ -6471,8 +6471,8 @@ packages:
   timestamp: 1723281124974
 - pypi: .
   name: cherab-lhd
-  version: 0.1.1
-  sha256: 0a6ba03cbec3c3a0bde75963895b48ecd3515d30401d402a273363285f96c109
+  version: 0.1.2.dev0
+  sha256: 2d6367f5b414124da4df6df9e1601865de69d15dad7891b25919ced39c0de987
   requires_dist:
   - numpy>=1.14,<2.0
   - scipy
