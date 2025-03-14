@@ -59,7 +59,7 @@ pixi run <task_name>
 ```
 
 ### Notebooks
-We provide some notebooks to demonstrate the usage of the CHERAB-NAGDIS code.
+We provide some notebooks to demonstrate the usage of the CHERAB-LHD code.
 To launch the Jupyter lab server, you can use the following command.
 
 ```shell
