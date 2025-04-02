@@ -120,8 +120,12 @@ def load_index_func(
             data = groups[f"/{zone}/index"][index_type].data
             _max_index = data.max() + 1
             dict_num_voxels[zone] = _max_index
-            dict_index1[zone] = data + start_index
-            start_index += _max_index
+
+            if index_type == "physics":
+                dict_index1[zone] = data
+            else:
+                dict_index1[zone] = data + start_index
+                start_index += _max_index
 
         if not load_tetra_mesh:
             progress.update(task_id, visible=False, advance=1, refresh=True)
