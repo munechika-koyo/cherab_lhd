@@ -28,13 +28,13 @@ repos:
 
 # validate pyproject.toml
 - repo: https://github.com/abravalheri/validate-pyproject
-  rev: v0.23
+  rev: v0.24.1
   hooks:
   - id: validate-pyproject
 
 # lint and format python codes by ruff
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.9.2
+  rev: v0.11.4
   hooks:
   - id: ruff
     args: [--fix]
@@ -69,7 +69,7 @@ repos:
 
 # check misspellings in codes and texts
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.3.0
+  rev: v2.4.1
   hooks:
   - id: codespell
     additional_dependencies: [tomli]
