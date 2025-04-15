@@ -84,7 +84,7 @@ jobs:
 
     - name: Build wheels (at Pull Request)
       if: github.event_name == 'pull_request'
-      uses: pypa/cibuildwheel@v2.23.0
+      uses: pypa/cibuildwheel@v2.23.2
       env:
         CIBW_ARCHS: ${{ matrix.arch }}
         CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos }}
@@ -92,7 +92,7 @@ jobs:
 
     - name: Build wheels
       if: github.event_name != 'pull_request'
-      uses: pypa/cibuildwheel@v2.23.0
+      uses: pypa/cibuildwheel@v2.23.2
       env:
         CIBW_ARCHS: ${{ matrix.arch }}
         CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos }}
