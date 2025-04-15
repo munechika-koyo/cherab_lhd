@@ -6472,7 +6472,7 @@ packages:
 - pypi: .
   name: cherab-lhd
   version: 0.1.2.dev0
-  sha256: 2d6367f5b414124da4df6df9e1601865de69d15dad7891b25919ced39c0de987
+  sha256: f489a8df5916f1b426341d52d03566673675beb3f47f0d910d4be07761c79014
   requires_dist:
   - numpy>=1.14,<2.0
   - scipy
