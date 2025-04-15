@@ -271,11 +271,11 @@ pre-commit-install = { cmd = [
 
 # === Python Version Features ===
 [tool.pixi.feature.py310.dependencies]
-python = "3.10.*"
+python = "3.13.*"
 [tool.pixi.feature.py311.dependencies]
-python = "3.11.*"
+python = "3.13.*"
 [tool.pixi.feature.py312.dependencies]
-python = "3.12.*"
+python = "3.13.*"
 
 [tool.pixi.environments]
 lab = { features = ["lab"], solve-group = "default" }
