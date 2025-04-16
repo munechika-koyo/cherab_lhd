@@ -171,8 +171,13 @@ rich = ">=13.9.4,<14"
 pooch = ">=1.8.2,<2"
 paramiko = ">=3.5.1,<4"
 tqdm = ">=4.67.1,<5"
+pyvista = ">=0.44.2,<0.45"
 # For development
 ipython = ">=8.32.0,<9"
+
+# Workaround for https://github.com/prefix-dev/pixi/issues/3479
+[tool.pixi.target.osx-arm64.dependencies]
+libgfortran5 = ">=14.2.0"
 
 [tool.pixi.pypi-dependencies]
 pymupdf = ">=1.25.3,<2"
