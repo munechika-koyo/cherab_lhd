@@ -251,7 +251,7 @@ test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
 [tool.pixi.feature.lint.dependencies]
 ruff = "*"
 mypy = "*"
-pre-commit = "<4"  # docformatter issue: https://github.com/PyCQA/docformatter/pull/287
+pre-commit = "<5"  # docformatter issue: https://github.com/PyCQA/docformatter/pull/287
 
 [tool.pixi.feature.lint.tasks]
 lint = { cmd = ["ruff", "check"], description = "🧹 Lint the code" }
