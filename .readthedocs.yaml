@@ -10,7 +10,6 @@ build:
     - asdf install pixi latest
     - asdf global pixi latest
     install:
-    - pixi auth login prefix.dev --token $PREFIX_DEV_TOKEN
     - pixi install -e docs
     - pixi list -e docs
     build:
