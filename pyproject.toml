@@ -207,7 +207,7 @@ nbsphinx = "*"
 numpydoc = "*"
 pillow = "*"
 pygments = ">2.11.0"
-sphinx = ">8.2.2,<8.3"
+sphinx = "<8.2"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "*"
 sphinx-design = "*"
@@ -256,7 +256,7 @@ test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
 [tool.pixi.feature.lint.dependencies]
 ruff = "*"
 mypy = "*"
-pre-commit = "<4"  # docformatter issue: https://github.com/PyCQA/docformatter/pull/287
+pre-commit = ">=4.2.0,<5"
 
 [tool.pixi.feature.lint.tasks]
 lint = { cmd = ["ruff", "check"], description = "🧹 Lint the code" }
