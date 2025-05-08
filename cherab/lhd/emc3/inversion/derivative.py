@@ -81,7 +81,7 @@ class Derivative:
 
     @cached_property
     def dmat_rho(self) -> csr_matrix:
-        """Radial (:math:\\rho: direction) derivative matrix.
+        """Radial (:math:`\\rho`: direction) derivative matrix.
 
         The poloidal derivative matrix is constructed by the numerical difference method.
         """
@@ -135,7 +135,7 @@ class Derivative:
 
     @cached_property
     def dmat_theta(self) -> csr_matrix:
-        """Poloidal (:math:\\theta: direction) derivative matrix.
+        """Poloidal (:math:`\\theta`: direction) derivative matrix.
 
         The poloidal derivative matrix is constructed by the numerical difference method.
         """
@@ -200,7 +200,7 @@ class Derivative:
 
     @cached_property
     def dmat_zeta(self) -> csr_matrix:
-        """Toroidal (:math:\\zeta: direction) derivative matrix.
+        """Toroidal (:math:`\\zeta`: direction) derivative matrix.
 
         This derivative matrix is calculated by using the forward difference method.
         """
