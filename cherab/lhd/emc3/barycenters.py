@@ -1,5 +1,6 @@
 """Module to handle barycenters derived from EMC3-EIRENE grids."""
 
+from pathlib import Path
 from types import EllipsisType
 
 import h5py  # noqa: F401
@@ -8,6 +9,7 @@ import xarray as xr
 from numpy.typing import NDArray
 
 from ..tools.fetch import fetch_file
+from .repository.utility import path_validate
 
 __all__ = ["CenterGrid"]
 
@@ -33,6 +35,9 @@ class CenterGrid:
         Indexing way of center grids, by default ``"coarse"``.
     dataset : str, optional
         Name of dataset, by default ``"emc3/grid-360.nc"``.
+    grid_file : Path | str | None, optional
+        Path to the grid file. If specified, the grid dataset is loaded from the file preferentially.
+        Otherwise, the grid file is fetched from the repository.
     **kwargs
         Keyword arguments to pass to `.fetch_file`.
 
@@ -50,10 +55,19 @@ class CenterGrid:
         zone: str,
         index_type: str = "coarse",
         dataset: str = "emc3/grid-360.nc",
+        grid_file: str | Path | None = None,
         **kwargs,
     ) -> None:
-        # Fetch grid dataset
-        path = fetch_file(dataset, **kwargs)
+        if grid_file is not None:
+            # Manual input of grid file
+            path = path_validate(grid_file)
+            if not path.exists():
+                raise FileNotFoundError(f"{path} does not exist.")
+            if not path.suffix == ".nc":
+                raise ValueError("grid_file must be a path to a NetCDF file.")
+        else:
+            # Fetch grid dataset
+            path = fetch_file(dataset, **kwargs)
 
         # Load center points dataArray into memory
         with xr.open_dataset(path, group=f"{zone}/centers/{index_type}") as ds:
