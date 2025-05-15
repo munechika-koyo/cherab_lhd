@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.style import Style
 from rich.table import Table
 
-__all__ = ["fetch_file", "get_registries", "show_registries", "PATH_TO_STORAGE"]
+__all__ = ["fetch_file", "get_registries", "get_urls", "show_registries", "PATH_TO_STORAGE"]
 
 
 HOSTNAME = os.environ.get("SSH_RAYTRACE_HOSTNAME", default="sftp://example.com/")
@@ -60,7 +60,7 @@ def get_urls() -> dict[str, str]:
     --------
     >>> get_urls()
     {
-        "grid-demo.nc": "doi:10.5281/zenodo.1234567",
+        "grid-demo.nc": "doi:10.5281/zenodo.1234567/grid-demo.nc",
         ...
     }
     """
@@ -86,9 +86,11 @@ def fetch_file(
     username: str = USERNAME,
     password: str = PASSWORD,
 ) -> str:
-    """Fetch the file from the remote server using the configured SFTP downloader.
+    """Fetch the file remotely.
 
     Fetched data will be stored in the cache directory like `~/.cache/cherab/lhd`.
+    The download destination (URL) is specified by `host` parameter, or obtained by `.get_urls`
+    function for each file.
 
     Parameters
     ----------
@@ -99,10 +101,10 @@ def fetch_file(
         This value is adaptable from the environment variable `SSH_RAYTRACE_HOSTNAME`.
         Host name should be in the format ``sftp://{host's name or ip}/{directories}``.
     username : str, optional
-        Username to authenticate with the server, by default ``username``.
+        Username to authenticate with the sftp server, by default ``username``.
         This value is adaptable from the environment variable `SSH_RAYTRACE_USERNAME`.
     password : str, optional
-        Password to authenticate with the server, by default ``password``.
+        Password to authenticate with the sftp server, by default ``password``.
         This value is adaptable from the environment variable `SSH_RAYTRACE_PASSWORD`.
 
     Returns
