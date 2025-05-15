@@ -29,7 +29,7 @@ def get_registries() -> dict[str, str]:
     Returns
     -------
     dict[str, str]
-        Registries of the datasets, where key is the file name and value is the SHA256 hash.
+        Registries of the datasets, where key is the file name and value is the hash.
 
     Examples
     --------
@@ -72,7 +72,7 @@ def show_registries() -> None:
     """Show the registries of the datasets."""
     table = Table(title="Registries", show_lines=True)
     table.add_column("File Name", style="cyan", justify="left")
-    table.add_column("SHA256", style="dim", justify="left")
+    table.add_column("Hash Value", style="dim", justify="left")
 
     for name, sha256 in get_registries().items():
         table.add_row(name, sha256)
