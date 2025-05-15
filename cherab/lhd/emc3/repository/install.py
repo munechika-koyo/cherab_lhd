@@ -518,7 +518,7 @@ def install_center_points(
             grid = Grid(zone, grid_file=grid_file)
             verts = grid.generate_vertices()
             cells = grid.generate_cell_indices()
-            phis = grid.dataset["ζ"].values
+            phis = grid.data_array["ζ"].values
 
             del grid
 
