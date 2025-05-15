@@ -1,5 +1,6 @@
 {
   "emc3/grid-360.nc": "948c65fbefc78118272e223720930d10846b1b177f513b4cadfc33ec9a177f3d",
+  "grid-demo.nc": "md5:34b5f81fc47d116e7318219b6f7a749f",
   "machine/calcam_cad.ccm": "a93db1a11d16357ccbfe797bf71d7d78aaf008a9e95e6c0aa15a7bb1207cb528",
   "machine/divertor.rsm": "6ae9b4b50139818b7e600a247bb4fc3d1260bac28a60234a60fbd6c1aebdc1ca",
   "machine/plasma.rsm": "ae950c8d787fad3ebccbfef12f2282cd927d15a6cc9554db28c9d39a4f7eda38",
@@ -13,6 +14,7 @@
   "material/sus316L.json": "0f473be0d3f9efc88d11d3cbacbc5a8596ff2b39dcb2dbd561d0fa116de5f301",
   "observer/IRVB.json": "a46010c1d67bbe71c0bf71c203447cb984c5622e63e10d20f5ee8b8d2cf93248",
   "observer/RB.json": "bffd237b98bc6a158fb4f4875d1d79d6571fe4770561f8e18fd1da72a63bcae2",
+  "tetra/zone0+zone11.rsm": "719f69ae4ff3d94121a4de4efd45ac9116988ded30786cdf70571df199c9d416",
   "tetra/zone0.rsm": "2859a0618badd7d764691750bbc617479a00ee4f0a31dcf9d616d81174f3402b",
   "tetra/zone1.rsm": "a097e6f5dcf0319e3109fc0d7c010442297e6078778cbc795bc37729ff6fc2be",
   "tetra/zone11.rsm": "dc45ebe22b858db13f1cd73e43422629dde6adc2f8ca2a4c14cb8e4a2b83dd14",

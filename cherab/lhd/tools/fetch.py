@@ -44,6 +44,30 @@ def get_registries() -> dict[str, str]:
         return json.load(file)
 
 
+def get_urls() -> dict[str, str]:
+    """Get the URLs of the datasets.
+
+    Some datasets are available through the specified URLs, which are stored in a JSON file.
+    Datasets with no URL specified are downloaded from the address specified by `.fetch_file`'s
+    `host` parameter.
+
+    Returns
+    -------
+    dict[str, str]
+        URLs of the datasets, where key is the file name and value is the URL.
+
+    Examples
+    --------
+    >>> get_urls()
+    {
+        "grid-demo.nc": "doi:10.5281/zenodo.1234567",
+        ...
+    }
+    """
+    with files("cherab.lhd.tools").joinpath("urls.json").open("r") as file:
+        return json.load(file)
+
+
 def show_registries() -> None:
     """Show the registries of the datasets."""
     table = Table(title="Registries", show_lines=True)
@@ -86,16 +110,27 @@ def fetch_file(
     str
         Path to the fetched file.
     """
+    # Check if the name is in the registries
+    registries = get_registries()
+    if name not in registries:
+        raise ValueError(f"File {name} is not in the registries.")
+
     pup = pooch.create(
         path=PATH_TO_STORAGE,
         base_url=host,
-        registry=get_registries(),
+        registry=registries,
+        urls=get_urls(),
     )
 
-    downloader = SFTPDownloader(
-        username=username,
-        password=password,
-        progressbar=True,
-        timeout=5,
-    )
+    if pup.get_url(name).startswith("sftp://"):
+        downloader = SFTPDownloader(
+            username=username,
+            password=password,
+            progressbar=True,
+            timeout=5,
+        )
+    else:
+        # If the URL does not start with sftp://, use the default downloader
+        downloader = None
+
     return pup.fetch(name, downloader=downloader)

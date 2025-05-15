@@ -19,6 +19,7 @@ python_sources = [
   'visualization.py',
   'utility.py',
   'registries.json',
+  'urls.json',
 ]
 
 py.install_sources(
