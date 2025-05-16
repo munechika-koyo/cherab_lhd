@@ -4,9 +4,9 @@
     "version": "dev"
   },
   {
-    "name": "0.1",
+    "name": "0.2",
     "preferred": true,
-    "url": "https://cherab-lhd.readthedocs.io/en/v0.1.1/",
-    "version": "v0.1.1"
+    "url": "https://cherab-lhd.readthedocs.io/en/v0.2.0/",
+    "version": "v0.2.0"
   }
 ]
