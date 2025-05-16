@@ -11,7 +11,7 @@ build-backend = "mesonpy"
 [project]
 name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
-version = "0.2.0"
+version = "0.2.1.dev0"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
