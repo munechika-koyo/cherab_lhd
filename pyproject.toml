@@ -86,7 +86,7 @@ ignore = ["E741"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "NPY"]
@@ -134,7 +134,7 @@ override_SS05 = ['^Process ', '^Assess ', '^Access ']
 # === Build config ===
 # --------------------
 [tool.cibuildwheel]
-skip = "pp* *_ppc64le *_i686 *_s390x *-musllinux* cp313-*"
+skip = "pp* *_ppc64le *_i686 *_s390x *-musllinux*"
 build-frontend = "build[uv]"
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
@@ -151,7 +151,7 @@ platforms = ["linux-64", "osx-arm64", "osx-64"]
 c-compiler = "*"
 
 [tool.pixi.host-dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.10,<3.14"
 meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
@@ -283,6 +283,8 @@ python = "3.10.*"
 python = "3.11.*"
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
+[tool.pixi.feature.py313.dependencies]
+python = "3.13.*"
 
 [tool.pixi.environments]
 lab = { features = ["lab"], solve-group = "default" }
@@ -294,3 +296,4 @@ lint = { features = ["lint"], no-default-feature = true }
 py310 = { features = ["test", "py310"] }
 py311 = { features = ["test", "py311"] }
 py312 = { features = ["test", "py312"] }
+py313 = { features = ["test", "py313"] }
