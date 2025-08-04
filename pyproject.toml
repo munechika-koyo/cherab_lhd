@@ -4,6 +4,7 @@ requires = [
     "cython >= 3.0",
     "numpy",
     "cherab >= 1.5,<2.0",
+    "raysect >= 0.9.0,<0.10",
     "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
@@ -37,7 +38,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "numpy >=1.14,<2.0",
+    "numpy",
     "scipy",
     "matplotlib",
     "plotly",
@@ -46,6 +47,7 @@ dependencies = [
     "netcdf4",
     "cherab >=1.5,<2.0",
     # "cherab-inversion",
+    "raysect >=0.9.0,<0.10",
     "rich",
     "pooch",
     "paramiko",
@@ -154,6 +156,7 @@ meson-python = "*"
 tomli = "*"  # if python_version < 3.11
 cython = "*"
 cherab = "*"
+raysect = ">=0.9.0,<0.10a"
 
 [tool.pixi.target.osx-arm64.host-dependencies]
 llvm-openmp = "*"
