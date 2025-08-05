@@ -10137,8 +10137,8 @@ packages:
   timestamp: 1723281124974
 - pypi: ./
   name: cherab-lhd
-  version: 0.2.1.dev27+ga4e249c.d20250805
-  sha256: 7eddbd3ff40323c0510f980cfe6f7dec42481d4c6d84fc1e9fa0da6935f809ad
+  version: 0.2.1.dev33+gcb44491.d20250805
+  sha256: 8029afb526ba44d540d32ce3d3e0883bdd93c37dc46fc397901a01ee5d989413
   requires_dist:
   - numpy
   - scipy
