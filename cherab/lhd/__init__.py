@@ -1,3 +1,7 @@
-# If a version with git hash was stored, use that instead
-from . import version  # noqa: F401
-from .version import __version__  # noqa: F401
+"""The Cherab subpackage for the LHD."""
+
+from __future__ import annotations
+
+from importlib.metadata import version
+
+__version__ = version(__package__)  # type: ignore

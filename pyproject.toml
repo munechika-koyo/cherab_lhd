@@ -1,18 +1,18 @@
 [build-system]
 requires = [
     "meson-python >= 0.13",
+    "hatch-vcs",
     "cython >= 3.0",
     "numpy",
     "cherab >= 1.5,<2.0",
     "raysect >= 0.9.0,<0.10",
-    "tomli; python_version < '3.11'",
 ]
 build-backend = "mesonpy"
 
 [project]
 name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
-version = "0.2.1.dev0"
+dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
@@ -35,6 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
@@ -58,6 +59,14 @@ dependencies = [
 Homepage = "https://cherab-lhd.readthedocs.io"
 documentation = "https://cherab-lhd.readthedocs.io"
 repository = "https://github.com/munechika-koyo/cherab_lhd"
+
+# ----------------------
+# === Version config ===
+# ----------------------
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.metadata.hooks.vcs]
 
 # -----------------------
 # === Cov/Test config ===
@@ -96,7 +105,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/*.ipynb" = ["W292"] # no newline at end of file
+"**/*.ipynb" = ["W292"]                              # no newline at end of file
 "cherab/lhd/emc3/grid.py" = ["E741"]
 "cherab/lhd/emc3/barycenters.py" = ["E741"]
 "cherab/lhd/emc3/curvilinear.py" = ["E741"]
@@ -153,7 +162,7 @@ c-compiler = "*"
 [tool.pixi.host-dependencies]
 python = ">=3.10,<3.14"
 meson-python = "*"
-tomli = "*"  # if python_version < 3.11
+hatch-vcs = "*"
 cython = "*"
 cherab = "*"
 raysect = ">=0.9.0,<0.10a"
