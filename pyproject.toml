@@ -186,10 +186,6 @@ tqdm = ">=4.67.1,<5"
 ipython = ">=8.35.0,<10"
 pyvista = ">=0.45.0,<0.46"
 
-# Workaround for https://github.com/prefix-dev/pixi/issues/3479
-[tool.pixi.target.osx-arm64.dependencies]
-libgfortran5 = ">=14.2.0"
-
 [tool.pixi.pypi-dependencies]
 pymupdf = ">=1.25.3,<2"
 cherab-lhd = { path = ".", editable = true }
