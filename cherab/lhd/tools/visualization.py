@@ -341,7 +341,7 @@ def show_profiles_rz_plane(
     cmap : str | `~matplotlib.colors.Colormap`, optional
         Colorbar map, by default `CMAP_RED` (custom Red colormap extracted from "RdBu_r").
     cbar_mode : {"single", "each"}, optional
-        ImgeGrid's parameter to set colorbars in ``"single"`` axes or ``"each"`` axes,
+        ImageGrid's parameter to set colorbars in ``"single"`` axes or ``"each"`` axes,
         by default ``"single"``.
     plot_mode : {"scalar", "log", "centered", "symlog", "asinh"}, optional
         Which scale to adapt to the colormap, by default ``"scalar"``.
