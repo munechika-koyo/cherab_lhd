@@ -1,4 +1,4 @@
-name: test
+name: CI
 
 on:
   pull_request:
@@ -6,8 +6,23 @@ on:
     branches: [main]
 
 jobs:
-  runs:
-    name: 🐍 ${{ matrix.environment }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: 🟨 Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          environments: lint
+
+      - name: 🧹 Execute lint
+        run: pixi run -e lint lint
+
+  checks:
+    name: Test 🐍 ${{ matrix.environment }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -20,6 +35,8 @@ jobs:
 
       - name: 🟨 Set up Pixi
         uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          environments: ${{ matrix.environment }}
 
       - name: 🧪 Execute pytest
         env:
