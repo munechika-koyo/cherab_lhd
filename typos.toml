@@ -1,0 +1,8 @@
+[files]
+# TODO: Include notebooks
+extend-exclude = [".git/", ".pixi/", "docs/notebooks/"]
+ignore-hidden = false
+
+[default.extend-words]
+iy = "iy"
+rto = "rto"
