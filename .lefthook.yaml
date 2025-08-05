@@ -7,9 +7,14 @@ pre-commit:
   parallel: true
   jobs:
     - name: dprint
-      glob: "*.{json,jsonc,md,toml,yaml,yml}"
+      glob: "*.{json,jsonc,md,yaml,yml}"
       stage_fixed: true
       run: pixi {run} dprint fmt {staged_files}
+
+    - name: taplo
+      glob: "*.toml"
+      stage_fixed: true
+      run: pixi {run} taplo fmt {staged_files}
 
     - name: ruff
       glob: "*.{py,pyi}"
