@@ -52,13 +52,13 @@ mamba install -c conda-forge cherab-lhd
 pixi add cherab-lhd
 ```
 
-## 🔧 For Developers
+## 🔨 For Developers
 
 ### Pre-requisites
 
 - [`pixi`](https://prefix.dev), a tool for project and package management.
 
-### Task-based execution
+### ⚡️ Task-based execution
 
 We offer some tasks to execute programs in CLI.
 You can see the list of tasks using [pixi](https://pixi.sh) command.
