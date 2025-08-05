@@ -31,7 +31,8 @@ pre-commit:
       run: pixi {run} typos --force-exclude {staged_files}
 
     - name: actionlint
-      run: pixi {run} actionlint
+      glob: ".github/workflows/*.yaml"
+      run: pixi {run} actionlint {staged_files}
 
     - name: blacken-docs
       glob: "*.md"
