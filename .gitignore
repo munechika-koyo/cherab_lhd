@@ -153,9 +153,6 @@ local/
 # Ruff stuff:
 .ruff_cache
 
-# version.py created at build time
-**/version.py
-
 # pixi environments
 .pixi
 *.egg-info
