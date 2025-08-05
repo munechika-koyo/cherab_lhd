@@ -1,18 +1,16 @@
 # CHERAB-LHD
 
-|         |                                                                                                                     |
-| ------- | ------------------------------------------------------------------------------------------------------------------- |
-| CI/CD   | [![pre-commit.ci status][pre-commit-ci-badge]][pre-commit-ci] [![PyPI Publish][PyPI-publish-badge]][PyPi-publish] [![test][test-badge]][test] [![codecov][codecov-badge]][codecov] |
+|         |                                                                                                                       |
+| ------- | --------------------------------------------------------------------------------------------------------------------- |
+| CI/CD   | [![CI][CI-badge]][CI] [![PyPI Publish][PyPI-publish-badge]][PyPi-publish] [![codecov][codecov-badge]][codecov]        |
 | Docs    | [![Read the Docs (version)][Docs-dev-badge]][Docs-dev] [![Read the Docs (version)][Docs-release-badge]][Docs-release] |
-| Package | [![PyPI - Version][PyPI-badge]][PyPI] [![Conda][Conda-badge]][Conda] [![PyPI - Python Version][Python-badge]][PyPI] |
-| Meta    | [![DOI][DOI-badge]][DOI] [![License - BSD3][License-badge]][License] [![Pixi Badge][pixi-badge]][pixi-url]          |
+| Package | [![PyPI - Version][PyPI-badge]][PyPI] [![Conda][Conda-badge]][Conda] [![PyPI - Python Version][Python-badge]][PyPI]   |
+| Meta    | [![DOI][DOI-badge]][DOI] [![License - BSD3][License-badge]][License] [![Pixi Badge][pixi-badge]][pixi-url]            |
 
-[pre-commit-ci-badge]: https://results.pre-commit.ci/badge/github/munechika-koyo/cherab_lhd/main.svg
-[pre-commit-ci]: https://results.pre-commit.ci/latest/github/munechika-koyo/cherab_lhd/main
+[CI-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/ci.yaml?style=flat-square&logo=GitHub&label=CI
+[CI]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/ci.yaml
 [PyPI-publish-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/pypi-publish.yaml?style=flat-square&label=PyPI%20Publish&logo=github
 [PyPI-publish]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/pypi-publish.yaml
-[test]: https://github.com/munechika-koyo/cherab_lhd/actions/workflows/test.yaml
-[test-badge]: https://img.shields.io/github/actions/workflow/status/munechika-koyo/cherab_lhd/test.yaml?branch=development&style=flat-square&logo=GitHub&label=test
 [codecov]: https://codecov.io/github/munechika-koyo/cherab_lhd
 [codecov-badge]: https://img.shields.io/codecov/c/github/munechika-koyo/cherab_lhd?token=05LZGWUUXA&style=flat-square&logo=codecov
 [Docs-dev-badge]: https://img.shields.io/readthedocs/cherab-lhd/latest?style=flat-square&logo=readthedocs&label=dev%20docs
@@ -36,15 +34,32 @@
 This repository contains the Large Helical Device (LHD) machine-dependent extensions of [`cherab`](https://www.cherab.info/) code.
 LHD is a helical magnetic confinement fusion device in the National Institute for Fusion Science (NIFS) in Japan.
 
-## Table of Contents
+## 🌐 Installation
 
-- [Get Started](#get-started)
-- [Documentation](#documentation)
-- [License](#license)
+You can install the package from PyPI:
 
-## Get Started
+```bash
+pip install cherab-lhd
+```
+
+Or from Conda:
+
+```bash
+# Using mamba
+mamba install -c conda-forge cherab-lhd
+
+# Using pixi
+pixi add cherab-lhd
+```
+
+## 🔧 For Developers
+
+### Pre-requisites
+
+- [`pixi`](https://prefix.dev), a tool for project and package management.
 
 ### Task-based execution
+
 We offer some tasks to execute programs in CLI.
 You can see the list of tasks using [pixi](https://pixi.sh) command.
 
@@ -58,26 +73,37 @@ If you want to execute a task, you can use the following command.
 pixi run <task_name>
 ```
 
-### Notebooks
+### 🚀 Notebooks
+
 We provide some notebooks to demonstrate the usage of the CHERAB-LHD code.
 To launch the Jupyter lab server, you can use the following command.
 
 ```shell
 pixi run lab
 ```
+
 Then, you can access the Jupyter lab server from your web browser.
 
-## Documentation
+## 📝 Documentation
+
 The [documentation](https://cherab-lhd.readthedocs.io/) is made with [Sphinx](https://www.sphinx-doc.org/en/master/) and hosted on [Read the Docs](https://readthedocs.org/).
 There are two versions of the documentation:
+
 - [Development](https://cherab-lhd.readthedocs.io/en/latest/)
 - [Release](https://cherab-lhd.readthedocs.io/en/stable/)
 
 You can build the documentation locally by running the following command.
 
 ```shell
+# Build the documentation
 pixi run doc-build
+
+# Serve the documentation locally
+pixi run doc-serve
 ```
 
-## License
+The documentation is hosted locally at `http://localhost:8000/`.
+
+## 📄 License
+
 `cherab-lhd` is distributed under the terms of the [BSD-3-Clause license](https://opensource.org/licenses/BSD-3-Clause).
