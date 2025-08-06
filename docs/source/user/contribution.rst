@@ -11,6 +11,7 @@ Interested collaborators can make contact with Koyo Munechika (Core Developer) f
 `Source Repository`_.
 
 .. include:: ../../../AUTHORS.md
+   :parser: myst_parser.sphinx_
 
 
 For Developers

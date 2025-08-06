@@ -220,6 +220,7 @@ sphinx-design = "*"
 pandoc = "*"
 sphinx-codeautolink = "*"
 python-kaleido = "*"
+myst-parser = "*"
 
 [tool.pixi.feature.docs.pypi-dependencies]
 sphinx-github-style = "*"
