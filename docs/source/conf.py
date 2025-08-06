@@ -43,6 +43,7 @@ extensions = [
     "sphinx_codeautolink",
     "sphinx_github_style",
     "numpydoc",
+    "myst_parser",
 ]
 
 default_role = "obj"

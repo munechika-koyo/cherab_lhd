@@ -1,7 +1,7 @@
 """The following emitters and integrators are used in ray transfer objects.
 
-Note that these emitters support other integrators as well, however high performance
-with other integrators is not guaranteed.
+Note that these emitters support other integrators as well, however high performance with other
+integrators is not guaranteed.
 """
 cimport cython
 from cherab.tools.raytransfer.emitters cimport RayTransferIntegrator
@@ -97,8 +97,8 @@ cdef class Discrete3DMeshRayTransferIntegrator(RayTransferIntegrator):
 
 
 cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
-    """A unit emitter defined on a Discrete3DMesh class, which can be used
-    to calculate ray transfer matrices (geometry matrices).
+    """A unit emitter defined on a Discrete3DMesh class, which can be used to calculate ray transfer
+    matrices (geometry matrices).
 
     Note that for performance reason there are no boundary checks in `emission_function()`,
     or in `Discrete3DMeshRayTransferIntegrator`,
@@ -173,8 +173,7 @@ cdef class Discrete3DMeshRayTransferEmitter(InhomogeneousVolumeEmitter):
 
     @property
     def bins(self):
-        """
-        Number of raytransfer meshes which must not exceed the maximum of `index_function`.
+        """Number of raytransfer meshes which must not exceed the maximum of `index_function`.
 
         :rtype: int
         """

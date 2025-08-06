@@ -79,7 +79,7 @@ class IRVBCamera(Node):
 
     @property
     def slit(self) -> BolometerSlit:
-        """BolometerSlit instances."""
+        """`~cherab.tools.observers.bolometry.BolometerSlit` instances."""
         return self._slit
 
     @slit.setter
@@ -94,7 +94,7 @@ class IRVBCamera(Node):
 
     @property
     def foil_detector(self) -> TargetedCCDArray:
-        """A TargetedCCDArray instance."""
+        """A `~raysect.optical.observer.imaging.targeted_ccd.TargetedCCDArray` instance."""
         return self._foil_detector
 
     @foil_detector.setter
@@ -111,12 +111,12 @@ class IRVBCamera(Node):
     def pixels_as_foils(self) -> ndarray:
         """Regard each pixel as a bolometer foil.
 
-        The element is a `BolometerFoil` instance.
+        The element is a `~cherab.tools.observers.bolometry.BolometerFoil` instance.
 
         Returns
         -------
         `~numpy.ndarray`
-            Array of `BolometerFoil` object instances.
+            Array of `~cherab.tools.observers.bolometry.BolometerFoil` object instances.
 
         Examples
         --------
@@ -179,7 +179,7 @@ class IRVBCamera(Node):
         """Take an observation with this camera.
 
         Call `observe()` on a foil detector
-        :obj:`~raysect.optical.observer.imaging.TargetedCCDArray.observe` method.
+        `~raysect.optical.observer.imaging.targeted_ccd.TargetedCCDArray.observe` method.
         """
 
         self.foil_detector.observe()
@@ -190,9 +190,9 @@ class IRVBCamera(Node):
         plot_pixel_rays: dict[str, Any] | None = None,
         show_foil_xy_axes: bool = True,
     ):
-        """3D plotting of bolometer geometry using plotly module If you want to
-        use this method, must install `Plotly <https://plotly.com/python/>`_
-        module.
+        """3D plotting of bolometer geometry using `plotly`.
+
+        This method plots the slit, foil, camera box, and optionally pixel rays.
 
         Parameters
         ----------

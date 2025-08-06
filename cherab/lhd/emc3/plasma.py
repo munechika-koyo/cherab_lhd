@@ -68,7 +68,7 @@ def import_plasma(
     Parameters
     ----------
     parent : `_NodeBase`
-        Parent node of this plasma in the scenegraph, often `~raysect.core.World` object.
+        Parent node of this plasma in the scenegraph, often `~raysect.core.scenegraph.world.World` object.
     species : `~cherab.core.Species`, optional
         User-defined species object having composition which is a list of `~cherab.core.Species`
         objects and electron distribution function attributes, by default `.LHDSpecies`.

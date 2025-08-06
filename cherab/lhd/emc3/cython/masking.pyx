@@ -13,7 +13,7 @@ cdef class Mask(IntegerFunction3D):
     Parameters
     ----------
     index_func : callable[[float, float, float], int]
-        EMC3's index_funcion returning a physical index.
+        EMC3's index_function returning a physical index.
     """
 
     def __init__(self, object index_func not None):

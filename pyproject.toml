@@ -1,11 +1,11 @@
 [build-system]
 requires = [
-    "meson-python >= 0.13",
-    "hatch-vcs",
-    "cython >= 3.0",
-    "numpy",
-    "cherab >= 1.5,<2.0",
-    "raysect >= 0.9.0,<0.10",
+  "meson-python >= 0.13",
+  "hatch-vcs",
+  "cython >= 3.0",
+  "numpy",
+  "cherab >= 1.5,<2.0",
+  "raysect >= 0.9.0,<0.10",
 ]
 build-backend = "mesonpy"
 
@@ -17,42 +17,42 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE.md" }
 authors = [
-    { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
+  { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
 ]
 maintainers = [
-    { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
+  { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "Intended Audience :: Education",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
-    "Natural Language :: English",
-    "Operating System :: POSIX :: Linux",
-    "Operating System :: MacOS",
-    "Programming Language :: Cython",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering :: Physics",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Natural Language :: English",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Programming Language :: Cython",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "numpy",
-    "scipy",
-    "matplotlib",
-    "plotly",
-    "h5py",
-    "xarray",
-    "netcdf4",
-    "cherab >=1.5,<2.0",
-    # "cherab-inversion",
-    "raysect >=0.9.0,<0.10",
-    "rich",
-    "pooch",
-    "paramiko",
-    "tqdm",
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "plotly",
+  "h5py",
+  "xarray",
+  "netcdf4",
+  "cherab >=1.5,<2.0",
+  # "cherab-inversion",
+  "raysect >=0.9.0,<0.10",
+  "rich",
+  "pooch",
+  "paramiko",
+  "tqdm",
 ]
 
 [project.urls]
@@ -67,7 +67,6 @@ repository = "https://github.com/munechika-koyo/cherab_lhd"
 source = "vcs"
 
 [tool.hatch.metadata.hooks.vcs]
-
 # -----------------------
 # === Cov/Test config ===
 # -----------------------
@@ -100,8 +99,8 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "NPY"]
 ignore = [
-    "E501", # line too long (allow for docstrings)
-    "N806", # variable in function should be lowercase
+  "E501", # line too long (allow for docstrings)
+  "N806", # variable in function should be lowercase
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -123,19 +122,19 @@ disallow_untyped_defs = true
 
 [tool.numpydoc_validation]
 checks = [
-    "all",  # report on all checks, except the below
-    "GL01", # Docstring text (summary) should start in the line immediately
-    "EX01", # No examples section found
-    "SA01", # See Also section not found
-    "ES01", # No extended summary found
-    "GL08", # The object does not have a docstring
-    "RT01", # No Returns section found
-    "PR01", # Parameters {missing_params} not documented
-    "SS06", # Summary should fit in a single line
+  "all",  # report on all checks, except the below
+  "GL01", # Docstring text (summary) should start in the line immediately
+  "EX01", # No examples section found
+  "SA01", # See Also section not found
+  "ES01", # No extended summary found
+  "GL08", # The object does not have a docstring
+  "RT01", # No Returns section found
+  "PR01", # Parameters {missing_params} not documented
+  "SS06", # Summary should fit in a single line
 ]
 # remember to use single quotes for regex in TOML
 exclude = [ # don't report on objects that match any of these regex
-    '\.__repr__$',
+  '\.__repr__$',
 ]
 override_SS05 = ['^Process ', '^Assess ', '^Access ']
 
@@ -147,7 +146,6 @@ skip = "pp* *_ppc64le *_i686 *_s390x *-musllinux*"
 build-frontend = "build[uv]"
 test-requires = ["pytest", "pytest-cov"]
 test-command = "pytest {project}/tests"
-
 
 # -------------------
 # === Pixi config ===
@@ -201,10 +199,10 @@ python-kaleido = "*"
 
 [tool.pixi.feature.lab.tasks]
 lab = { cmd = [
-    "jupyter",
-    "lab",
-    "--notebook-dir",
-    "docs/notebooks",
+  "jupyter",
+  "lab",
+  "--notebook-dir",
+  "docs/notebooks",
 ], description = "🚀 Start JupyterLab" }
 
 [tool.pixi.feature.docs.dependencies]
@@ -222,33 +220,34 @@ sphinx-design = "*"
 pandoc = "*"
 sphinx-codeautolink = "*"
 python-kaleido = "*"
+myst-parser = "*"
 
 [tool.pixi.feature.docs.pypi-dependencies]
 sphinx-github-style = "*"
 
 [tool.pixi.feature.docs.tasks]
 doc-build = { cmd = [
-    "sphinx-build",
-    "-b",
-    "html",
-    "-j",
-    "auto",
-    "docs/source",
-    "docs/build/html",
+  "sphinx-build",
+  "-b",
+  "html",
+  "-j",
+  "auto",
+  "docs/source",
+  "docs/build/html",
 ], description = "📝 Build the docs" }
 doc-clean = { cmd = [
-    "rm",
-    "-rf",
-    "docs/build",
-    "docs/source/_api",
+  "rm",
+  "-rf",
+  "docs/build",
+  "docs/source/_api",
 ], description = "🔥 Clean the docs build & api directory" }
 doc-serve = { cmd = [
-    "python",
-    "-m",
-    "http.server",
-    "8000",
-    "--directory",
-    "docs/build/html",
+  "python",
+  "-m",
+  "http.server",
+  "8000",
+  "--directory",
+  "docs/build/html",
 ], description = "🚀 Start a local server for the docs" }
 
 [tool.pixi.feature.test.dependencies]
@@ -262,24 +261,25 @@ pytest-github-report = "*"
 test = { cmd = ["pytest", "tests"], description = "🧪 Run the tests" }
 
 [tool.pixi.feature.lint.dependencies]
+dprint = "*"
+lefthook = "*"
 ruff = "*"
+typos = "*"
 mypy = "*"
-pre-commit = ">=4.2.0,<5"
+numpydoc = "*"
+actionlint = "*"
+shellcheck = "*"
+validate-pyproject = "*"
+cython-lint = "*"
+docformatter = "*"
+blacken-docs = "*"
+taplo = "*"
 
 [tool.pixi.feature.lint.tasks]
-lint = { cmd = ["ruff", "check"], description = "🧹 Lint the code" }
-format = { cmd = ["ruff", "format"], description = "🧹 Format the code" }
-pre-commit-run = { cmd = [
-    "pre-commit",
-    "run",
-    "--all-files",
-], description = "🩺 Run pre-commit hooks for all files", depends-on = [
-    "pre-commit-install",
-] }
-pre-commit-install = { cmd = [
-    "pre-commit",
-    "install",
-], description = "🔗 Install pre-commit hooks" }
+lefthook = { cmd = "lefthook", description = "🔗 Run lefthook" }
+hooks = { cmd = "lefthook install", description = "🔗 Install pre-commit hooks" }
+pre-commit = { cmd = "lefthook run pre-commit", description = "🔗 Run pre-commit checks" }
+lint = { cmd = "lefthook run pre-commit --all-files --force", description = "🧹 Run all linters" }
 
 # === Python Version Features ===
 [tool.pixi.feature.py310.dependencies]

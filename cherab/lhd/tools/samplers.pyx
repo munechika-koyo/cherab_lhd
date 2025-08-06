@@ -18,12 +18,12 @@ __all__ = ["sample3d_rz", "sample_xy_plane"]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double phi=0.0):
-    """Sample a 3D function with a specified toroidal angle and a certain range of R-Z coordinates
+    """Sample a 3D function with a specified toroidal angle and a certain range of R-Z coordinates.
 
     Parameters
     ----------
     function3d : Callable[[double, double, double], double]
-        Python function or `Function3D` object.
+        Python function or `~raysect.core.math.function.float.function3d.base.Function3D` object.
     r_range : tuple[double, double, int]
         R-axis sampling range: :math:`(R_\\text{min}, R_\\text{max}, N)`, where :math:`N` is the
         number of samples.
@@ -35,11 +35,11 @@ cpdef tuple sample3d_rz(object function3d, tuple r_range, tuple z_range, double 
 
     Returns
     -------
-    r_points : (N, ) array_like
+    r_points : (N, ) ndarray
         R-axis sample points.
-    z_points : (M, ) array_like
+    z_points : (M, ) ndarray
         Z-axis sample points.
-    function_samples : (N, M) array_like
+    function_samples : (N, M) ndarray
         Sampled function values.
 
     Examples
@@ -153,7 +153,7 @@ cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(
     Parameters
     ----------
     func : Callable[[double, double, double], double]
-        Python function or `Function3D` object.
+        Python function or `raysect.core.math.function.float.function3d.base.Function3D` object.
     x_range : tuple[double, double, int]
         X-axis sampling range: :math:`(X_\\text{min}, X_\\text{max}, N)`, where :math:`N` is the
         number of samples.
@@ -165,11 +165,11 @@ cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(
 
     Returns
     -------
-    x_points : (N, ) array_like
+    x_points : (N, ) ndarray
         X-axis sample points.
-    y_points : (M, ) array_like
+    y_points : (M, ) ndarray
         Y-axis sample points.
-    function_samples : (N, M) array_like
+    function_samples : (N, M) ndarray
         Sampled function values.
 
     Examples
