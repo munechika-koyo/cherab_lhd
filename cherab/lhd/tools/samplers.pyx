@@ -153,7 +153,7 @@ cpdef tuple[ndarray, ndarray, ndarray] sample_xy_plane(
     Parameters
     ----------
     func : Callable[[double, double, double], double]
-        Python function or `raysect.core.math.function.float.function3d.base.Function3D` object.
+        Python function or `~raysect.core.math.function.float.function3d.base.Function3D` object.
     x_range : tuple[double, double, int]
         X-axis sampling range: :math:`(X_\\text{min}, X_\\text{max}, N)`, where :math:`N` is the
         number of samples.
