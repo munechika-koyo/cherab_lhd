@@ -7,7 +7,7 @@ import json
 from raysect.core.math import Point3D, Vector3D, rotate_basis, rotate_z, translate
 from raysect.core.scenegraph._nodebase import _NodeBase
 from raysect.optical.material import AbsorbingSurface
-from raysect.optical.observer import TargettedCCDArray
+from raysect.optical.observer import TargetedCCDArray
 from raysect.primitive import Box, Subtract
 
 from cherab.tools.observers import BolometerSlit
@@ -122,12 +122,12 @@ def load_irvb(
     )
 
     # Foil
-    foil = TargettedCCDArray(
+    foil = TargetedCCDArray(
         [slit.target],
         pixels=PIXELS,
         width=FOIL_WIDTH,
         parent=bolometer_camera,
-        targetted_path_prob=0.99,
+        targeted_path_prob=0.99,
         name="foil",
     )
 

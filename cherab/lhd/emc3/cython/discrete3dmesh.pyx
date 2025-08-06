@@ -109,8 +109,7 @@ cdef class Discrete3DMesh(IntegerFunction3D):
 
     @property
     def tetra_mesh(self):
-        """`.TetraMeshData`: Tetrahedral mesh instance
-        """
+        """`.TetraMeshData`: Tetrahedral mesh instance."""
         return self._tetra_mesh
 
     @cython.boundscheck(False)

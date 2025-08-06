@@ -84,7 +84,6 @@ def points_inside_polygon(
         :width: 700
         :align: center
         :alt: points_inside_polygon
-
     """
     cdef:
         np.ndarray points_inside

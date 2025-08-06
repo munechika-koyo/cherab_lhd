@@ -7,7 +7,8 @@ from importlib.resources import as_file, files
 
 import numpy as np
 from pooch import file_hash
-from raysect.primitive.mesh import TetraMeshData
+
+# from raysect.primitive.mesh import TetraMeshData
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -20,6 +21,7 @@ from rich.progress import (
 
 from cherab.lhd.emc3 import Grid
 from cherab.lhd.emc3.cython import tetrahedralize  # type: ignore
+from cherab.lhd.emc3.cython.tetra_mesh import TetraMeshData  # type: ignore
 from cherab.lhd.tools.fetch import PATH_TO_STORAGE, get_registries
 
 

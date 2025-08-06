@@ -3,7 +3,7 @@ project(
   'c',
   'cython',
   version: run_command(
-    ['cherab/lhd/_build_utils/gitversion.py'],
+    ['python', '-m', 'setuptools_scm'],
     check: true
   ).stdout().strip(),
   meson_version: '>= 0.64.0',

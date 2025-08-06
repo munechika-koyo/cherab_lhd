@@ -39,8 +39,7 @@ DEF RSM_VERSION_MINOR = 1
 
 
 cdef class TetraMeshData(KDTree3DCore):
-    """
-    Holds the 3D tetrahedral mesh data and acceleration structures.
+    """Holds the 3D tetrahedral mesh data and acceleration structures.
 
     This arrangement simplifies tetrahedral mesh instancing and the load/dump methods.
 
@@ -147,8 +146,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef Point3D vertex(self, int index):
-        """
-        Returns the specified vertex.
+        """Returns the specified vertex.
 
         :param int index: The vertex index.
         :return: A Point3D object.
@@ -167,8 +165,7 @@ cdef class TetraMeshData(KDTree3DCore):
         )
 
     cpdef ndarray tetrahedron(self, int index):
-        """
-        Returns the specified tetrahedron.
+        """Returns the specified tetrahedron.
 
         The returned data will be a 4 element numpy array which are the tetrahedral vertex indices.
 
@@ -185,8 +182,7 @@ cdef class TetraMeshData(KDTree3DCore):
         return self._tetrahedra[index, :].copy()
 
     cpdef Point3D barycenter(self, int index):
-        """
-        Returns the barycenter point of the specified tetrahedron.
+        """Returns the barycenter point of the specified tetrahedron.
 
         :param int index: The tetrahedral index.
         :return: A barycenter point
@@ -230,8 +226,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef double volume(self, int index):
-        """
-        Calculate a volume of the specified tetrahedron
+        """Calculate a volume of the specified tetrahedron.
 
         :param int index: The tetrahedral index.
         :return: A volume of specified tetrahedron
@@ -248,8 +243,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef double volume_total(self):
-        """
-        Calculate a total volume of all tetrahedra
+        """Calculate a total volume of all tetrahedra.
 
         :return: total volume of all tetrahedra
         :rtype: double
@@ -268,9 +262,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.initializedcheck(False)
     @cython.cdivision(True)
     cdef double _volume(self, int index):
-        """
-        Fast calculation of volume of a tetrahedron
-        """
+        """Fast calculation of volume of a tetrahedron."""
         cdef:
             np.int32_t i1, i2, i3, i4
             Point3D p1, p2, p3, p4
@@ -328,11 +320,10 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cdef BoundingBox3D _generate_bounding_box(self, np.int32_t tetrahedra):
-        """
-        Generates a bounding box for the specified tetrahedron.
+        """Generates a bounding box for the specified tetrahedron.
 
-        A small degree of padding is added to the bounding box to provide the
-        conservative bounds required by the watertight mesh algorithm.
+        A small degree of padding is added to the bounding box to provide the conservative bounds
+        required by the watertight mesh algorithm.
 
         :param tetrahedra: tetrahedral array index.
         :return: A BoundingBox3D object.
@@ -445,8 +436,8 @@ cdef class TetraMeshData(KDTree3DCore):
         return False
 
     cpdef bint is_contained(self, Point3D point):
-        """
-        Traverses the kd-Tree to identify if the point is contained by an item.
+        """Traverses the kd-Tree to identify if the point is contained by an item.
+
         :param Point3D point: A Point3D object.
         :return: True if the point lies inside an item, false otherwise.
         :rtype: bool
@@ -477,12 +468,10 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef BoundingBox3D bounding_box(self, AffineMatrix3D to_world):
-        """
-        Returns a bounding box that encloses the mesh.
+        """Returns a bounding box that encloses the mesh.
 
-        The box is padded by a small margin to reduce the risk of numerical
-        accuracy problems between the mesh and box representations following
-        coordinate transforms.
+        The box is padded by a small margin to reduce the risk of numerical accuracy problems
+        between the mesh and box representations following coordinate transforms.
 
         :param to_world: Local to world space transform matrix.
         :return: A BoundingBox3D object.
@@ -507,8 +496,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def save(self, object file):
-        """
-        Save the mesh's kd-Tree representation to a binary Raysect mesh file (.rsm).
+        """Save the mesh's kd-Tree representation to a binary Raysect mesh file (.rsm).
 
         :param object file: File stream or string file name to save state.
         """
@@ -561,8 +549,7 @@ cdef class TetraMeshData(KDTree3DCore):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def load(self, object file):
-        """
-        Load a mesh with its kd-Tree representation from Raysect mesh binary file (.rsm).
+        """Load a mesh with its kd-Tree representation from Raysect mesh binary file (.rsm).
 
         :param object file: File stream or string file name to save state.
         """
@@ -637,8 +624,7 @@ cdef class TetraMeshData(KDTree3DCore):
 
     @classmethod
     def from_file(cls, file):
-        """
-        Load a mesh with its kd-Tree representation from Raysect mesh binary file (.rsm).
+        """Load a mesh with its kd-Tree representation from Raysect mesh binary file (.rsm).
 
         :param object file: File stream or string file name to save state.
 

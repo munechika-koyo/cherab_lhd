@@ -91,8 +91,7 @@ cdef class Mapper(Function3D):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cpdef bint inside_grids(self, double x, double y, double z):
-        """Mask function returning True if Point (x, y, z) in any grids, otherwise False.
-        """
+        """Mask function returning True if Point (x, y, z) in any grids, otherwise False."""
         return self._index_func(x, y, z) > -1
 
 

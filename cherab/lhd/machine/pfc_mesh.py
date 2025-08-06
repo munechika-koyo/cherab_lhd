@@ -65,7 +65,7 @@ def load_pfc_mesh(
     ----------
     world : `~raysect.optical.world.World`
         The world scenegraph to which the meshes will be added.
-    custom_components : dict[str, tuple[str, Material, float | None]], optional
+    custom_components : dict[str, tuple[str, `~raysect.optical.material.material.Material`, float | None]], optional
         Custom components to load, by default None.
         The structure of the dictionary is as follows:
         ``{"Component Name": ("path", Material class, roughness)}``.

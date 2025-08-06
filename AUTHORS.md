@@ -1,9 +1,7 @@
-Core Team
----------
+## Core Team
 
-* Koyo Munechika (Core Developer)
+- Koyo Munechika (Core Developer)
 
+## Contributors
 
-Contributors
-------------
-* Anyone is welcome!!
+- Anyone is welcome!!

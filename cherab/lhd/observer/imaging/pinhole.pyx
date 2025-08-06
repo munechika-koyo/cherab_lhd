@@ -1,5 +1,4 @@
-"""Module to define `.PinholeCamera` class
-"""
+"""Module to define `.PinholeCamera` class."""
 from raysect.optical cimport AffineMatrix3D, Point3D, Ray, Vector3D, new_point3d, translate
 from raysect.optical.observer.imaging.ccd cimport CCDArray
 from raysect.optical.observer.pipeline cimport RGBPipeline2D
@@ -55,8 +54,7 @@ cdef class PinholeCamera(CCDArray):
 
     @property
     def focal_length(self):
-        """
-        Focal length in metres.
+        """Focal length in metres.
 
         :rtype: float
         """
@@ -71,8 +69,7 @@ cdef class PinholeCamera(CCDArray):
 
     @property
     def pinhole_point(self):
-        """
-        Pinhole point from the centre of CCD
+        """Pinhole point from the centre of CCD.
 
         :rtype: tuple
         """
