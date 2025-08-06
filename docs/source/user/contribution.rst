@@ -25,10 +25,10 @@ in advance.
 
 .. note::
 
-    Before you start developing, please ensure that your code remains clean and consistent by installing pre-commit.
+    Before you start developing, please ensure that your code remains clean and consistent by pre-commit system.
     Running the following command will automatically set up the hooks::
 
-        pixi run pre-commit-install
+        pixi run hooks
 
 
 .. tab-set::
@@ -55,19 +55,26 @@ in advance.
 
             pixi run doc-serve
 
+        The documentation will be served at http://localhost:8000.
+
     .. tab-item:: lint/format
 
-        To lint the code, you can do so with::
+        To lint & format the all files, you can do so with::
 
             pixi run lint
 
-        To format the code, you can do so with::
+        All linters and formatters registered in the `lefthook <https://lefthook.dev>`_ configuration will be run.
+        If you want to run a specific linter or formatter, you can do so with::
 
-            pixi run format
+            pixi run -e lint ruff check
 
-        To run pre-commit hooks for all files, you can do so with::
+        When you commit your changes, the pre-commit hooks will automatically run; However, if you want to run them manually,
+        you can do so with::
 
-            pixi run pre-commit-run
+            pixi run pre-commit
+
+        Note that you must stage your changes before running the pre-commit hooks.
+
 
     .. tab-item:: ipython
 
