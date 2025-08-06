@@ -252,7 +252,7 @@ class CurvCoords:
         Examples
         --------
         >>> import numpy as np
-        >>> from cherab.lhd.emc3 import CenterGrid
+        >>> from cherab.lhd.emc3 import CenterGrid, CurvCoords
 
         >>> grid = CenterGrid("zone0", index_type="coarse")
         >>> coords = CurvCoords(grid)
@@ -272,7 +272,9 @@ class CurvCoords:
         >>> g2 = coords.compute_metric(coords.b_rho, coords.b_rho)
         >>> np.allclose(g1, g2)
         False
-        >>> g2[0, 0, 0]
+        >>> g2[1, 95, :]
+        array([0.99958888, 0.99489574, 0.98005405, 0.94959291, 0.90505516,
+               0.8577584 , 0.82079362, 0.80076089, 0.79733005])
         """
 
         return np.einsum("...i,...i", v1, v2)
