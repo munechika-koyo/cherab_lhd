@@ -1,12 +1,9 @@
-[
-  {
-    "url": "https://cherab-lhd.readthedocs.io/en/latest/",
-    "version": "dev"
-  },
-  {
-    "name": "0.2",
-    "preferred": true,
-    "url": "https://cherab-lhd.readthedocs.io/en/v0.2.0/",
-    "version": "v0.2.0"
-  }
-]
+[{
+  "url": "https://cherab-lhd.readthedocs.io/en/latest/",
+  "version": "dev"
+}, {
+  "name": "0.2",
+  "preferred": true,
+  "url": "https://cherab-lhd.readthedocs.io/en/v0.2.0/",
+  "version": "v0.2.0"
+}]

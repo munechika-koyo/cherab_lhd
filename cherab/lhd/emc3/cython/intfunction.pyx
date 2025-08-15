@@ -8,25 +8,22 @@ __all__ = ["IntegerFunction3D", "IntegerConstant3D", "PythonIntegerFunction3D"]
 
 
 cdef class IntegerFunction3D:
-    """
-    Cython optimised class for representing an arbitrary 3D function returning a integer.
+    """Cython optimised class for representing an arbitrary 3D function returning a integer.
 
-    Using __call__() in cython is slow. This class provides an overloadable
-    cython cdef evaluate() method which has much less overhead than a python
-    function call.
+    Using __call__() in cython is slow. This class provides an overloadable cython cdef evaluate()
+    method which has much less overhead than a python function call.
 
     For use in cython code only, this class cannot be extended via python.
 
-    To create a new function object, inherit this class and implement the
-    evaluate() method. The new function object can then be used with any code
-    that accepts a function object.
+    To create a new function object, inherit this class and implement the evaluate() method. The new
+    function object can then be used with any code that accepts a function object.
     """
 
     cdef int evaluate(self, double x, double y, double z) except? INT_MIN:
         raise NotImplementedError("The evaluate() method has not been implemented.")
 
     def __call__(self, double x, double y, double z):
-        """ Evaluate the function f(x, y, z)
+        """Evaluate the function f(x, y, z)
 
         Parameters
         ----------
@@ -109,8 +106,7 @@ cdef class AddScalar3D(IntegerFunction3D):
 
 
 cdef class IntegerConstant3D(IntegerFunction3D):
-    """
-    Wraps a scalar constant with a IntegerFunction3D object.
+    """Wraps a scalar constant with a IntegerFunction3D object.
 
     This class allows a numeric Python scalar, such as an integer, to
     interact with cython code that requires a IntegerFunction3D object. The scalar must
@@ -143,8 +139,7 @@ cdef class IntegerConstant3D(IntegerFunction3D):
 
 
 cdef class PythonIntegerFunction3D(IntegerFunction3D):
-    """
-    Wraps a python callable object with a IntegerFunction3D object.
+    """Wraps a python callable object with a IntegerFunction3D object.
 
     This class allows a python object to interact with cython code that requires
     a IntegerFunction3D object. The python object must implement __call__() expecting
@@ -171,18 +166,16 @@ cdef class PythonIntegerFunction3D(IntegerFunction3D):
 
 
 cdef IntegerFunction3D autowrap_intfunction3d(object obj):
-    """
-    Automatically wraps the supplied python object in a PythonIntegerFunction3D
-    or IntegerConstant3D object.
+    """Automatically wraps the supplied python object in a PythonIntegerFunction3D or
+    IntegerConstant3D object.
 
-    If this function is passed a valid IntegerFunction3D object, then the IntegerFunction3D
-    object is simply returned without wrapping.
+    If this function is passed a valid IntegerFunction3D object, then the IntegerFunction3D object
+    is simply returned without wrapping.
 
-    If this function is passed a numerical scalar (int or float), a Constant3D
-    object is returned.
+    If this function is passed a numerical scalar (int or float), a Constant3D object is returned.
 
-    This convenience function is provided to simplify the handling of Function3D
-    and python callable objects in constructors, functions and setters.
+    This convenience function is provided to simplify the handling of Function3D and python callable
+    objects in constructors, functions and setters.
     """
 
     if isinstance(obj, IntegerFunction3D):

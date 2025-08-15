@@ -32,12 +32,12 @@ def load_resistive(
         The variant of bolometer model, by default ``"I"``.
     parent : `_NodeBase`, optional
         The parent node of this camera in the scenegraph, by default None.
-        `~raysect.core.World` object is often used.
+        `~raysect.core.scenegraph.world.World` object is often used.
 
     Returns
     -------
     `~cherab.tools.observers.bolometry.BolometerCamera`
-        Populated `~cherab.tools.observers.bolometry.BolometerCamera.BolometerCamera` instance.
+        Populated `~cherab.tools.observers.bolometry.BolometerCamera` instance.
     """
     # import configs as a resource
     with open(fetch_file("observer/RB.json"), "r") as file:
