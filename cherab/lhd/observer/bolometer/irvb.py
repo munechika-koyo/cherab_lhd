@@ -8,9 +8,10 @@ import numpy as np
 from numpy import ndarray
 from plotly import graph_objects as go
 from raysect.core import Node, Primitive
-from raysect.core.math import AffineMatrix3D, Point3D, Vector3D
-from raysect.optical import Ray
-from raysect.optical.material import AbsorbingSurface, NullMaterial
+from raysect.core.math import AffineMatrix3D, Point3D, Vector3D, translate
+from raysect.optical import Ray, World
+from raysect.optical.loggingray import LoggingRay
+from raysect.optical.material import AbsorbingSurface
 from raysect.optical.observer import TargetedCCDArray
 from raysect.primitive import Box
 
@@ -218,6 +219,11 @@ class IRVBCamera(Node):
         else:
             fig = go.Figure()
 
+        # Create scene graph temporally
+        world = World()
+        prev_parent = self.parent
+        self.parent = world
+
         # target slit
         corners = [
             self.slit.centre_point
@@ -326,7 +332,7 @@ class IRVBCamera(Node):
             )
 
         # plot rays
-        if plot_pixel_rays:
+        if plot_pixel_rays is not None:
             # set default properties
             plot_pixel_rays.setdefault("pixel", (0, 0))  # select specific pixel number
             plot_pixel_rays.setdefault("num_rays", 50)  # number of rays triggered
@@ -366,13 +372,13 @@ class IRVBCamera(Node):
             # set ray terminated board
             if plot_pixel_rays["terminate"] > 0:
                 terminate_board = Box(
-                    lower=Point3D(-1e9, -1e9, plot_pixel_rays["terminate"]),
-                    upper=Point3D(1e9, 1e9, plot_pixel_rays["terminate"] + 1.0),
-                    parent=self.parent,
+                    lower=Point3D(-1e9, -1e9, -1e-3),
+                    upper=Point3D(1e9, 1e9, 0),
+                    parent=self,
                     name="terminating_board",
                 )
                 terminate_board.material = AbsorbingSurface()
-                terminate_board.transform = self.foil_detector.to_root()
+                terminate_board.transform = translate(0, 0, plot_pixel_rays["terminate"])
 
             # ray tracing
             ray_temp = Ray()
@@ -381,34 +387,17 @@ class IRVBCamera(Node):
             )
             for ray in rays:
                 origin = ray[0].origin.transform(self.foil_detector.to_root())
-                origin_0 = origin.copy()
                 direction = ray[0].direction.transform(self.foil_detector.to_root())
 
-                while True:
-                    # Find the next intersection point
-                    intersection = self.parent.hit(Ray(origin, direction))
+                log_ray = LoggingRay(origin, direction)
+                log_ray.trace(world)
 
-                    if intersection is None:
-                        raise RuntimeError("No material intersection was found for this sightline.")
+                if len(log_ray.log) == 0:
+                    continue
 
-                    elif isinstance(intersection.primitive.material, NullMaterial):
-                        # apply a small displacement to avoid infinite self collisions due to numerics
-                        hit_point = intersection.hit_point.transform(
-                            intersection.primitive_to_world
-                        )
-                        ray_displacement = pixel_pitch / 100
-                        origin = hit_point + direction * ray_displacement
-                        continue
-                    else:
-                        hit_point = intersection.hit_point.transform(
-                            intersection.primitive_to_world
-                        )
-                        break
+                hit_point = log_ray.log[-1].hit_point.transform(log_ray.log[-1].primitive.to_root())
 
-                # TODO: remove terminating board
-                # self.parent.children.pop(-1)
-
-                line = np.array([[*origin_0], [*hit_point]])
+                line = np.array([[*origin], [*hit_point]])
 
                 fig.add_trace(
                     go.Scatter3d(
@@ -421,6 +410,9 @@ class IRVBCamera(Node):
                         showlegend=False,
                     )
                 )
+
+            # Set terminate_board' parent to world to remove it from IRVBCamera's children nodes
+            terminate_board.parent = world
 
         # axis vector
         if show_foil_xy_axes:
@@ -456,4 +448,8 @@ class IRVBCamera(Node):
             margin=dict(r=10, l=10, b=10, t=10),
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
         )
+
+        # restore previous parent node
+        self.parent = prev_parent
+
         return fig
