@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 from numpy import ndarray
+from plotly import graph_objects as go
 from raysect.core import Node, Primitive
 from raysect.core.math import AffineMatrix3D, Point3D, Vector3D
 from raysect.optical import Ray
@@ -14,11 +15,6 @@ from raysect.optical.observer import TargetedCCDArray
 from raysect.primitive import Box
 
 from cherab.tools.observers import BolometerFoil, BolometerSlit
-
-try:
-    import plotly.graph_objects as go
-except ImportError:
-    print("Plotly is required if using IRVB model plotting functionality.")
 
 __all__ = ["IRVBCamera"]
 
@@ -214,12 +210,7 @@ class IRVBCamera(Node):
         `~plotly.graph_objs.Figure`
             Figure objects include some traces.
         """
-
-        try:
-            import plotly.graph_objects as go
-        except ImportError:
-            print("must install plotly module.")
-            return
+        from raysect.primitive.csg import Subtract
 
         if fig is not None:
             if not isinstance(fig, go.Figure):
@@ -240,7 +231,20 @@ class IRVBCamera(Node):
         ]
         corners = np.array([[*point] for point in corners])
         fig.add_trace(
-            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="slit")
+            go.Mesh3d(
+                x=corners[:, 0],
+                y=corners[:, 1],
+                z=corners[:, 2],
+                opacity=0.6,
+                name="Slit",
+                hovertemplate=(
+                    "x: %{x}<br>"
+                    "y: %{y}<br>"
+                    "z: %{z}<br>"
+                    f"w: {self.slit.dx * 1e3:.2f} mm<br>"
+                    f"h: {self.slit.dy * 1e3:.2f} mm"
+                ),
+            )
         )
 
         # foil screen
@@ -259,45 +263,67 @@ class IRVBCamera(Node):
         ]
         corners = np.array([[*point] for point in corners])
         fig.add_trace(
-            go.Mesh3d(x=corners[:, 0], y=corners[:, 1], z=corners[:, 2], opacity=0.6, text="foil")
+            go.Mesh3d(
+                x=corners[:, 0],
+                y=corners[:, 1],
+                z=corners[:, 2],
+                opacity=0.6,
+                name="Foil",
+                hovertemplate=(
+                    "x: %{x}<br>"
+                    "y: %{y}<br>"
+                    "z: %{z}<br>"
+                    f"w: {width * 1e3:.0f} mm<br>"
+                    f"h: {height * 1e3:.0f} mm"
+                ),
+            )
         )
 
         # camera box
-        xaxis = XAXIS.transform(self.to_root())
-        yaxis = YAXIS.transform(self.to_root())
-        zaxis = ZAXIS.transform(self.to_root())
-        inner_box = self._camera_geometry.primitive_a.primitive_b
-        lower = inner_box.lower.transform(self.to_root())
-        upper = inner_box.upper.transform(self.to_root())
-        lower_to_upper = lower.vector_to(upper)
-        box_width = abs(lower_to_upper.dot(xaxis))
-        box_height = abs(lower_to_upper.dot(yaxis))
-        box_depth = abs(lower_to_upper.dot(zaxis))
-        vertices = [
-            lower,
-            lower + box_width * xaxis,
-            lower + box_width * xaxis + box_height * yaxis,
-            lower + box_height * yaxis,
-            lower + box_depth * zaxis,
-            lower + box_depth * zaxis + box_width * xaxis,
-            upper,
-            upper - box_width * xaxis,
-        ]
-        vertices = np.array([[*vertex] for vertex in vertices])
+        if self._camera_geometry is not None:
+            # Determine the camera box geometry
+            if isinstance(self._camera_geometry, Box):
+                box = self._camera_geometry
+            elif isinstance(self._camera_geometry, Subtract):
+                box = self._camera_geometry.primitive_a.primitive_b
+            else:
+                raise NotImplementedError("Unsupported camera geometry")
 
-        fig.add_trace(
-            go.Mesh3d(
-                x=vertices[:, 0],
-                y=vertices[:, 1],
-                z=vertices[:, 2],
-                i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-                j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-                k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-                opacity=0.2,
-                color="#7d7d7d",
-                flatshading=True,
+            xaxis = XAXIS.transform(self.to_root())
+            yaxis = YAXIS.transform(self.to_root())
+            zaxis = ZAXIS.transform(self.to_root())
+            lower = box.lower.transform(self.to_root())
+            upper = box.upper.transform(self.to_root())
+            lower_to_upper = lower.vector_to(upper)
+            box_width = abs(lower_to_upper.dot(xaxis))
+            box_height = abs(lower_to_upper.dot(yaxis))
+            box_depth = abs(lower_to_upper.dot(zaxis))
+            vertices = [
+                lower,
+                lower + box_width * xaxis,
+                lower + box_width * xaxis + box_height * yaxis,
+                lower + box_height * yaxis,
+                lower + box_depth * zaxis,
+                lower + box_depth * zaxis + box_width * xaxis,
+                upper,
+                upper - box_width * xaxis,
+            ]
+            vertices = np.array([[*vertex] for vertex in vertices])
+
+            fig.add_trace(
+                go.Mesh3d(
+                    x=vertices[:, 0],
+                    y=vertices[:, 1],
+                    z=vertices[:, 2],
+                    i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
+                    j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
+                    k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+                    opacity=0.2,
+                    color="#7d7d7d",
+                    flatshading=True,
+                    name="Camera Box",
+                )
             )
-        )
 
         # plot rays
         if plot_pixel_rays:
@@ -331,8 +357,9 @@ class IRVBCamera(Node):
                     y=corners[:, 1],
                     z=corners[:, 2],
                     opacity=0.6,
-                    text="selected pixel",
+                    text="Selected",
                     color="#7fff00",
+                    hovertemplate=f"Pixel: {pixel[0] + 1}, {pixel[1] + 1}<extra></extra>",
                 )
             )
 
@@ -390,7 +417,7 @@ class IRVBCamera(Node):
                         y=line[:, 1],
                         z=line[:, 2],
                         line=dict(color="#FF0033", width=2),
-                        text="sampled_ray",
+                        name="Ray",
                         showlegend=False,
                     )
                 )
@@ -407,6 +434,7 @@ class IRVBCamera(Node):
                 marker=dict(color="rgb(256, 0, 0)", size=2),
                 line=dict(color="rgb(256, 0, 0)"),
                 showlegend=False,
+                name="X Axis",
             )
             yaxis_vector = go.Scatter3d(
                 x=[foil_centre_point.x, foil_centre_point.x + height * basis_y.x],
@@ -415,6 +443,7 @@ class IRVBCamera(Node):
                 marker=dict(color="rgb(0, 256, 0)", size=2),
                 line=dict(color="rgb(0, 256, 0)"),
                 showlegend=False,
+                name="Y Axis",
             )
             fig.add_trace(xaxis_vector)
             fig.add_trace(yaxis_vector)
