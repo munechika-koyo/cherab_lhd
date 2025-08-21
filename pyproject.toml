@@ -172,7 +172,7 @@ pooch = ">=1.8.2,<2"
 paramiko = ">=3.5.1,<4"
 tqdm = ">=4.67.1,<5"
 ipython = ">=8.35.0,<10"
-pyvista = ">=0.45.0,<0.46"
+pyvista = ">=0.46.2,<0.47"
 
 # Workaround for https://github.com/prefix-dev/pixi/issues/3479
 [tool.pixi.target.osx-arm64.dependencies]
