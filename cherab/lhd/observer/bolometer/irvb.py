@@ -288,48 +288,52 @@ class IRVBCamera(Node):
         # camera box
         if self._camera_geometry is not None:
             # Determine the camera box geometry
-            if isinstance(self._camera_geometry, Box):
-                box = self._camera_geometry
-            elif isinstance(self._camera_geometry, Subtract):
-                box = self._camera_geometry.primitive_a.primitive_b
-            else:
-                raise NotImplementedError("Unsupported camera geometry")
+            if isinstance(self._camera_geometry, Subtract):
+                if isinstance(box := self._camera_geometry.primitive_a, Subtract):
+                    # Camera box created by CSG operation: (Outer - Inner) - aperture
+                    # Extract the Inner box
+                    box = box.primitive_b
+                else:
+                    # Camera box created by CSG operation: Outer - Inner
+                    box = self._camera_geometry.primitive_b
 
-            xaxis = XAXIS.transform(self.to_root())
-            yaxis = YAXIS.transform(self.to_root())
-            zaxis = ZAXIS.transform(self.to_root())
-            lower = box.lower.transform(self.to_root())
-            upper = box.upper.transform(self.to_root())
-            lower_to_upper = lower.vector_to(upper)
-            box_width = abs(lower_to_upper.dot(xaxis))
-            box_height = abs(lower_to_upper.dot(yaxis))
-            box_depth = abs(lower_to_upper.dot(zaxis))
-            vertices = [
-                lower,
-                lower + box_width * xaxis,
-                lower + box_width * xaxis + box_height * yaxis,
-                lower + box_height * yaxis,
-                lower + box_depth * zaxis,
-                lower + box_depth * zaxis + box_width * xaxis,
-                upper,
-                upper - box_width * xaxis,
-            ]
-            vertices = np.array([[*vertex] for vertex in vertices])
+                xaxis = XAXIS.transform(self.to_root())
+                yaxis = YAXIS.transform(self.to_root())
+                zaxis = ZAXIS.transform(self.to_root())
+                lower = box.lower.transform(self.to_root())
+                upper = box.upper.transform(self.to_root())
+                lower_to_upper = lower.vector_to(upper)
+                box_width = abs(lower_to_upper.dot(xaxis))
+                box_height = abs(lower_to_upper.dot(yaxis))
+                box_depth = abs(lower_to_upper.dot(zaxis))
+                vertices = [
+                    lower,
+                    lower + box_width * xaxis,
+                    lower + box_width * xaxis + box_height * yaxis,
+                    lower + box_height * yaxis,
+                    lower + box_depth * zaxis,
+                    lower + box_depth * zaxis + box_width * xaxis,
+                    upper,
+                    upper - box_width * xaxis,
+                ]
+                vertices = np.array([[*vertex] for vertex in vertices])
 
-            fig.add_trace(
-                go.Mesh3d(
-                    x=vertices[:, 0],
-                    y=vertices[:, 1],
-                    z=vertices[:, 2],
-                    i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
-                    j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
-                    k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-                    opacity=0.2,
-                    color="#7d7d7d",
-                    flatshading=True,
-                    name="Camera Box",
+                fig.add_trace(
+                    go.Mesh3d(
+                        x=vertices[:, 0],
+                        y=vertices[:, 1],
+                        z=vertices[:, 2],
+                        i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
+                        j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
+                        k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+                        opacity=0.2,
+                        color="#7d7d7d",
+                        flatshading=True,
+                        name="Camera Box",
+                    )
                 )
-            )
+            else:
+                Warning("Unknown camera geometry type. Skipping camera box plotting.")
 
         # plot rays
         if plot_pixel_rays is not None:
