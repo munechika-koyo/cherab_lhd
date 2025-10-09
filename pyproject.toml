@@ -15,7 +15,8 @@ description = "Cherab spectroscopy framework: LHD machine configuration"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE.md" }
+license = "BSD-3-Clause"
+license-files = ["LICEN[CS]E.*"]
 authors = [
   { name = "Koyo Munechika", email = "munechika.koyo@torus.nr.titech.ac.jp" },
 ]
@@ -27,7 +28,6 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "Intended Audience :: Education",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: BSD License",
   "Natural Language :: English",
   "Operating System :: POSIX :: Linux",
   "Operating System :: MacOS",
