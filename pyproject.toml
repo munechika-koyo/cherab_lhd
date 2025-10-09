@@ -14,7 +14,7 @@ name = "cherab-lhd"
 description = "Cherab spectroscopy framework: LHD machine configuration"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 license = "BSD-3-Clause"
 license-files = ["LICEN[CS]E.*"]
 authors = [
