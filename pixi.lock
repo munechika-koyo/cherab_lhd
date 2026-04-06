@@ -5,6 +5,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -748,6 +750,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -1684,6 +1688,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -2661,6 +2667,8 @@ environments:
   lint:
     channels:
     - url: https://prefix.dev/conda-forge/
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -2783,6 +2791,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -3574,6 +3584,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -4365,6 +4377,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -5156,6 +5170,8 @@ environments:
     - url: https://prefix.dev/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -7616,7 +7632,7 @@ packages:
 - pypi: ./
   name: cherab-lhd
   version: 0.2.1.dev0
-  sha256: e516cd55d26271245e235daab5da693d84fbf7dff1816b952f9528ede0139834
+  sha256: 07d500b14881e0d14e816cbdd0f9984dfbe975d7eb41870f2c60ae583925bff9
   requires_dist:
   - numpy>=1.14,<2.0
   - scipy
@@ -7631,7 +7647,6 @@ packages:
   - paramiko
   - tqdm
   requires_python: '>=3.10'
-  editable: true
 - conda: https://prefix.dev/conda-forge/osx-64/clang-18.1.8-default_h576c50e_9.conda
   sha256: 0e7e33950d9dc2a01a14e3830bfa37575642f338d09526c5b3b78af381311352
   md5: 266e7e8fa2190df09e6f236571c91511
