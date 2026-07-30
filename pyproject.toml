@@ -161,7 +161,7 @@ llvm-openmp = "*"
 [tool.pixi.dependencies]
 numpy = ">=1.26.4,<3"
 scipy = ">=1.15.2,<2"
-cherab-inversion = ">=0.3.1,<0.4"
+cherab-inversion = ">=0.4.1,<0.5"
 matplotlib = ">=3.10.0,<4"
 plotly = ">=6.0.0,<7"
 h5py = ">=3.13.0,<4"
